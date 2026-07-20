@@ -1,0 +1,1318 @@
+import{useState,useEffect,useRef,useMemo}from"react";
+
+const RC={DY13:{n:"CT110 X ES NXT",cat:"CT",ex:71184,cAcc:0,hdl:600,ins:6834,reg:8506,onRoad:88824,amc:1050},DY08:{n:"CT 110 X ES",cat:"CT",ex:65207,cAcc:0,hdl:600,ins:6716,reg:8087,onRoad:82310,amc:1050},JK39:{n:"Platina 100 ES NXT",cat:"PLATINA",ex:69142,cAcc:0,hdl:600,ins:6788,reg:6793,onRoad:85023,amc:1050},JK38:{n:"Platina 110 Drum ES NXT",cat:"PLATINA",ex:73142,cAcc:0,hdl:600,ins:6872,reg:8643,onRoad:90957,amc:1050},JH31:{n:"Freedom 125 Drum OBD2A",cat:"FREEDOM",ex:91625,cAcc:788,hdl:600,ins:7236,reg:9937,onRoad:111886,amc:1322},JH36:{n:"Freedom 125 Disc LED",cat:"FREEDOM",ex:111604,cAcc:788,hdl:600,ins:7631,reg:13567,onRoad:135890,amc:1322},JH37:{n:"Freedom 125 Drum LED",cat:"FREEDOM",ex:104117,cAcc:788,hdl:600,ins:7484,reg:12894,onRoad:127583,amc:1322},JZ51:{n:"Pulsar N125 Top",cat:"N125",ex:92530,cAcc:788,hdl:600,ins:7254,reg:10000,onRoad:112872,amc:1322},JZ53:{n:"Pulsar N125 Mid",cat:"N125",ex:86836,cAcc:738,hdl:600,ins:7254,reg:9602,onRoad:106730,amc:1322},JZ56:{n:"Pulsar N125 Top OBD2B",cat:"N125",ex:92990,cAcc:788,hdl:600,ins:7254,reg:10032,onRoad:113364,amc:1322},DH65:{n:"PULSAR 125 Neon DISC",cat:"P125",ex:82081,cAcc:788,hdl:600,ins:7001,reg:9269,onRoad:101439,amc:1322},DH62:{n:"PULSAR 125 Carbon Disc",cat:"P125",ex:86175,cAcc:788,hdl:600,ins:7114,reg:9555,onRoad:105932,amc:1322},DH70:{n:"Pulsar 125 CF Split Seat LED",cat:"P125",ex:93934,cAcc:788,hdl:600,ins:7282,reg:10098,onRoad:114402,amc:1322},DH71:{n:"Pulsar 125 CF Disc LED",cat:"P125",ex:91757,cAcc:788,hdl:600,ins:7240,reg:9946,onRoad:112031,amc:1322},JF58:{n:"Pulsar NS 125 UG OBD2B",cat:"NS125",ex:99409,cAcc:876,hdl:600,ins:7390,reg:10482,onRoad:120457,amc:1322},JF60:{n:"Pulsar NS 125 ABS OBD2B",cat:"NS125",ex:99999,cAcc:876,hdl:600,ins:7402,reg:10523,onRoad:121100,amc:1322},DH60:{n:"PULSAR 150 SD UG",cat:"P150",ex:107941,cAcc:876,hdl:600,ins:7559,reg:13238,onRoad:131914,amc:1322},DH69:{n:"PULSAR 150 TD UG",cat:"P150",ex:117794,cAcc:876,hdl:600,ins:7753,reg:14124,onRoad:142847,amc:1322},DH63:{n:"PULSAR 150 TD OBD2B",cat:"P150",ex:111982,cAcc:876,hdl:600,ins:7639,reg:13601,onRoad:136398,amc:1322},JF43:{n:"PULSAR NS 160 UG",cat:"NS160",ex:129476,cAcc:876,hdl:600,ins:12130,reg:15176,onRoad:159958,amc:1699},JF55:{n:"PULSAR NS 160 Twin Channel",cat:"NS160",ex:124638,cAcc:876,hdl:600,ins:12035,reg:14740,onRoad:154589,amc:1699},JF45:{n:"PULSAR NS 160 OBD2B",cat:"NS160",ex:133139,cAcc:876,hdl:600,ins:12202,reg:15506,onRoad:164023,amc:1699},JR50:{n:"Pulsar N 160 TD",cat:"N160",ex:114053,cAcc:876,hdl:600,ins:11826,reg:13788,onRoad:142843,amc:1699},JR37:{n:"Pulsar N 160",cat:"N160",ex:117658,cAcc:876,hdl:600,ins:11897,reg:14112,onRoad:146843,amc:1699},JR33:{n:"Pulsar N 160 UG OBD2B",cat:"N160",ex:129381,cAcc:876,hdl:600,ins:12128,reg:15167,onRoad:159852,amc:1699},JR83:{n:"Pulsar N160 Split Seat USD",cat:"N160",ex:130355,cAcc:876,hdl:600,ins:12148,reg:15255,onRoad:160934,amc:1699},JL30:{n:"PULSAR NS 200 Twin Channel",cat:"NS200",ex:137795,cAcc:876,hdl:600,ins:12294,reg:15925,onRoad:169190,amc:1699},JL25:{n:"PULSAR NS 200 OBD2B",cat:"NS200",ex:147978,cAcc:876,hdl:600,ins:12495,reg:16841,onRoad:180490,amc:1699},DJ16:{n:"PULSAR 180",cat:"P180",ex:123552,cAcc:876,hdl:600,ins:12013,reg:14643,onRoad:153384,amc:1699},DT22:{n:"PULSAR RS 200",cat:"RS200",ex:177384,cAcc:0,hdl:600,ins:13075,reg:19488,onRoad:212247,amc:1699},JR34:{n:"PULSAR N 250 OBD2B",cat:"N250",ex:139405,cAcc:876,hdl:600,ins:12326,reg:16069,onRoad:170976,amc:1699},PD39:{n:"AVENGER 160 Street",cat:"AVENGER",ex:113103,cAcc:876,hdl:600,ins:11807,reg:13702,onRoad:141788,amc:1699},PD40:{n:"AVENGER 220 STREET",cat:"AVENGER",ex:131293,cAcc:876,hdl:600,ins:12166,reg:15339,onRoad:161974,amc:1699},JF53:{n:"Dominar 250 UG",cat:"DOMINAR",ex:182924,cAcc:876,hdl:600,ins:13185,reg:19986,onRoad:219271,amc:1699},JF62:{n:"Dominar 400 UG",cat:"DOMINAR",ex:204370,cAcc:876,hdl:600,ins:13608,reg:21916,onRoad:243070,amc:1699},DK14:{n:"Pulsar 220 F LED",cat:"P220F",ex:134732,cAcc:0,hdl:600,ins:12234,reg:15649,onRoad:165791,amc:1699},JL32:{n:"Pulsar NS 400Z OBD2B",cat:"NS400",ex:182174,cAcc:876,hdl:600,ins:13170,reg:19919,onRoad:218439,amc:1699}};
+
+const SM=["Amit Kumar","Ravi Singh","Suresh Yadav","Priya Sharma","Deepak Gupta"];
+const BRANCHES=["Hirak Road","Saraidhela","Chirkunda"];
+const SM_BRANCH={"Amit Kumar":"Hirak Road","Ravi Singh":"Hirak Road","Suresh Yadav":"Saraidhela","Priya Sharma":"Saraidhela","Deepak Gupta":"Chirkunda"};
+const ST_C={Hot:"#ef4444",Warm:"#f97316",Cold:"#3b82f6",Booked:"#8b5cf6",Billed:"#10b981",Lost:"#6b7280"};
+const FU={Hot:1,Warm:3,Cold:7};
+const CATS=[...new Set(Object.values(RC).map(r=>r.cat))];
+
+function td(){return new Date().toISOString().split("T")[0];}
+function aD(d,n){const x=new Date(d);x.setDate(x.getDate()+n);return x.toISOString().split("T")[0];}
+function fd(d){if(!d)return"—";return new Date(d).toLocaleDateString("en-IN",{day:"2-digit",month:"short",year:"numeric"});}
+function fc(n){return"₹"+(Number(n)||0).toLocaleString("en-IN");}
+function compressImg(file,cb){
+  try{
+  var rd=new FileReader();
+  rd.onload=function(e){
+    var img=new Image();
+    img.onload=function(){
+      var MAX=900,w=img.width,h=img.height;
+      if(w>MAX||h>MAX){if(w>h){h=Math.round(h*MAX/w);w=MAX;}else{w=Math.round(w*MAX/h);h=MAX;}}
+      var cv=document.createElement("canvas");cv.width=w;cv.height=h;
+      cv.getContext("2d").drawImage(img,0,0,w,h);
+      cb(cv.toDataURL("image/jpeg",0.7));
+    };
+    img.onerror=function(){cb(e.target.result);};
+    img.src=e.target.result;
+  };
+  rd.readAsDataURL(file);
+  }catch(err){var r2=new FileReader();r2.onload=function(e){cb(e.target.result);};r2.readAsDataURL(file);}
+}
+function dlFile(content,filename,mime){
+  try{
+    var blob=new Blob([content],{type:mime||"text/html"});
+    var url=URL.createObjectURL(blob);
+    var a=document.createElement("a");a.href=url;a.download=filename;
+    document.body.appendChild(a);a.click();document.body.removeChild(a);
+    setTimeout(function(){URL.revokeObjectURL(url);},2000);
+  }catch(e){alert("Download blocked in this preview — will work in the deployed app/browser");}
+}
+function sv(k,v){try{localStorage.setItem(k,JSON.stringify(v));return true;}catch(e){return false;}}
+function ld(k,d){try{const v=localStorage.getItem(k);return v?JSON.parse(v):d;}catch(e){return d;}}
+
+try{Object.assign(RC,ld("nkd_rc",{}));}catch(e){}
+
+function calcB(f,r){
+  const ex=Number(r?.ex||0),ca=Number(r?.cAcc||0),hdl=Number(f.hdl||r?.hdl||600);
+  const ins=Number(f.ins||r?.ins||0),reg=Number(f.reg||r?.reg||0),acc=Number(f.acc||0);
+  const tef=Number(f.tef||0),hyp=Number(f.hyp||0),amcV=f.addAmc?(Number(r?.amc)||0):0;
+  const B=hdl+ins+reg+ca+acc+tef+hyp+amcV,C=ex+B;
+  const cof=Number(f.cof||0),sdis=Number(f.sdis||0),corp=Number(f.corp||0),D=cof+sdis+corp,E=C-D;
+  const bk=Number(f.bk||0),exv=Number(f.exv||0),F=bk+exv,G=E-F;
+  const loan=Number(f.loan||0),I=G-loan,paid=Number(f.paid||0),K=I-paid;
+  return{ex,ca,hdl,ins,reg,acc,tef,hyp,amcV,B,C,cof,sdis,corp,D,E,bk,exv,F,G,loan,I,paid,K};
+}
+
+function seedData(){
+  const s=ld("nkd6",null);if(s)return s;
+  const names=["Rajesh Verma","Sunil Gupta","Pooja Singh","Amit Sharma","Ravi Kumar","Meena Devi","Deepak Yadav","Sunita Prasad","Vijay Tiwari","Anita Kumari","Pankaj Jha","Kavita Singh","Rohit Sahu","Nisha Roy","Arun Mishra"];
+  const codes=Object.keys(RC);
+  const sts=["Hot","Warm","Hot","Cold","Warm","Hot","Warm","Cold","Hot","Warm","Hot","Booked","Warm","Hot","Cold"];
+  return names.map((name,i)=>{
+    const st=sts[i],mc=codes[i%codes.length],r=RC[mc],eq=aD(td(),-Math.floor(Math.random()*60+5));
+    return{id:"C"+(1000+i),name,phone:"90"+String(1e7+i*1234567).slice(1),fatherName:"",address:"House "+(i+1)+", Main Road, Dhanbad",dob:"198"+i%9+"-0"+(i%9+1)+"-15",aadhar:"",pan:"",modelCode:mc,model:r.n,cat:r.cat,enquiryDate:eq,status:st,salesman:SM[i%SM.length],branch:SM_BRANCH[SM[i%SM.length]],finance:i%2===0?"Finance":"Cash",exchangeAsked:i%3===0?"Honda Shine 2019":"",exchangeOffered:i%3===0?"25000":"",remarks:"["+eq+"] INTERESTED: Visited showroom, enquired about "+r.n,followupDate:aD(eq,FU[st]||3),attempts:0,stopped:false,billed:false,billedDate:null,photos:{},billing:null,managerApproval:null,callLog:[]};
+  });
+}
+
+const inp={background:"#161b27",border:"1px solid #252d3d",borderRadius:10,padding:"10px 12px",fontSize:13,color:"#e2e6f0",width:"100%",boxSizing:"border-box",outline:"none"};
+const lbl={fontSize:11,color:"#6b7a90",display:"block",marginBottom:4,fontWeight:500};
+const btn=(bg,col="#fff")=>({background:bg,border:"none",borderRadius:10,padding:"10px 14px",color:col,fontWeight:700,cursor:"pointer",fontSize:13});
+
+function PhIcon({s=18,c="#22c55e"}){return(<svg width={s} height={s} viewBox="0 0 24 24" fill="none" stroke={c} strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><path d="M22 16.92v3a2 2 0 01-2.18 2 19.79 19.79 0 01-8.63-3.07A19.5 19.5 0 013.07 11.5a19.79 19.79 0 01-3.07-8.63A2 2 0 012 .82h3a2 2 0 012 1.72c.128.96.347 1.903.7 2.81a2 2 0 01-.45 2.11L6.09 8.91a16 16 0 006 6l1.27-1.27a2 2 0 012.11-.45c.907.353 1.85.572 2.81.7A2 2 0 0122 15.92z"/></svg>);}
+function WAIcon({s=18}){return(<svg width={s} height={s} viewBox="0 0 24 24" fill="#25D366"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/></svg>);}
+
+function Badge({s}){return(<span style={{fontSize:10,fontWeight:800,background:ST_C[s]||"#374151",color:"#fff",padding:"2px 8px",borderRadius:20}}>{(s||"").toUpperCase()}</span>);}
+function Card({c,onClick,showSM}){
+  const r=RC[c.modelCode];
+  const ovd=!c.billed&&!c.stopped&&c.followupDate<td();
+  const last=(c.remarks||"").trim().split("\n").filter(Boolean).slice(-1)[0]||"";
+  const lastClean=last.replace(/^\[.*?\]\s*/,"").replace(/^[A-Z_]+:\s*/,"");
+  return(
+    <div onClick={onClick} className="fu glass" style={{background:"#12161f",border:"1px solid "+(ovd?"rgba(239,68,68,0.5)":"#1e2436"),borderRadius:13,padding:"12px 14px",marginBottom:9,cursor:"pointer",borderLeft:"3px solid "+(ST_C[c.status]||"#374151")}}>
+      <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start"}}>
+        <div style={{flex:1,minWidth:0}}>
+          <div style={{display:"flex",alignItems:"center",gap:7,flexWrap:"wrap"}}>
+            <span style={{fontWeight:700,fontSize:14,color:"#fff"}}>{c.name}</span>
+            <Badge s={c.status}/>
+            {c.stopped&&<span style={{fontSize:9,color:"#ef4444",fontWeight:800,background:"rgba(239,68,68,0.15)",padding:"2px 6px",borderRadius:6}}>STOPPED</span>}{c.managerApproval==="rejected"&&!c.billed&&<span style={{fontSize:9,color:"#fff",fontWeight:800,background:"#ef4444",padding:"2px 6px",borderRadius:6}}>❌ REJECTED — FIX CALC</span>}
+          </div>
+          <div style={{fontSize:12,color:"#8892a4",marginTop:2}}>{c.phone} · {c.model}</div>
+          <div style={{fontSize:11,color:"#5a6478"}}>{c.modelCode} · {c.finance}{showSM&&<span> · <span style={{color:"#60a5fa",fontWeight:700}}>{c.salesman}</span></span>}</div>
+          {lastClean&&<div style={{marginTop:6,borderLeft:"2px solid rgba(249,115,22,0.5)",paddingLeft:7,fontSize:11,color:"#9ca3af",lineHeight:1.4}}>{lastClean.length>80?lastClean.slice(0,80)+"…":lastClean}</div>}
+        </div>
+        <div style={{textAlign:"right",marginLeft:10,flexShrink:0}}>
+          {!c.billed&&!c.stopped&&<div style={{fontSize:10,color:ovd?"#ef4444":"#5a6478",fontWeight:ovd?700:400}}>{ovd?"OVERDUE":"DUE"}<br/><span style={{fontSize:11}}>{fd(c.followupDate)}</span></div>}
+          {c.billed&&<div style={{fontSize:11,color:"#34d399",fontWeight:700}}>✓ BILLED<br/><span style={{fontSize:10,color:"#5a6478",fontWeight:400}}>{fd(c.billedDate)}</span></div>}
+        </div>
+      </div>
+      {r&&<div style={{marginTop:6,fontSize:11,color:"#374151"}}>On-Road: <span style={{color:"#4b5563",fontWeight:600}}>{fc(r.onRoad)}</span></div>}
+    </div>
+  );
+}
+
+function Login({onLogin}){
+  const [role,setRole]=useState("salesman");
+  const [user,setUser]=useState(SM[0]);
+  const [pin,setPin]=useState("");
+  const [br,setBr]=useState(BRANCHES[0]);
+  const [spw,setSpw]=useState("");
+  const [showPw,setShowPw]=useState(false);
+  const [chg,setChg]=useState(false);
+  const [npw1,setNpw1]=useState("");
+  const [npw2,setNpw2]=useState("");
+  function go(){
+    if(role==="salesman"){
+      const pws=ld("nkd_pw",{});
+      const rec=pws[user]||{pw:"1111",must:true,fails:0,locked:false};
+      if(rec.locked){alert("🔒 Account locked after 5 wrong attempts.\nAsk Admin/Owner to reset your password.");return;}
+      if(spw!==rec.pw){rec.fails=(rec.fails||0)+1;if(rec.fails>=5){rec.locked=true;alert("🔒 Account LOCKED (5 wrong attempts). Admin has been flagged.");}else{alert("Wrong password ("+rec.fails+"/5 attempts)");}pws[user]=rec;sv("nkd_pw",pws);return;}
+      rec.fails=0;
+      if(rec.must&&!chg){setChg(true);pws[user]=rec;sv("nkd_pw",pws);return;}
+      if(rec.must&&chg){
+        if(!npw1||npw1.length<4){alert("New password must be at least 4 characters");return;}
+        if(npw1!==npw2){alert("New passwords do not match");return;}
+        rec.pw=npw1;rec.must=false;
+      }
+      pws[user]=rec;sv("nkd_pw",pws);
+    }
+    if(role!=="salesman"&&pin!==({manager:"1234",owner:"0000",admin:"9999"}[role])){alert("Wrong PIN");return;}
+    onLogin(role,role==="salesman"?user:role==="manager"?"Manager":role==="admin"?"Admin":"Owner",role==="manager"?br:null);
+  }
+  return(
+    <div style={{minHeight:"100vh",background:"#090c13",display:"flex",alignItems:"center",justifyContent:"center",padding:16}}>
+      <div className="fu glass" style={{width:"100%",maxWidth:340,background:"#12161f",borderRadius:26,padding:32,border:"1px solid #1e2436"}}>
+        <div style={{textAlign:"center",marginBottom:24}}>
+          <div style={{width:72,height:72,borderRadius:20,background:"linear-gradient(135deg,#f97316,#ef4444)",display:"flex",alignItems:"center",justifyContent:"center",fontWeight:900,fontSize:32,color:"#fff",margin:"0 auto 14px",animation:"glow 3s ease infinite"}}>B</div>
+          <div style={{fontWeight:800,fontSize:20,color:"#fff"}}>NKD Bajaj CRM</div>
+          <div style={{color:"#5a6478",fontSize:12,marginTop:3}}>Dhanbad · 3 Showrooms</div>
+        </div>
+        <div style={{display:"flex",flexDirection:"column",gap:12}}>
+          <div><label style={lbl}>Role</label><select style={inp} value={role} onChange={e=>setRole(e.target.value)}><option value="salesman">Sales Executive</option><option value="manager">Manager</option><option value="owner">Owner</option><option value="admin">Admin (Documents)</option></select></div>
+          {role==="salesman"&&<div><label style={lbl}>Your Name</label><select style={inp} value={user} onChange={e=>setUser(e.target.value)}>{SM.map(s=><option key={s}>{s}</option>)}</select></div>}
+          {role==="salesman"&&<div><label style={lbl}>Password <span style={{color:"#5a6478",fontWeight:400}}>(first time: 1111)</span></label>
+            <div style={{position:"relative"}}>
+              <input type={showPw?"text":"password"} style={inp} value={spw} onChange={e=>setSpw(e.target.value)} onKeyDown={e=>e.key==="Enter"&&go()}/>
+              <button onClick={()=>setShowPw(!showPw)} style={{position:"absolute",right:8,top:9,background:"transparent",border:"none",color:"#5a6478",cursor:"pointer",fontSize:14}}>{showPw?"🙈":"👁️"}</button>
+            </div>
+          </div>}
+          {role==="salesman"&&chg&&<div style={{background:"rgba(249,115,22,0.08)",border:"1px solid rgba(249,115,22,0.35)",borderRadius:12,padding:12}}>
+            <div style={{fontSize:11,color:"#f97316",fontWeight:700,marginBottom:8}}>🔐 First login — set your own password</div>
+            <input type="password" placeholder="New password (min 4 chars)" style={{...inp,marginBottom:8}} value={npw1} onChange={e=>setNpw1(e.target.value)}/>
+            <input type="password" placeholder="Re-enter new password" style={inp} value={npw2} onChange={e=>setNpw2(e.target.value)} onKeyDown={e=>e.key==="Enter"&&go()}/>
+          </div>}
+          {role==="manager"&&<div><label style={lbl}>Your Branch</label><select style={inp} value={br} onChange={e=>setBr(e.target.value)}>{BRANCHES.map(b=><option key={b}>{b}</option>)}</select></div>}
+          {role!=="salesman"&&<div><label style={lbl}>PIN ({role==="manager"?"1234":role==="admin"?"9999":"0000"})</label><input type="password" style={inp} value={pin} onChange={e=>setPin(e.target.value)} onKeyDown={e=>e.key==="Enter"&&go()}/></div>}
+          <button onClick={go} style={{...btn("linear-gradient(135deg,#f97316,#ef4444)"),padding:14,fontSize:15,borderRadius:13,marginTop:4}}>Login →</button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function Dashboard({custs,role,onOpen,onNav,onNavF,onSvcDone,onTeamTap}){
+  const hot=custs.filter(c=>c.status==="Hot"&&!c.billed);
+  const stats=[
+    {l:"Hot",st:"Hot",v:custs.filter(c=>c.status==="Hot"&&!c.billed).length,c:"#ef4444"},
+    {l:"Warm",st:"Warm",v:custs.filter(c=>c.status==="Warm"&&!c.billed).length,c:"#f97316"},
+    {l:"Cold",st:"Cold",v:custs.filter(c=>c.status==="Cold"&&!c.billed).length,c:"#3b82f6"},
+    {l:"Booked",st:"Booked",v:custs.filter(c=>c.status==="Booked"&&!c.billed).length,c:"#8b5cf6"},
+    {l:"Billed",st:"Billed",v:custs.filter(c=>c.billed).length,c:"#10b981"},
+    {l:"MTD",v:custs.filter(c=>c.billed&&(c.billedDate||"").startsWith(new Date().toISOString().slice(0,7))).length,c:"#34d399"},
+  ];
+  return(
+    <div>
+      <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:16}}>
+        <div><div style={{fontWeight:800,fontSize:19,color:"#fff"}}>Dashboard</div><div style={{fontSize:11,color:"#5a6478",marginTop:2}}>{new Date().toLocaleDateString("en-IN",{weekday:"long",day:"2-digit",month:"long"})}</div></div>
+      </div>
+      <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:8,marginBottom:18}}>
+        {stats.map(s=>(
+          <div key={s.l} onClick={()=>onNavF(s.st||"All")} className="glass" style={{background:"rgba(255,255,255,0.03)",border:"1px solid "+s.c+"35",borderRadius:16,padding:"18px 8px",cursor:"pointer",textAlign:"center"}}>
+            <div style={{fontSize:26,fontWeight:900,color:s.c,lineHeight:1}}>{s.v}</div>
+            <div style={{fontSize:10,color:"#8892a4",marginTop:3}}>{s.l}</div>
+          </div>
+        ))}
+      </div>
+      {(()=>{const svc=custs.filter(c=>{if(!c.billed||c.serviceDone)return false;const d=(new Date(aD(c.billedDate,45))-new Date())/864e5;return d<=7&&d>=-30;});return svc.length>0?(
+        <div style={{marginBottom:16}}>
+          <div style={{fontSize:12,fontWeight:800,color:"#60a5fa",marginBottom:8}}>🔧 1st FREE SERVICE DUE ({svc.length})</div>
+          {svc.map(c=><div key={c.id} style={{background:"rgba(96,165,250,0.07)",border:"1px solid rgba(96,165,250,0.3)",borderRadius:12,padding:"11px 13px",marginBottom:7}}>
+            <div style={{display:"flex",justifyContent:"space-between",alignItems:"center"}}>
+              <div onClick={()=>onOpen(c)} style={{cursor:"pointer",flex:1}}>
+                <div style={{fontWeight:700,fontSize:13,color:"#fff"}}>{c.name}</div>
+                <div style={{fontSize:11,color:"#8892a4"}}>{c.model} · Due {fd(aD(c.billedDate,45))}</div>
+              </div>
+              <div style={{display:"flex",gap:6}}>
+                <a href={"https://wa.me/91"+c.phone+"?text="+encodeURIComponent("Hello "+c.name+", NKD Bajaj here! Your "+(c.model||"bike")+" is due for its 1st FREE service. Please visit our workshop at Hirak Road, Dhanbad. Thank you!")} target="_blank" rel="noreferrer" style={{background:"rgba(37,211,102,0.1)",border:"1px solid rgba(37,211,102,0.3)",borderRadius:8,padding:"6px 9px",fontSize:10,color:"#25D366",fontWeight:700,textDecoration:"none"}}>📲 Remind</a>
+                <button onClick={()=>onSvcDone(c.id)} style={{background:"#1e2436",border:"1px solid #252d3d",borderRadius:8,padding:"6px 9px",fontSize:10,color:"#8892a4",fontWeight:700,cursor:"pointer"}}>✓ Done</button>
+              </div>
+            </div>
+          </div>)}
+        </div>
+      ):null;})()}
+      {(()=>{const rej=custs.filter(c=>c.managerApproval==="rejected"&&!c.billed);return rej.length>0?(
+        <div style={{marginBottom:16}}>
+          <div style={{fontSize:12,fontWeight:800,color:"#ef4444",marginBottom:8}}>❌ REJECTED BILLINGS — FIX &amp; RE-BILL ({rej.length})</div>
+          {rej.map(c=><div key={c.id} onClick={()=>onOpen(c)} style={{background:"rgba(239,68,68,0.08)",border:"1px solid rgba(239,68,68,0.4)",borderRadius:12,padding:"11px 13px",marginBottom:7,cursor:"pointer"}}>
+            <div style={{fontWeight:700,fontSize:13,color:"#fff"}}>{c.name} <span style={{fontSize:10,color:"#ef4444",fontWeight:800}}>· REJECTED</span></div>
+            <div style={{fontSize:11,color:"#8892a4"}}>{c.model} · {role!=="salesman"?c.salesman+" · ":""}Correct calc sheet &amp; bill again</div>
+          </div>)}
+        </div>
+      ):null;})()}
+      <div style={{fontSize:12,fontWeight:700,color:"#ef4444",marginBottom:8}}>🔥 HOT LEADS</div>
+      {hot.length===0&&<div style={{color:"#374151",fontSize:13,textAlign:"center",padding:24}}>No hot leads</div>}
+      {hot.slice(0,4).map(c=><Card key={c.id} c={c} onClick={()=>onOpen(c)} showSM={role!=="salesman"}/>)}
+      {role!=="salesman"&&(
+        <div style={{marginTop:16}}>
+          <div style={{fontSize:12,fontWeight:700,color:"#8892a4",marginBottom:8}}>TEAM</div>
+          {SM.map(s=>{
+            const m=custs.filter(c=>c.salesman===s);
+            const b=m.filter(c=>c.billed).length;
+            const due=m.filter(c=>!c.billed&&!c.stopped&&c.followupDate<=td()).length;
+            return(
+              <div key={s} onClick={()=>onTeamTap(s)} style={{background:"#12161f",border:"1px solid #1e2436",borderRadius:12,padding:"13px 14px",marginBottom:7,display:"flex",justifyContent:"space-between",alignItems:"center",cursor:"pointer"}}>
+                <div><div style={{fontWeight:600,fontSize:13,color:"#fff"}}>{s}</div><div style={{fontSize:11,color:"#5a6478"}}>{m.length} leads{due>0?" · ":""}{due>0&&<span style={{color:"#f97316",fontWeight:700}}>{due} due</span>}</div></div>
+                <div style={{textAlign:"right"}}><div style={{fontSize:20,fontWeight:900,color:"#34d399"}}>{b}</div><div style={{fontSize:9,color:"#5a6478"}}>BILLED</div></div>
+              </div>
+            );
+          })}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function Followups({items,onOpen,onLog,onCallLog,showSMFilter,initSM}){
+  const [smF,setSmF]=useState(initSM||"All");
+  useEffect(()=>{if(initSM)setSmF(initSM);},[initSM]);
+  items=smF==="All"?items:items.filter(c=>c.salesman===smF);
+  const [active,setActive]=useState(null);
+  const [form,setForm]=useState({out:"interested",note:"",nxt:"",reason:"",competitor:""});
+  const [timer,setTimer]=useState(null);
+  const [elapsed,setElapsed]=useState(0);
+  const iv=useRef(null);
+  useEffect(()=>()=>clearInterval(iv.current),[]);
+  function startCall(c){
+    setTimer(c);setElapsed(0);clearInterval(iv.current);
+    iv.current=setInterval(()=>setElapsed(p=>p+1),1000);
+    
+  }
+  function endCall(){
+    clearInterval(iv.current);
+    const dur=String(Math.floor(elapsed/60)).padStart(2,"0")+":"+String(elapsed%60).padStart(2,"0");
+    onCallLog(timer,dur);setTimer(null);setElapsed(0);
+  }
+  function submit(c){
+    if(form.out==="not_interested"&&!form.reason){alert("Select reason for losing customer");return;}
+    onLog(c,form.out,form.note,form.nxt||null,{reason:form.reason,competitor:form.competitor});
+    setActive(null);setForm({out:"interested",note:"",nxt:"",reason:"",competitor:""});
+  }
+  return(
+    <div>
+      <div style={{fontWeight:800,fontSize:19,color:"#fff",marginBottom:3}}>Today's Followups</div>
+      <div style={{fontSize:11,color:"#5a6478",marginBottom:10}}>🔥 Hot first — auto prioritised</div>
+      {showSMFilter&&<div style={{display:"flex",gap:5,overflowX:"auto",marginBottom:12,paddingBottom:2}}>
+        {["All",...SM].map(s=><button key={s} onClick={()=>setSmF(s)} style={{padding:"5px 11px",borderRadius:20,fontSize:11,fontWeight:600,cursor:"pointer",flexShrink:0,background:smF===s?"#f97316":"#1e2436",color:smF===s?"#fff":"#8892a4",border:"none"}}>{s==="All"?"All Team":s.split(" ")[0]}</button>)}
+      </div>}
+      {timer&&(
+        <div style={{background:"rgba(34,197,94,0.1)",border:"1px solid rgba(34,197,94,0.4)",borderRadius:13,padding:"14px 16px",marginBottom:14,display:"flex",justifyContent:"space-between",alignItems:"center"}}>
+          <div><div style={{color:"#22c55e",fontWeight:700,fontSize:13}}>📞 Calling — {timer.name}</div><div style={{fontFamily:"monospace",fontSize:24,fontWeight:900,color:"#fff"}}>{String(Math.floor(elapsed/60)).padStart(2,"0")}:{String(elapsed%60).padStart(2,"0")}</div></div>
+          <button onClick={endCall} style={{...btn("#ef4444"),padding:"10px 18px"}}>End</button>
+        </div>
+      )}
+      {items.length===0&&<div className="fu" style={{textAlign:"center",padding:"40px 20px",background:"#12161f",border:"1px solid #1e2436",borderRadius:16}}><div style={{fontSize:40,marginBottom:8}}>🏆</div><div style={{fontWeight:800,fontSize:15,color:"#fff"}}>All caught up!</div><div style={{fontSize:12,color:"#5a6478",marginTop:4}}>No followups due right now. Great work.</div></div>}
+      {items.map(c=>{
+        const last=(c.remarks||"").trim().split("\n").filter(Boolean).slice(-1)[0]||"";
+        return(
+          <div key={c.id} className="fu glass" style={{background:"#12161f",border:"1px solid "+(ST_C[c.status]||"#1e2436")+"50",borderRadius:18,marginBottom:14,overflow:"hidden"}}>
+            <div style={{padding:"12px 14px",cursor:"pointer"}} onClick={()=>onOpen(c)}>
+              <div style={{display:"flex",alignItems:"center",gap:7}}><span style={{fontWeight:700,fontSize:15,color:"#fff"}}>{c.name}</span><Badge s={c.status}/></div>
+              <div style={{fontSize:12,color:"#8892a4",marginTop:2}}>{c.phone} · {c.model}</div>
+              <div style={{fontSize:11,color:"#5a6478"}}>Attempt #{(c.attempts||0)+1}/3 · <span style={{color:"#60a5fa",fontWeight:700}}>{c.salesman}</span></div>
+              {(()=>{const tip={Hot:"🔥 Push for booking today — offer a test ride",Warm:"💬 Send offer on WhatsApp + invite for visit",Cold:"📞 Light check-in — share price/festival offer",Booked:"📄 Complete finance & docs — plan delivery"}[c.status];
+                return tip?<div style={{marginTop:6,fontSize:11,color:"#60a5fa",fontWeight:600}}>{tip}</div>:null;})()}
+              {last&&<div style={{marginTop:7,background:"rgba(249,115,22,0.07)",border:"1px solid rgba(249,115,22,0.2)",borderRadius:8,padding:"7px 10px"}}>
+                <div style={{fontSize:9,color:"#f97316",fontWeight:700,marginBottom:2}}>LAST REMARK</div>
+                <div style={{fontSize:12,color:"#d4d8e2",lineHeight:1.4}}>{last.replace(/^\[.*?\]\s*/,"").replace(/^[A-Z_]+:\s*/,"")}</div>
+              </div>}
+            </div>
+            <div style={{padding:"6px 14px 2px",display:"flex",gap:5,flexWrap:"wrap"}}>
+              {[["interested","👍 Interested"],["no_response","📵 No Resp"],["switched_off","🔕 Off"],["booked","✅ Booked"],["price_issue","💸 Price"],["visit_scheduled","🏪 Visit"]].map(([o,l])=>(
+                <button key={o} onClick={()=>onLog(c,o,"",null,{})} style={{background:"#1a1f2e",border:"1px solid #252d3d",borderRadius:16,padding:"5px 10px",fontSize:11,color:"#8892a4",fontWeight:600,cursor:"pointer"}}>{l}</button>
+              ))}
+            </div>
+            <div style={{borderTop:"1px solid #1e2436",padding:"9px 14px",display:"flex",gap:7,marginTop:6}}>
+              <a href={"tel:"+c.phone} onClick={()=>startCall(c)} style={{flex:1,background:"rgba(34,197,94,0.1)",border:"1px solid rgba(34,197,94,0.3)",borderRadius:10,padding:"9px 4px",display:"flex",alignItems:"center",justifyContent:"center",gap:5,textDecoration:"none",color:"#22c55e",fontWeight:600,fontSize:12}}><PhIcon s={14}/>Call</a>
+              <a href={"https://wa.me/91"+c.phone+"?text="+encodeURIComponent("Hello "+c.name+", NKD Bajaj here. Following up on your "+c.model+" enquiry.")} target="_blank" rel="noreferrer" style={{flex:1,background:"rgba(37,211,102,0.08)",border:"1px solid rgba(37,211,102,0.3)",borderRadius:10,padding:"9px 4px",display:"flex",alignItems:"center",justifyContent:"center",gap:5,textDecoration:"none",fontWeight:600,fontSize:12}}><WAIcon s={14}/><span style={{color:"#25D366"}}>WA</span></a>
+              <button onClick={()=>setActive(active===c.id?null:c.id)} style={{flex:1,background:active===c.id?"rgba(249,115,22,0.2)":"rgba(249,115,22,0.08)",border:"1px solid rgba(249,115,22,0.3)",borderRadius:10,padding:"9px 4px",cursor:"pointer",color:"#f97316",fontWeight:600,fontSize:12}}>{active===c.id?"Close":"Log"}</button>
+            </div>
+            {active===c.id&&(
+              <div style={{borderTop:"1px solid #1e2436",padding:"12px 14px",background:"#0d1018",display:"flex",flexDirection:"column",gap:8}}>
+                <select style={inp} value={form.out} onChange={e=>setForm(p=>({...p,out:e.target.value}))}>
+                  <option value="interested">Interested — followup later</option>
+                  <option value="booked">Booked ✓</option>
+                  <option value="visit_scheduled">Visit Scheduled</option>
+                  <option value="no_response">No Response</option>
+                  <option value="switched_off">Switched Off</option>
+                  <option value="not_interested">Not Interested</option>
+                  <option value="price_issue">Price Issue</option>
+                </select>
+                {form.out==="not_interested"&&<select style={inp} value={form.reason} onChange={e=>setForm(p=>({...p,reason:e.target.value}))}>
+                  <option value="">Why lost? (required)</option><option>Price too high</option><option>Bought competitor brand</option><option>Finance rejected</option><option>Postponed purchase</option><option>Family decision</option><option>Other</option>
+                </select>}
+                {form.out==="not_interested"&&form.reason==="Bought competitor brand"&&<input style={inp} value={form.competitor} onChange={e=>setForm(p=>({...p,competitor:e.target.value}))} placeholder="Which brand/model? (e.g. Honda Shine)"/>}
+                <textarea rows={2} style={{...inp,resize:"none"}} value={form.note} onChange={e=>setForm(p=>({...p,note:e.target.value}))} placeholder="What did customer say?"/>
+                <input type="date" style={inp} value={form.nxt} onChange={e=>setForm(p=>({...p,nxt:e.target.value}))}/>
+                <div style={{display:"flex",gap:8}}>
+                  <button onClick={()=>submit(c)} style={{...btn("linear-gradient(135deg,#f97316,#ef4444)"),flex:1}}>Save Followup</button>
+                  <button onClick={()=>setActive(null)} style={{...btn("#1e2436","#8892a4"),flex:1}}>Cancel</button>
+                </div>
+              </div>
+            )}
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
+function CustList({custs,onOpen,initF,showSM}){
+  const [q,setQ]=useState("");
+  const [st,setSt]=useState(initF||"All");
+  useEffect(()=>{if(initF)setSt(initF);},[initF]);
+  const [srt,setSrt]=useState("priority");
+  const [md,setMd]=useState("All");
+  const [smf,setSmf]=useState("All");
+  const filtered=useMemo(()=>custs.filter(c=>{
+    const ql=q.toLowerCase();
+    const hay=(c.name+" "+c.phone+" "+(c.model||"")+" "+(c.modelCode||"")+" "+(c.aadhar||"")+" "+(c.pan||"")+" "+(c.salesman||"")+" "+(c.financeBank||"")+" "+((c.billing&&c.billing.chassis)||"")+" "+((c.billing&&c.billing.engine)||"")+" "+((c.billing&&c.billing.registrationNo)||"")+" "+(c.exchangeRegNo||"")).toLowerCase();
+    const ms=!q||hay.includes(ql);
+    const mm=md==="All"||(md==="Cash"&&c.finance==="Cash")||(md==="Finance"&&c.finance==="Finance")||(md==="Exchange"&&(c.exchangeAsked||c.exchangeOffered));
+    const msm=smf==="All"||c.salesman===smf;
+    return ms&&mm&&msm&&(st==="All"||c.status===st);
+  }).sort((a,b)=>{
+    if(srt==="followup")return new Date(a.followupDate)-new Date(b.followupDate);
+    if(srt==="priority"){const o={Hot:0,Warm:1,Cold:2,Booked:3,Billed:4,Lost:5};return(o[a.status]??9)-(o[b.status]??9);}
+    if(srt==="name")return a.name.localeCompare(b.name);
+    return new Date(b.enquiryDate)-new Date(a.enquiryDate);
+  }),[custs,q,st,srt,md,smf]);
+  return(
+    <div>
+      <div style={{fontWeight:800,fontSize:19,color:"#fff",marginBottom:12}}>Customers <span style={{color:"#5a6478",fontSize:13,fontWeight:400}}>({filtered.length})</span></div>
+      <input placeholder="🔍 Search anything — name, phone, chassis, engine, Aadhar, reg no…" style={{...inp,marginBottom:10,padding:"13px 14px",fontSize:14,borderRadius:13}} value={q} onChange={e=>setQ(e.target.value)}/>
+      <div style={{display:"flex",gap:5,marginBottom:8}}>
+        {["All","Cash","Finance","Exchange"].map(m=><button key={m} onClick={()=>setMd(m)} style={{flex:1,padding:"6px",borderRadius:9,fontSize:11,fontWeight:700,cursor:"pointer",background:md===m?"#1e3a5f":"#1e2436",color:md===m?"#60a5fa":"#8892a4",border:"none"}}>{m}</button>)}
+      </div>
+      {showSM&&<select style={{...inp,marginBottom:8}} value={smf} onChange={e=>setSmf(e.target.value)}><option value="All">All Executives</option>{SM.map(s=><option key={s}>{s}</option>)}</select>}
+      <div style={{display:"flex",gap:5,overflowX:"auto",marginBottom:9,paddingBottom:2}}>
+        {["All","Hot","Warm","Cold","Booked","Billed","Lost"].map(s=><button key={s} onClick={()=>setSt(s)} style={{padding:"5px 11px",borderRadius:20,fontSize:11,fontWeight:600,cursor:"pointer",flexShrink:0,background:st===s?(ST_C[s]||"#f97316"):"#1e2436",color:st===s?"#fff":"#8892a4",border:"none"}}>{s}</button>)}
+      </div>
+      <div style={{display:"flex",gap:5,marginBottom:12}}>
+        {[["followup","Followup"],["priority","Priority"],["name","A-Z"],["recent","Recent"]].map(([k,l])=>(
+          <button key={k} onClick={()=>setSrt(k)} style={{padding:"4px 10px",borderRadius:8,fontSize:10,fontWeight:600,cursor:"pointer",background:srt===k?"#1e3a5f":"#12161f",color:srt===k?"#60a5fa":"#5a6478",border:"1px solid "+(srt===k?"#2563eb":"#1e2436")}}>{l}</button>
+        ))}
+      </div>
+      {filtered.length===0&&<div className="fu glass" style={{textAlign:"center",padding:"36px 20px",borderRadius:16,background:"#12161f"}}><div style={{fontSize:36,marginBottom:6}}>👥</div><div style={{fontWeight:700,fontSize:14,color:"#fff"}}>No customers here yet</div><div style={{fontSize:12,color:"#5a6478",marginTop:4}}>Tap the orange + button to add a new enquiry</div></div>}
+      {filtered.map(c=><Card key={c.id} c={c} onClick={()=>onOpen(c)} showSM={showSM}/>)}
+    </div>
+  );
+}
+
+function DocGrid({cust,onUpload,docs}){
+  return(
+    <div style={{display:"flex",flexDirection:"column",gap:10}}>
+      {docs.map(({key,l,ic})=>(
+        <div key={key} style={{background:"#12161f",border:"1px solid #1e2436",borderRadius:12,overflow:"hidden"}}>
+          <div style={{padding:"10px 13px",display:"flex",justifyContent:"space-between",alignItems:"center"}}><div style={{display:"flex",alignItems:"center",gap:8}}><span style={{fontSize:18}}>{ic}</span><span style={{fontSize:13,color:"#d4d8e2"}}>{l}</span></div>{(cust.photos||{})[key]&&<span style={{fontSize:11,color:"#22c55e",fontWeight:700}}>✓</span>}</div>
+          {(cust.photos||{})[key]&&<img src={cust.photos[key]} alt={l} style={{width:"100%",maxHeight:200,objectFit:"contain",background:"#000"}}/>}
+          <div style={{padding:"0 13px 12px"}}>
+            <div style={{fontSize:11,color:"#8892a4",marginBottom:4}}>{(cust.photos||{})[key]?"🔄 Replace photo:":"📷 Choose photo:"}</div>
+            <input type="file" accept="image/*" onChange={e=>{if(e.target.files&&e.target.files[0]){onUpload(key,e.target.files[0]);e.target.value="";}}} style={{width:"100%",background:"#1e2436",borderRadius:9,padding:8,fontSize:12,color:"#8892a4",border:"1px dashed #2a3040"}}/>
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+}
+function Detail({cust,role,onBack,onUpd,onLog,onBill,onBook,notify,initTab,clearInit}){
+  const [tab,setTab]=useState(initTab||"info");
+  useEffect(()=>{if(initTab){setTab(initTab);clearInit&&clearInit();}},[initTab]);
+  const [edit,setEdit]=useState(false);
+  const [f,setF]=useState({...cust});
+  const r=RC[cust.modelCode];
+  const lastR=(cust.remarks||"").trim().split("\n").filter(Boolean).slice(-1)[0]||"";
+
+  function saveEdit(){onUpd(f);setEdit(false);notify("Saved ✓");}
+  function pickM(code){const m=RC[code];setF(p=>({...p,modelCode:code,model:m?m.n:"",cat:m?m.cat:""}));}
+  function uploadPhoto(key,file){compressImg(file,function(dataUrl){onUpd({photos:{...(cust.photos||{}),[key]:dataUrl}});notify("Photo saved ✓");});}
+
+  const tabs=["info","history","followup","docs",...(cust.billed?["billing"]:[])];
+
+  return(
+    <div>
+      <div style={{display:"flex",alignItems:"center",gap:10,marginBottom:14}}>
+        <button onClick={onBack} style={{background:"#1e2436",border:"none",borderRadius:10,width:36,height:36,display:"flex",alignItems:"center",justifyContent:"center",cursor:"pointer",color:"#8892a4",fontSize:20}}>←</button>
+        <div style={{flex:1}}><div style={{fontWeight:800,fontSize:16,color:"#fff"}}>{cust.name}</div><div style={{fontSize:11,color:"#5a6478"}}>{cust.id} · {cust.modelCode}</div></div>
+        <Badge s={cust.status}/>
+      </div>
+
+      <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:8,marginBottom:12}}>
+        <a href={"tel:"+cust.phone} style={{background:"rgba(34,197,94,0.1)",border:"1px solid rgba(34,197,94,0.3)",borderRadius:13,padding:"11px 6px",display:"flex",flexDirection:"column",alignItems:"center",gap:4,textDecoration:"none"}}><PhIcon s={22}/><span style={{fontSize:11,color:"#22c55e",fontWeight:700}}>Call</span><span style={{fontSize:10,color:"#5a6478"}}>{cust.phone}</span></a>
+        <a href={"https://wa.me/91"+cust.phone+"?text="+encodeURIComponent("Hello "+cust.name+", NKD Bajaj here. Following up on your "+cust.model+" enquiry.")} target="_blank" rel="noreferrer" style={{background:"rgba(37,211,102,0.08)",border:"1px solid rgba(37,211,102,0.3)",borderRadius:13,padding:"11px 6px",display:"flex",flexDirection:"column",alignItems:"center",gap:4,textDecoration:"none"}}><WAIcon s={22}/><span style={{fontSize:11,color:"#25D366",fontWeight:700}}>WhatsApp</span><span style={{fontSize:10,color:"#5a6478"}}>Message</span></a>
+        {!cust.billed&&!cust.stopped?<button onClick={onBill} style={{background:"rgba(52,211,153,0.1)",border:"1px solid rgba(52,211,153,0.3)",borderRadius:13,padding:"11px 6px",display:"flex",flexDirection:"column",alignItems:"center",gap:4,cursor:"pointer"}}><span style={{fontSize:22}}>🏍️</span><span style={{fontSize:11,color:"#34d399",fontWeight:700}}>Bill</span><span style={{fontSize:10,color:"#5a6478"}}>Vehicle</span></button>:<div style={{background:"rgba(52,211,153,0.07)",border:"1px solid rgba(52,211,153,0.25)",borderRadius:13,padding:"11px 6px",display:"flex",flexDirection:"column",alignItems:"center",gap:4}}><span style={{fontSize:22}}>✅</span><span style={{fontSize:11,color:"#34d399",fontWeight:700}}>Billed</span><span style={{fontSize:10,color:"#5a6478"}}>{fd(cust.billedDate)}</span></div>}
+      </div>
+
+      {!cust.billed&&!cust.stopped&&<button onClick={onBook} style={{width:"100%",background:"rgba(139,92,246,0.1)",border:"1px solid rgba(139,92,246,0.35)",borderRadius:12,padding:"11px",color:"#a78bfa",fontWeight:700,fontSize:13,cursor:"pointer",marginBottom:cust.booking&&cust.booking.receiptHtml?8:12}}>📝 {cust.booking?"Booking: "+fc(cust.booking.amt)+" on "+fd(cust.booking.date)+" — Edit":"Take Booking Amount (without documents)"}</button>}
+      {!cust.billed&&!cust.stopped&&<button onClick={()=>{const taking=!cust.testRide;onUpd({testRide:taking?{date:td()}:null,remarks:(cust.remarks||"")+(taking?"\n["+td()+"] TEST RIDE taken":"")});if(taking){setTab("docs");notify("🚦 Test ride recorded — upload the license here");}}} style={{width:"100%",background:cust.testRide?"rgba(34,197,94,0.1)":"rgba(96,165,250,0.08)",border:"1px solid "+(cust.testRide?"rgba(34,197,94,0.35)":"rgba(96,165,250,0.3)"),borderRadius:12,padding:"10px",color:cust.testRide?"#22c55e":"#60a5fa",fontWeight:700,fontSize:12,cursor:"pointer",marginBottom:8}}>🏍️ Test Ride {cust.testRide?"✓ Done "+fd(cust.testRide.date):"— Tap when taken (upload license in Docs)"}</button>}
+      {!cust.billed&&cust.booking&&cust.booking.receiptHtml&&<div style={{display:"flex",gap:8,marginBottom:12}}>
+        <button onClick={()=>dlFile(cust.booking.receiptHtml,"BookingReceipt_"+cust.name.replace(/ /g,"_")+".html")} style={{flex:1,background:"#1e3a5f",border:"none",borderRadius:10,padding:10,color:"#60a5fa",fontWeight:700,fontSize:11,cursor:"pointer"}}>⬇️ Booking Receipt (→PDF)</button>
+        <button onClick={()=>{var num=ld("nkd_office_wa","");if(!num){num=prompt("Enter office WhatsApp number (10 digits):");if(!num)return;sv("nkd_office_wa",num);}window.open("https://wa.me/91"+num+"?text="+encodeURIComponent("NKD BAJAJ - BOOKING RECORD\nDate: "+cust.booking.date+"\nCustomer: "+cust.name+"\nPhone: "+cust.phone+"\nModel: "+(cust.model||"")+" ("+(cust.modelCode||"")+")\nSalesman: "+cust.salesman+"\nBooking Amount: "+fc(cust.booking.amt)+" ("+cust.booking.mode+")"+(cust.booking.note?"\nNote: "+cust.booking.note:"")),"_blank");}} style={{flex:1,background:"rgba(37,211,102,0.08)",border:"1px solid rgba(37,211,102,0.3)",borderRadius:10,padding:10,color:"#25D366",fontWeight:700,fontSize:11,cursor:"pointer"}}>📲 Booking → Office</button>
+      </div>}
+      {cust.managerApproval==="rejected"&&!cust.billed&&<div style={{background:"rgba(239,68,68,0.12)",border:"1px solid rgba(239,68,68,0.5)",borderRadius:12,padding:"11px 13px",marginBottom:12}}>
+        <div style={{fontSize:12,color:"#ef4444",fontWeight:800,marginBottom:3}}>❌ BILLING REJECTED BY MANAGER</div>
+        <div style={{fontSize:12,color:"#e2e6f0",lineHeight:1.5}}>Correct the calculation sheet and tap 🏍️ Bill again. All uploaded documents are retained.</div>
+      </div>}
+      {lastR&&<div style={{background:"rgba(249,115,22,0.07)",border:"1px solid rgba(249,115,22,0.22)",borderRadius:11,padding:"10px 12px",marginBottom:12}}><div style={{fontSize:9,color:"#f97316",fontWeight:800,letterSpacing:0.6,marginBottom:3}}>📋 LAST REMARK</div><div style={{fontSize:13,color:"#e2e6f0",lineHeight:1.5}}>{lastR.replace(/^\[.*?\]\s*/,"").replace(/^[A-Z_]+:\s*/,"")}</div></div>}
+
+      {(()=>{const calls=(cust.callLog||[]).filter(l=>l.duration);const lastCall=calls.length?calls[calls.length-1]:null;
+        return(<div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr 1fr",gap:6,marginBottom:12}}>
+          {[["📞 Calls",calls.length],["📋 Logs",(cust.callLog||[]).length],["Last Call",lastCall?fd(lastCall.date):"—"],["Next",cust.billed?"Done":fd(cust.followupDate)]].map(([k,v])=>(
+            <div key={k} style={{background:"#12161f",border:"1px solid #1e2436",borderRadius:11,padding:"9px 6px",textAlign:"center"}}>
+              <div style={{fontSize:13,fontWeight:800,color:"#e2e6f0"}}>{v}</div>
+              <div style={{fontSize:9,color:"#5a6478",marginTop:2}}>{k}</div>
+            </div>
+          ))}
+        </div>);})()}
+      <div style={{display:"flex",gap:4,overflowX:"auto",marginBottom:14,paddingBottom:2}}>
+        {tabs.map(t=><button key={t} onClick={()=>setTab(t)} style={{padding:"7px 14px",borderRadius:10,fontSize:12,fontWeight:600,cursor:"pointer",flexShrink:0,background:tab===t?"#f97316":"#1e2436",color:tab===t?"#fff":"#8892a4",border:"none",textTransform:"capitalize"}}>{t}</button>)}
+      </div>
+
+      {tab==="info"&&(
+        <div>
+          {edit?(
+            <div style={{display:"flex",flexDirection:"column",gap:10}}>
+              {[{k:"name",l:"Name"},{k:"phone",l:"Phone"+(cust.billed&&role==="salesman"?" 🔒":""),t:"tel",lock:cust.billed&&role==="salesman"},{k:"fatherName",l:"Father/Mother"},{k:"address",l:"Address"},{k:"dob",l:"DOB",t:"date"},{k:"aadhar",l:"Aadhar"},{k:"pan",l:"PAN"},...(cust.billed?[{k:"nominee",l:"Nominee"},{k:"nomineeRel",l:"Nom. Relation"},{k:"exchangeName",l:"Exchanger Name"},{k:"exchangeAsked",l:"Exchange Bike Model"},{k:"exchangeRegNo",l:"Old Vehicle Reg No"},{k:"exchangeOffered",l:"Exchange Value ₹"}]:[])].map(({k,l,t,lock})=>(
+                <div key={k}><label style={lbl}>{l}</label><input type={t||"text"} disabled={lock} style={{...inp,opacity:lock?0.5:1}} value={f[k]||""} onChange={e=>setF(p=>({...p,[k]:e.target.value}))}/>{lock&&<div style={{fontSize:10,color:"#f59e0b",marginTop:3}}>Phone locked after billing — ask Manager to change</div>}</div>
+              ))}
+              <div><label style={lbl}>Model Code</label>
+                <select style={inp} value={f.modelCode||""} onChange={e=>pickM(e.target.value)}>
+                  <option value="">Select…</option>
+                  {CATS.map(cat=><optgroup key={cat} label={cat}>{Object.entries(RC).filter(([,m])=>m.cat===cat).map(([code,m])=><option key={code} value={code}>{code} — {m.n}</option>)}</optgroup>)}
+                </select>
+                {RC[f.modelCode]&&<div style={{fontSize:11,color:"#60a5fa",marginTop:4}}>On-Road: {fc(RC[f.modelCode].onRoad)}</div>}
+              </div>
+              <div><label style={lbl}>Status</label><select style={inp} value={f.status} onChange={e=>setF(p=>({...p,status:e.target.value}))}>{["Hot","Warm","Cold","Booked","Lost"].map(s=><option key={s}>{s}</option>)}</select></div>
+              <div><label style={lbl}>Finance/Cash</label><select style={inp} value={f.finance} onChange={e=>setF(p=>({...p,finance:e.target.value}))}><option>Cash</option><option>Finance</option></select></div>
+              <div><label style={lbl}>Next Followup</label><input type="date" style={inp} value={f.followupDate||""} onChange={e=>setF(p=>({...p,followupDate:e.target.value}))}/></div>
+              <div style={{display:"flex",gap:8}}><button onClick={saveEdit} style={{...btn("linear-gradient(135deg,#f97316,#ef4444)"),flex:1}}>Save</button><button onClick={()=>setEdit(false)} style={{...btn("#1e2436","#8892a4"),flex:1}}>Cancel</button></div>
+            </div>
+          ):(
+            <div>
+              <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:8,marginBottom:10}}>
+                {[["Mobile No",cust.phone||"—"],["Model",cust.model||"—"],["Code",cust.modelCode||"—"],["Finance",cust.finance||"—"],["Status",cust.status],["Source",cust.source||"—"],["Referred By",cust.refBy||"—"],["Enquiry",fd(cust.enquiryDate)],["Followup",fd(cust.followupDate)],["Attempts",(cust.attempts||0)+"/3"],...(cust.billed?[["Exchange Bike",cust.exchangeAsked||"—"],["Exchanger",cust.exchangeName||"—"],["Old Reg No",cust.exchangeRegNo||"—"],["Exch. Value",cust.exchangeOffered?fc(cust.exchangeOffered):"—"],["Nominee",cust.nominee||"—"],["Nom. Relation",cust.nomineeRel||"—"],["DOB",fd(cust.dob)],["Father",cust.fatherName||"—"],["Aadhar",cust.aadhar||"—"]]:[])].map(([k,v])=>(
+                  <div key={k} style={{background:"#12161f",border:"1px solid #1e2436",borderRadius:10,padding:"9px 11px"}}><div style={{fontSize:10,color:"#5a6478"}}>{k}</div><div style={{fontSize:12,color:"#e2e6f0",fontWeight:600,marginTop:1,wordBreak:"break-all"}}>{v}</div></div>
+                ))}
+              </div>
+              {cust.finance==="Finance"&&<div style={{background:"rgba(245,158,11,0.06)",border:"1px solid rgba(245,158,11,0.25)",borderRadius:10,padding:"10px 12px",marginBottom:10}}>
+                <div style={{fontSize:10,color:"#f59e0b",fontWeight:700,marginBottom:6}}>💰 FINANCE STATUS{cust.financeBank?" — "+cust.financeBank:""}</div>
+                <div style={{display:"flex",gap:5,flexWrap:"wrap"}}>
+                  {["Pending","File Login","Approved","Disbursed"].map(s=>(
+                    <button key={s} onClick={()=>onUpd({financeStatus:s,remarks:(cust.remarks||"")+"\n["+td()+"] FINANCE: "+s})} style={{background:cust.financeStatus===s?"#78350f":"#1a1f2e",border:"1px solid "+(cust.financeStatus===s?"#f59e0b":"#252d3d"),borderRadius:14,padding:"5px 11px",fontSize:11,color:cust.financeStatus===s?"#fbbf24":"#8892a4",fontWeight:700,cursor:"pointer"}}>{s}</button>
+                  ))}
+                </div>
+              </div>}
+              {r&&<div style={{background:"rgba(96,165,250,0.07)",border:"1px solid rgba(96,165,250,0.2)",borderRadius:10,padding:"10px 12px",marginBottom:10}}><div style={{fontSize:10,color:"#60a5fa",fontWeight:700,marginBottom:5}}>📊 RATE CHART</div>{[["Ex-Showroom",r.ex],["On-Road",r.onRoad],["On-Road+AMC",r.onRoad+(r.amc||0)]].map(([k,v])=><div key={k} style={{display:"flex",justifyContent:"space-between",fontSize:12,padding:"2px 0"}}><span style={{color:"#8892a4"}}>{k}</span><span style={{color:"#e2e6f0",fontWeight:600}}>{fc(v)}</span></div>)}</div>}
+              <button onClick={()=>setEdit(true)} style={{width:"100%",background:"#1e2436",border:"1px solid #252d3d",borderRadius:12,padding:11,color:"#8892a4",fontWeight:600,fontSize:13,cursor:"pointer"}}>✏️ Edit Details</button>
+            </div>
+          )}
+        </div>
+      )}
+
+      {tab==="history"&&(
+        <div>
+          <div style={{fontWeight:700,fontSize:13,color:"#e2e6f0",marginBottom:10}}>Interaction History</div>
+          {(cust.remarks||"").trim().split("\n").filter(Boolean).map((l,i,arr)=>{
+            const isLast=i===arr.length-1;
+            const dm=l.match(/^\[(\d{4}-\d{2}-\d{2})\]/);
+            const oc=(l.match(/^\[.*?\]\s*([A-Z_]+):/)||[])[1]||"";
+            const txt=l.replace(/^\[.*?\]\s*/,"").replace(/^[A-Z_]+:\s*/,"");
+            const oc_c={INTERESTED:"#22c55e",BOOKED:"#a78bfa",NO_RESPONSE:"#ef4444",SWITCHED_OFF:"#ef4444",NOT_INTERESTED:"#6b7280",PRICE_ISSUE:"#f59e0b",VISIT_SCHEDULED:"#60a5fa",REACTIVATED:"#34d399"}[oc]||"#8892a4";
+            return(
+              <div key={i} style={{background:isLast?"rgba(249,115,22,0.07)":"#12161f",border:"1px solid "+(isLast?"rgba(249,115,22,0.28)":"#1e2436"),borderRadius:10,padding:"10px 12px",marginBottom:7,borderLeft:"3px solid "+oc_c}}>
+                <div style={{display:"flex",justifyContent:"space-between",marginBottom:3}}>
+                  {oc&&<span style={{fontSize:10,color:oc_c,fontWeight:700}}>{({INTERESTED:"👍",BOOKED:"✅",NO_RESPONSE:"📵",SWITCHED_OFF:"🔕",NOT_INTERESTED:"❌",PRICE_ISSUE:"💸",VISIT_SCHEDULED:"🏪",REACTIVATED:"🔄",FINANCE:"💰",MANAGER:"👔",APPROVED:"✅",BILLING:"🧾"}[oc]||"•")+" "+oc.replace(/_/g," ")}</span>}
+                  <span style={{fontSize:10,color:"#5a6478",marginLeft:"auto"}}>{fd(dm?dm[1]:"")}</span>
+                </div>
+                <div style={{fontSize:12,color:"#d4d8e2",lineHeight:1.5}}>{txt}</div>
+                {isLast&&<div style={{fontSize:10,color:"#f97316",marginTop:3,fontWeight:600}}>← Most recent</div>}
+              </div>
+            );
+          })}
+          {(cust.callLog||[]).filter(l=>l.duration).map((l,i)=>(
+            <div key={i} style={{background:"rgba(34,197,94,0.05)",border:"1px solid rgba(34,197,94,0.18)",borderRadius:8,padding:"7px 11px",marginBottom:5,display:"flex",justifyContent:"space-between"}}><span style={{fontSize:11,color:"#8892a4"}}>{fd(l.date)}</span><span style={{fontSize:12,color:"#22c55e",fontWeight:600}}>📞 {l.duration}</span></div>
+          ))}
+        </div>
+      )}
+
+      {tab==="followup"&&(
+        <div>
+          <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:8,marginBottom:14}}>
+            <a href={"tel:"+cust.phone} style={{background:"rgba(34,197,94,0.1)",border:"1px solid rgba(34,197,94,0.3)",borderRadius:13,padding:12,display:"flex",alignItems:"center",justifyContent:"center",gap:8,textDecoration:"none",fontWeight:700,fontSize:13}}><PhIcon s={18}/><span style={{color:"#22c55e"}}>Call Now</span></a>
+            <a href={"https://wa.me/91"+cust.phone} target="_blank" rel="noreferrer" style={{background:"rgba(37,211,102,0.08)",border:"1px solid rgba(37,211,102,0.3)",borderRadius:13,padding:12,display:"flex",alignItems:"center",justifyContent:"center",gap:8,textDecoration:"none",fontWeight:700,fontSize:13}}><WAIcon s={18}/><span style={{color:"#25D366"}}>WhatsApp</span></a>
+          </div>
+          {!cust.stopped?<QuickLog cust={cust} onLog={onLog}/>:<div style={{background:"rgba(239,68,68,0.08)",border:"1px solid rgba(239,68,68,0.3)",borderRadius:12,padding:16,textAlign:"center"}}><div style={{fontSize:18,marginBottom:4}}>🚫</div><div style={{color:"#ef4444",fontWeight:700}}>Followup Stopped</div><div style={{color:"#8892a4",fontSize:12,marginTop:4}}>3 failed attempts. Manager alerted.</div></div>}
+        </div>
+      )}
+
+      {tab==="billing"&&cust.billing&&<BillingView billing={cust.billing} cust={cust}/>}
+
+      {tab==="docs"&&(
+        <div>
+          <div style={{fontSize:11,fontWeight:700,color:"#a78bfa",marginBottom:8}}>ANYTIME (before or after billing)</div>
+          <DocGrid cust={cust} onUpload={uploadPhoto} docs={[{key:"license",l:"Driving License (test ride)",ic:"🚦"},{key:"aadhar_photo",l:"Aadhar Card Photo",ic:"🪪"},{key:"pan_photo",l:"PAN Card Photo",ic:"🪪"},{key:"booking_proof",l:"Booking Payment Proof",ic:"💳"},{key:"exchange_eval",l:"Exchange Bike Evaluation (old RC + photos)",ic:"🏍️"}]}/>
+          <div style={{fontSize:11,fontWeight:700,color:"#34d399",margin:"14px 0 8px"}}>AFTER BILLING</div>
+          {!cust.billed&&<div style={{background:"rgba(107,114,128,0.1)",border:"1px dashed #374151",borderRadius:11,padding:"12px",fontSize:12,color:"#5a6478",marginBottom:10}}>🔒 Unlocks after vehicle is billed</div>}
+          {cust.billed&&<DocGrid cust={cust} onUpload={uploadPhoto} docs={[{key:"delivery",l:"Customer Delivery Photo",ic:"📸"},{key:"invoice",l:"Invoice Copy",ic:"🧾"},{key:"insurance",l:"Insurance Document",ic:"🛡️"},{key:"registration",l:"Registration (RC)",ic:"📋"},{key:"moneyreceipt",l:"Money Receipt Copy",ic:"🧾"},{key:"exchange",l:"Exchange Vehicle Handover Docs",ic:"🔄"}]}/>}
+          {cust.billed&&cust.finance==="Finance"&&<div style={{fontSize:11,fontWeight:700,color:"#f59e0b",margin:"14px 0 8px"}}>FINANCE FILE</div>}
+          {cust.billed&&cust.finance==="Finance"&&<DocGrid cust={cust} onUpload={uploadPhoto} docs={[{key:"mr",l:"MR — Finance Company",ic:"💰"},{key:"do_letter",l:"DO — Finance Company",ic:"📄"},{key:"loan_app",l:"Loan Application",ic:"📝"},{key:"sanction",l:"Sanction Letter",ic:"✅"},{key:"cust_sign",l:"Customer Signature Photo",ic:"✍️"}]}/>}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function QuickLog({cust,onLog}){
+  const [out,setOut]=useState("interested");
+  const [note,setNote]=useState("");
+  const [nxt,setNxt]=useState("");
+  const [reason,setReason]=useState("");
+  const [competitor,setCompetitor]=useState("");
+  function submit(){
+    if(out==="not_interested"&&!reason){alert("Select reason for losing customer");return;}
+    onLog(cust,out,note,nxt||null,{reason,competitor});setNote("");setNxt("");setReason("");setCompetitor("");
+  }
+  return(
+    <div style={{display:"flex",flexDirection:"column",gap:10}}>
+      <div><label style={lbl}>Outcome</label><select style={inp} value={out} onChange={e=>setOut(e.target.value)}><option value="interested">Interested</option><option value="booked">Booked ✓</option><option value="visit_scheduled">Visit Scheduled</option><option value="no_response">No Response</option><option value="switched_off">Switched Off</option><option value="not_interested">Not Interested</option><option value="price_issue">Price Issue</option></select></div>
+      {out==="not_interested"&&<div><label style={lbl}>Why lost? *</label><select style={inp} value={reason} onChange={e=>setReason(e.target.value)}><option value="">Select…</option><option>Price too high</option><option>Bought competitor brand</option><option>Finance rejected</option><option>Postponed purchase</option><option>Family decision</option><option>Other</option></select></div>}
+      {out==="not_interested"&&reason==="Bought competitor brand"&&<div><label style={lbl}>Which brand/model?</label><input style={inp} value={competitor} onChange={e=>setCompetitor(e.target.value)}/></div>}
+      <div><label style={lbl}>Notes</label><textarea rows={3} style={{...inp,resize:"none"}} value={note} onChange={e=>setNote(e.target.value)} placeholder="What did customer say?"/></div>
+      <div><label style={lbl}>Next followup (blank=auto)</label><input type="date" style={inp} value={nxt} onChange={e=>setNxt(e.target.value)}/></div>
+      <button onClick={submit} style={{...btn("linear-gradient(135deg,#f97316,#ef4444)"),padding:13,fontSize:14}}>Save Followup</button>
+    </div>
+  );
+}
+
+function BookingModal({cust,onClose,onSave}){
+  const [amt,setAmt]=useState(cust.booking?cust.booking.amt:"");
+  const [date,setDate]=useState(cust.booking?cust.booking.date:td());
+  const [mode,setMode]=useState(cust.booking?cust.booking.mode||"Cash":"Cash");
+  const [note,setNote]=useState("");
+  const [proof,setProof]=useState(null);
+  function pickProof(file){compressImg(file,setProof);}
+  function submit(){
+    if(!amt||Number(amt)<=0){alert("Enter booking amount");return;}
+    onSave({amt:Number(amt),date,mode,note,proof});
+  }
+  return(
+    <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.88)",zIndex:150,display:"flex",alignItems:"flex-end"}}>
+      <div style={{background:"#12161f",width:"100%",borderRadius:"20px 20px 0 0",padding:"20px 16px 44px"}}>
+        <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:14}}>
+          <div style={{fontWeight:800,fontSize:17,color:"#fff"}}>Take Booking</div>
+          <button onClick={onClose} style={{background:"#1e2436",border:"none",borderRadius:8,width:32,height:32,cursor:"pointer",color:"#8892a4",fontSize:18}}>✕</button>
+        </div>
+        <div style={{fontSize:12,color:"#5a6478",marginBottom:14}}>{cust.name} · {cust.model}</div>
+        <div style={{background:"rgba(139,92,246,0.08)",border:"1px solid rgba(139,92,246,0.25)",borderRadius:10,padding:"9px 12px",marginBottom:14,fontSize:11,color:"#a78bfa"}}>Records booking without KYC documents. Amount &amp; date auto-fill in the calculation sheet at billing time.</div>
+        <div style={{display:"flex",flexDirection:"column",gap:10}}>
+          <div><label style={lbl}>Booking Amount ₹ *</label><input type="number" style={inp} value={amt} onChange={e=>setAmt(e.target.value)}/></div>
+          <div><label style={lbl}>Booking Date *</label><input type="date" style={inp} value={date} onChange={e=>setDate(e.target.value)}/></div>
+          <div><label style={lbl}>Mode</label><div style={{display:"flex",gap:7}}>{["Cash","UPI","Cheque"].map(m=><button key={m} onClick={()=>setMode(m)} style={{flex:1,background:mode===m?"#1e3a5f":"#1e2436",border:"1px solid "+(mode===m?"#3b82f6":"#1e2436"),borderRadius:10,padding:10,color:mode===m?"#60a5fa":"#5a6478",fontWeight:700,cursor:"pointer",fontSize:12}}>{m}</button>)}</div></div>
+          <div><label style={lbl}>Notes</label><input style={inp} value={note} onChange={e=>setNote(e.target.value)} placeholder="e.g. balance on delivery"/></div>
+          <div><label style={lbl}>Payment Proof (cheque / UPI screenshot)</label>
+            {proof&&<img src={proof} alt="proof" style={{width:"100%",maxHeight:140,objectFit:"contain",background:"#000",borderRadius:9,marginBottom:6}}/>}
+            <input type="file" accept="image/*" onChange={e=>{if(e.target.files&&e.target.files[0]){pickProof(e.target.files[0]);e.target.value="";}}} style={{width:"100%",background:"#1e2436",borderRadius:9,padding:8,fontSize:12,color:"#8892a4",border:"1px dashed #2a3040"}}/>
+          </div>
+          <div style={{display:"flex",gap:8}}>
+            <button onClick={onClose} style={{...btn("#1e2436","#8892a4"),flex:1,padding:14,borderRadius:13}}>← Go Back</button>
+            <button onClick={submit} style={{...btn("linear-gradient(135deg,#8b5cf6,#6d28d9)"),flex:2,padding:14,fontSize:15,borderRadius:13}}>Save Booking</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function AddModal({onClose,onSave,curUser,role,existing}){
+  const [f,setF]=useState({name:"",phone:"",fatherName:"",address:"",dob:"",aadhar:"",pan:"",modelCode:"",model:"",cat:"",enquiryDate:td(),status:"Hot",salesman:curUser,finance:"Cash",exchangeAsked:"",exchangeOffered:"",remarks:"",followupDate:"",nominee:"",nomineeRel:""});
+  function pickM(code){const m=RC[code];setF(p=>({...p,modelCode:code,model:m?m.n:"",cat:m?m.cat:""}));}
+  function submit(){
+    if(!f.name||!f.phone){alert("Name & phone required");return;}
+    if(!/^\d{10}$/.test(f.phone)){alert("Phone must be exactly 10 digits");return;}
+    const dup=(existing||[]).find(c=>c.phone===f.phone);
+    if(dup){alert("⚠️ Duplicate! "+dup.name+" already exists with this number (handled by "+dup.salesman+")");return;}
+    const st=f.status||"Hot";
+    onSave({...f,followupDate:f.followupDate||aD(f.enquiryDate||td(),FU[st]||3),callLog:[]});
+  }
+  const r=RC[f.modelCode];
+  return(
+    <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.88)",zIndex:150,display:"flex",alignItems:"flex-end"}}>
+      <div style={{background:"#12161f",width:"100%",borderRadius:"20px 20px 0 0",maxHeight:"94vh",overflowY:"auto",padding:"20px 16px 44px"}}>
+        <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:16}}><div style={{fontWeight:800,fontSize:17,color:"#fff"}}>New Enquiry</div><button onClick={onClose} style={{background:"#1e2436",border:"none",borderRadius:8,width:32,height:32,cursor:"pointer",color:"#8892a4",fontSize:18}}>✕</button></div>
+        <div style={{display:"flex",flexDirection:"column",gap:10}}>
+          {[{k:"name",l:"Customer Name *"},{k:"phone",l:"Phone *",t:"tel"},{k:"address",l:"Address"}].map(({k,l,t})=>(
+            <div key={k}><label style={lbl}>{l}</label><input type={t||"text"} style={inp} value={f[k]||""} onChange={e=>setF(p=>({...p,[k]:e.target.value}))}/></div>
+          ))}
+          <div><label style={lbl}>Model</label>
+            <select style={inp} value={f.modelCode} onChange={e=>pickM(e.target.value)}><option value="">Select…</option>{CATS.map(cat=><optgroup key={cat} label={cat}>{Object.entries(RC).filter(([,m])=>m.cat===cat).map(([code,m])=><option key={code} value={code}>{code} — {m.n}</option>)}</optgroup>)}</select>
+            {r&&<div style={{background:"rgba(96,165,250,0.07)",border:"1px solid rgba(96,165,250,0.2)",borderRadius:8,padding:"8px 10px",marginTop:5,fontSize:11}}><span style={{color:"#60a5fa",fontWeight:700}}>{r.n}</span><br/><span style={{color:"#8892a4"}}>Ex-Showroom: </span><b style={{color:"#fff"}}>{fc(r.ex)}</b><span style={{color:"#8892a4"}}> | On-Road: </span><b style={{color:"#34d399"}}>{fc(r.onRoad)}</b></div>}
+          </div>
+          <div><label style={lbl}>Lead Source</label><select style={inp} value={f.source||""} onChange={e=>setF(p=>({...p,source:e.target.value}))}><option value="">Select…</option><option>Walk-in</option><option>Reference</option><option>Old Customer</option><option>JustDial</option><option>Instagram/Facebook</option><option>Hoarding/Newspaper</option><option>Other</option></select></div>
+          {f.source==="Reference"&&<div><label style={lbl}>Referred By (name / phone)</label><input style={inp} value={f.refBy||""} onChange={e=>setF(p=>({...p,refBy:e.target.value}))}/></div>}
+          <div><label style={lbl}>Enquiry Date</label><input type="date" style={inp} value={f.enquiryDate} onChange={e=>setF(p=>({...p,enquiryDate:e.target.value}))}/></div>
+          <div><label style={lbl}>Temperature</label><div style={{display:"flex",gap:7}}>{["Hot","Warm","Cold"].map(s=><button key={s} onClick={()=>setF(p=>({...p,status:s}))} style={{flex:1,background:f.status===s?ST_C[s]:"#1e2436",border:"none",borderRadius:10,padding:10,color:f.status===s?"#fff":"#5a6478",fontWeight:700,cursor:"pointer",fontSize:12}}>{s}</button>)}</div></div>
+          <div><label style={lbl}>Mode</label><div style={{display:"flex",gap:7}}>{["Cash","Finance"].map(s=><button key={s} onClick={()=>setF(p=>({...p,finance:s}))} style={{flex:1,background:f.finance===s?"#1e3a5f":"#1e2436",border:"1px solid "+(f.finance===s?"#3b82f6":"#1e2436"),borderRadius:10,padding:10,color:f.finance===s?"#60a5fa":"#5a6478",fontWeight:700,cursor:"pointer",fontSize:12}}>{s}</button>)}</div></div>
+          <div style={{background:"rgba(107,114,128,0.08)",border:"1px dashed #374151",borderRadius:10,padding:"9px 12px",fontSize:11,color:"#5a6478"}}>🔒 Nominee &amp; Exchange details are entered at billing time</div>
+          {role!=="salesman"&&<div><label style={lbl}>Assign to</label><select style={inp} value={f.salesman} onChange={e=>setF(p=>({...p,salesman:e.target.value}))}>{SM.map(s=><option key={s}>{s}</option>)}</select></div>}
+          <div><label style={lbl}>Remarks</label><textarea rows={2} style={{...inp,resize:"none"}} value={f.remarks} onChange={e=>setF(p=>({...p,remarks:e.target.value}))}/></div>
+          <div><label style={lbl}>Followup Date (blank=auto)</label><input type="date" style={inp} value={f.followupDate} onChange={e=>setF(p=>({...p,followupDate:e.target.value}))}/></div>
+          <button onClick={submit} style={{...btn("linear-gradient(135deg,#f97316,#ef4444)"),padding:15,fontSize:15,borderRadius:14,marginTop:4}}>Add Customer</button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function Row({label,val,auto}){
+  return(
+    <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"4px 0",borderBottom:"1px solid #131820"}}>
+      <div style={{display:"flex",alignItems:"center",gap:5}}><span style={{fontSize:12,color:"#8892a4"}}>{label}</span>{auto&&<span style={{fontSize:9,background:"#1e2436",color:"#5a6478",padding:"1px 5px",borderRadius:4}}>AUTO</span>}</div>
+      <span style={{fontSize:13,color:"#e2e6f0",fontWeight:600}}>{fc(val)}</span>
+    </div>
+  );
+}
+function Inp({label,k,f,setF}){
+  return(
+    <div style={{display:"flex",alignItems:"center",padding:"4px 0",borderBottom:"1px solid #131820",gap:8}}>
+      <span style={{fontSize:12,color:"#8892a4",flex:1}}>{label}</span>
+      <input type="number" inputMode="numeric" min="0" value={f[k]||""} onChange={e=>{const v=e.target.value.replace(/[^0-9]/g,"");setF(p=>({...p,[k]:v}));}} placeholder="0" style={{width:88,background:"#1a1f2e",border:"1px solid #252d3d",borderRadius:8,padding:"5px 8px",fontSize:12,color:"#e2e6f0",textAlign:"right"}}/>
+    </div>
+  );
+}
+function Tot({label,val,col}){
+  return(
+    <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",background:"rgba(255,255,255,0.04)",borderRadius:8,padding:"8px 10px",marginTop:3}}>
+      <span style={{fontSize:12,color:"#e2e6f0",fontWeight:700}}>{label}</span>
+      <span style={{fontSize:17,color:col||"#f97316",fontWeight:900}}>{fc(val)}</span>
+    </div>
+  );
+}
+function BillingModal({cust,onClose,onSave,notify,role}){
+  const r=RC[cust.modelCode]||{};
+  const isFin=cust.finance==="Finance";
+  const eb=cust.billing||{};
+  const [f,setF]=useState({...eb,billName:eb.billName||cust.name,exchName:cust.exchangeName||"",exchModel:cust.exchangeAsked||"",exchRegNo:cust.exchangeRegNo||"",bkDate:(cust.booking&&cust.booking.date)||td(),fatherName:cust.fatherName||"",dob:cust.dob||"",aadhar:cust.aadhar||"",pan:cust.pan||"",nominee:cust.nominee||"",nomineeRel:cust.nomineeRel||"",hdl:eb.hdl!==undefined?eb.hdl:(r.hdl||600),ins:eb.ins!==undefined?eb.ins:(r.ins||0),reg:eb.reg!==undefined?eb.reg:(r.reg||0),acc:0,tef:isFin?500:0,hyp:isFin?500:0,addAmc:false,cof:0,sdis:0,corp:0,bk:(cust.booking&&cust.booking.amt)||0,exv:Number(cust.exchangeOffered)||0,loan:0,paid:0,chassis:"",engine:"",color:"",deliveryDate:td(),financeBank:"",registrationNo:"",insuranceNo:""});
+  const c=calcB(f,r);
+  const [chk,setChk]=useState(eb.checklist||{pdi:false,helmet:false,docs:false,service:false});
+  const VER_ALL=[["nameV","Customer name verified"],["fatherV","Father name verified"],["aadharV","Aadhar number verified"],["nomineeV","Nominee & relation added"],["chassisV","Chassis number verified"],["engineV","Engine number verified"],["colorV","Colour verified"]];
+  const [ver,setVer]=useState(eb.verify||{});
+  useEffect(()=>{setVer(p=>({...p,
+    nameV:p.nameV||!!f.billName,fatherV:p.fatherV||!!f.fatherName,
+    aadharV:p.aadharV||!!f.aadhar,nomineeV:p.nomineeV||!!(f.nominee&&f.nomineeRel),
+    chassisV:p.chassisV||!!f.chassis,engineV:p.engineV||!!f.engine,colorV:p.colorV||!!f.color}));},
+    [f.billName,f.fatherName,f.aadhar,f.nominee,f.nomineeRel,f.chassis,f.engine,f.color]);
+
+  function buildReceipt(){
+    var rows="<div class=row><span>Date</span><span class=v>"+td()+"</span></div>";
+    rows+="<div class=row><span>Customer</span><span class=v>"+(f.billName||cust.name)+"</span></div>";
+    rows+="<div class=row><span>Father/Mother</span><span class=v>"+(f.fatherName||"—")+"</span></div>";rows+="<div class=row><span>Nominee</span><span class=v>"+(f.nominee||"—")+" ("+(f.nomineeRel||"—")+")</span></div>";rows+="<div class=row><span>Aadhar</span><span class=v>"+(f.aadhar||"—")+"</span></div>";
+    rows+="<div class=row><span>Phone</span><span class=v>"+cust.phone+"</span></div>";
+    rows+="<div class=row><span>Model</span><span class=v>"+cust.model+"</span></div>";
+    rows+="<div class=row><span>Code</span><span class=v>"+cust.modelCode+"</span></div>";
+    rows+="<div class=row><span>Colour</span><span class=v>"+f.color+"</span></div>";
+    rows+="<div class=row><span>Chassis</span><span class=v>"+f.chassis+"</span></div>";
+    rows+="<div class=row><span>Engine</span><span class=v>"+f.engine+"</span></div>";
+    rows+="<div class=row><span>Delivery</span><span class=v>"+fd(f.deliveryDate)+"</span></div>";
+    rows+="<div class=row><span>Mode</span><span class=v>"+cust.finance+"</span></div>";
+    if(f.financeBank)rows+="<div class=row><span>Finance Bank</span><span class=v>"+f.financeBank+"</span></div>";
+    if(f.registrationNo)rows+="<div class=row><span>Reg No</span><span class=v>"+f.registrationNo+"</span></div>";
+    rows+="<hr/>";
+    if(f.mrNo)rows+="<div class=row><span>MR No.</span><span class=v>"+f.mrNo+"</span></div>";
+    if(f.payMode)rows+="<div class=row><span>Payment Mode</span><span class=v>"+f.payMode+"</span></div>";
+    var CALCROWS="";
+    CALCROWS+="<div class=row><span>Ex-Showroom (A)</span><span class=v>"+fc(c.ex)+"</span></div>";
+    if(c.ca)CALCROWS+="<div class=row><span>+ Comp.Acc</span><span>"+fc(c.ca)+"</span></div>";
+    CALCROWS+="<div class=row><span>+ Handling</span><span>"+fc(c.hdl)+"</span></div>";
+    CALCROWS+="<div class=row><span>+ Insurance 5yr</span><span>"+fc(c.ins)+"</span></div>";
+    if(c.reg)CALCROWS+="<div class=row><span>+ Registration</span><span>"+fc(c.reg)+"</span></div>";
+    if(c.acc)CALCROWS+="<div class=row><span>+ Accessories</span><span>"+fc(c.acc)+"</span></div>";
+    if(c.tef)CALCROWS+="<div class=row><span>+ Teflon</span><span>"+fc(c.tef)+"</span></div>";
+    if(c.hyp)CALCROWS+="<div class=row><span>+ Hypothication</span><span>"+fc(c.hyp)+"</span></div>";
+    if(c.amcV)CALCROWS+="<div class=row><span>+ AMC</span><span>"+fc(c.amcV)+"</span></div>";
+    CALCROWS+="<div class=row><b>Total C=A+B</b><b>"+fc(c.C)+"</b></div>";
+    if(c.cof)CALCROWS+="<div class=row><span>- Consumer Offer</span><span>"+fc(c.cof)+"</span></div>";
+    if(c.sdis)CALCROWS+="<div class=row><span>- Special Discount</span><span>"+fc(c.sdis)+"</span></div>";
+    CALCROWS+="<div class=row><b>Deal Price E</b><b>"+fc(c.E)+"</b></div>";
+    if(c.bk)rows+="<div class=row><span>- Booking ("+fd(f.bkDate)+")</span><span>"+fc(c.bk)+"</span></div>";
+    if(c.exv)rows+="<div class=row><span>- Exchange: "+(f.exchModel||"")+" "+(f.exchRegNo||"")+(f.exchName?" ("+f.exchName+")":"")+"</span><span>"+fc(c.exv)+"</span></div>";
+    if(c.loan)rows+="<div class=row><span>- Loan</span><span>"+fc(c.loan)+"</span></div>";
+    rows+="<div class=total><span>AMOUNT RECEIVED</span><span>"+fc(c.paid)+"</span></div>";
+    rows+="<div class=row><span>Balance</span><span style='color:"+(c.K>0?"red":"green")+"'>"+fc(Math.max(c.K,0))+"</span></div>";
+    window.__CG=CALCROWS;
+    return "<!DOCTYPE html><html><head><title>Money Receipt</title><style>*{margin:0;padding:0;box-sizing:border-box}body{font-family:Arial,sans-serif;font-size:13px;padding:20px;color:#111}.logo{font-size:24px;font-weight:900;letter-spacing:2px;text-align:center}.hdr{text-align:center;border-bottom:2px solid #000;padding-bottom:10px;margin-bottom:14px}.hdr p{font-size:11px;color:#444;margin-top:2px}h2{text-align:center;font-size:17px;margin:10px 0 14px}.row{display:flex;justify-content:space-between;padding:4px 0;border-bottom:1px solid #eee}.v{font-weight:700}.total{display:flex;justify-content:space-between;padding:10px 0;border-top:2px solid #000;font-size:16px;font-weight:900}.sigs{display:flex;justify-content:space-between;margin-top:40px}.sigs div{text-align:center;font-size:11px}</style></head><body><div class=hdr><div class=logo>NKD BAJAJ</div><p>Authorised Main Dealer — Bajaj Auto Ltd.</p><p>Hirak Road, Near Kamal Katesaria School, Dhanbad</p><p>Ph: 7033099006 | info@nkdbajaj.com</p></div><h2>MONEY RECEIPT</h2>"+rows+"<div class=sigs><div>____________________<br/>Customer Sign</div><div>____________________<br/>For NKD Bajaj</div></div><p style='text-align:center;font-size:10px;margin-top:16px;color:#666'>Subject to realization of Cheque/Draft</p></body></html>";
+  }
+  function openReceipt(html){
+    var w=window.open("","_blank","width=420,height=700");
+    if(!w){notify("Popup blocked — receipt saved in Billing tab","warn");return;}
+    w.document.write(html);w.document.close();setTimeout(function(){w.print();},400);
+  }
+
+  const [busy,setBusy]=useState(false);
+  function submit(){
+    if(busy)return;
+    if(!f.chassis){notify("Enter chassis number","err");return;}
+    if(!f.aadhar||!f.fatherName||!f.nominee||!f.nomineeRel){notify("Fill KYC: Aadhar, Father name, Nominee & Relation","err");return;}
+    if(c.C<0||c.E<0||c.G<0||c.I<0){alert("⚠️ Calculation error — a total has gone NEGATIVE.\nCheck discounts/booking/exchange amounts. No value can exceed the price above it.");return;}
+    if(c.K<0){alert("⚠️ Payment Received ("+fc(c.paid)+") is MORE than balance due ("+fc(c.I)+").\nCorrect the Payment Received amount.");return;}
+    const missing=VER_ALL.filter(([k])=>!ver[k]);
+    if(missing.length>0){alert("⚠️ Cannot submit — verify these first:\n\n"+missing.map(([,l])=>"☐ "+l).join("\n"));return;}
+    var html=buildReceipt();
+    var CALC_G=window.__CG||"";
+    var calcHtml=html.replace("MONEY RECEIPT","CALCULATION SHEET (INTERNAL)").replace("</h2>","</h2>"+["<div class=row><span>Payment Mode</span><span class=v>"+(f.payMode||"—")+"</span></div>","<div class=row><span>MR No.</span><span class=v>"+(f.mrNo||"—")+"</span></div>","<div class=row><span>Financed By</span><span class=v>"+(f.financeBank||"Cash")+"</span></div>"].join("")+CALC_G);
+    onSave({...f,calc:c,calcHtml:calcHtml,checklist:chk,verify:ver,verifyList:VER_ALL.map(([k,l])=>[k,l]),receiptHtml:html,details:{name:f.billName||cust.name,exchangeName:f.exchName,exchangeAsked:f.exchModel,exchangeRegNo:f.exchRegNo,exchangeOffered:String(f.exv||""),fatherName:f.fatherName,address:cust.address,dob:f.dob,nominee:f.nominee,nomineeRel:f.nomineeRel,aadhar:f.aadhar,pan:f.pan}});
+    setBusy(true);
+    notify(role==="salesman"?"✅ Sent to Manager for approval — receipt saved in Billing tab":"✅ Billed & approved — receipt saved in Billing tab");
+  }
+
+  return(
+    <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.93)",zIndex:150,display:"flex",alignItems:"flex-end"}}>
+      <div style={{background:"#12161f",width:"100%",borderRadius:"20px 20px 0 0",maxHeight:"97vh",overflowY:"auto",padding:"20px 16px 44px"}}>
+        <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:4}}><div style={{fontWeight:800,fontSize:16,color:"#fff"}}>Bill Vehicle</div><button onClick={onClose} style={{background:"#1e2436",border:"none",borderRadius:8,width:32,height:32,cursor:"pointer",color:"#8892a4",fontSize:18}}>✕</button></div>
+        <div style={{fontSize:12,color:"#5a6478",marginBottom:14}}>{cust.name} · {cust.model} · <span style={{color:"#60a5fa",fontWeight:600}}>{cust.modelCode}</span></div>
+        <div style={{background:"rgba(96,165,250,0.07)",border:"1px solid rgba(96,165,250,0.22)",borderRadius:11,padding:"9px 12px",marginBottom:14,fontSize:11,color:"#8892a4",lineHeight:1.7}}>✓ <b style={{color:"#60a5fa"}}>Auto-filled:</b> Ex-Showroom {fc(r.ex)}, Insurance {fc(r.ins||0)}, Registration {fc(r.reg||0)}. Fill <b style={{color:"#f97316"}}>Teflon/Accessories/Hypo</b> manually.</div>
+
+        <div style={{marginBottom:14}}>
+          <div style={{fontSize:10,fontWeight:700,color:"#6b7a90",letterSpacing:0.8,marginBottom:6}}>CUSTOMER KYC (required for billing)</div>
+          <div style={{background:"#12161f",border:"1px solid #1e2436",borderRadius:12,padding:12}}>
+            <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:8}}>
+              {[{k:"billName",l:"Customer Name (as on bill) *"},{k:"fatherName",l:"Father/Mother Name *"},{k:"dob",l:"Date of Birth",t:"date"},{k:"aadhar",l:"Aadhar No *"},{k:"pan",l:"PAN No"},{k:"nominee",l:"Nominee Name *"},{k:"nomineeRel",l:"Nominee Relation *"}].map(({k,l,t})=>(
+                <div key={k}><label style={{...lbl,fontSize:10}}>{l}</label><input type={t||"text"} value={f[k]||""} onChange={e=>setF(p=>({...p,[k]:e.target.value}))} style={{...inp,fontSize:12,padding:"8px 10px"}}/></div>
+              ))}
+            </div>
+          </div>
+        </div>
+
+        <div style={{marginBottom:14}}>
+          <div style={{fontSize:10,fontWeight:700,color:"#f59e0b",letterSpacing:0.8,marginBottom:6}}>EXCHANGE DETAILS (if old bike exchanged)</div>
+          <div style={{background:"#12161f",border:"1px solid #1e2436",borderRadius:12,padding:12}}>
+            <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:8}}>
+              {[{k:"exchName",l:"Exchanger Name"},{k:"exchModel",l:"Old Bike Model"},{k:"exchRegNo",l:"Old Vehicle Reg No"}].map(({k,l})=>(
+                <div key={k}><label style={{...lbl,fontSize:10}}>{l}</label><input value={f[k]||""} onChange={e=>setF(p=>({...p,[k]:e.target.value}))} style={{...inp,fontSize:12,padding:"8px 10px"}}/></div>
+              ))}
+              <div><label style={{...lbl,fontSize:10}}>Exchange Value ₹</label><input type="number" inputMode="numeric" value={f.exv||""} onChange={e=>setF(p=>({...p,exv:e.target.value}))} style={{...inp,fontSize:12,padding:"8px 10px"}}/></div>
+            </div>
+          </div>
+        </div>
+
+        <div style={{marginBottom:14}}>
+          <div style={{fontSize:10,fontWeight:700,color:"#6b7a90",letterSpacing:0.8,marginBottom:6}}>VEHICLE DETAILS</div>
+          <div style={{background:"#12161f",border:"1px solid #1e2436",borderRadius:12,padding:12}}>
+            <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:8}}>
+              {[{k:"chassis",l:"Chassis No *"},{k:"engine",l:"Engine No"},{k:"color",l:"Colour"},{k:"deliveryDate",l:"Delivery Date",t:"date"},{k:"financeBank",l:"Finance Bank"},{k:"registrationNo",l:"Reg No"},{k:"insuranceNo",l:"Insurance No"},{k:"mrNo",l:"MR No."},{k:"payMode",l:"Payment Mode (Cash/UPI/Cheque/RTGS)"}].map(({k,l,t})=>(
+                <div key={k}><label style={{...lbl,fontSize:10}}>{l}</label><input type={t||"text"} value={f[k]||""} onChange={e=>setF(p=>({...p,[k]:e.target.value}))} style={{...inp,fontSize:12,padding:"8px 10px"}}/></div>
+              ))}
+            </div>
+          </div>
+        </div>
+
+        <div style={{marginBottom:14}}>
+          <div style={{fontSize:10,fontWeight:700,color:"#f97316",letterSpacing:0.8,marginBottom:6}}>CALCULATION SHEET</div>
+          <div style={{background:"#12161f",border:"1px solid #1e2436",borderRadius:12,padding:12}}>
+            <Row label="(A) Ex-Showroom" val={c.ex} auto={true}/>
+            <Row label="+ Comp. Accessories" val={c.ca} auto={true}/>
+            <Inp label="+ Handling" k="hdl" f={f} setF={setF}/>
+            <Inp label="+ Insurance (5yr)" k="ins" f={f} setF={setF}/>
+            <Inp label="+ Registration" k="reg" f={f} setF={setF}/>
+            <div style={{background:"rgba(249,115,22,0.06)",borderRadius:7,padding:"6px 8px",margin:"6px 0 2px"}}><div style={{fontSize:9,color:"#f97316",fontWeight:700,marginBottom:4}}>MANUAL ENTRY</div>
+              <Inp label="+ Accessories" k="acc" f={f} setF={setF}/>
+              <Inp label="+ Teflon Coating" k="tef" f={f} setF={setF}/>
+              <Inp label="+ Hypothication" k="hyp" f={f} setF={setF}/>
+            </div>
+            <div style={{display:"flex",alignItems:"center",gap:8,padding:"6px 0",borderBottom:"1px solid #131820"}}><input type="checkbox" id="amc" checked={f.addAmc} onChange={e=>setF(p=>({...p,addAmc:e.target.checked}))}/><label htmlFor="amc" style={{fontSize:12,color:"#8892a4",cursor:"pointer"}}>Add AMC ({fc(r.amc||0)}/yr)</label></div>
+            <Tot label="TOTAL C = A + B" val={c.C} col="#f97316"/>
+            <div style={{height:8}}/>
+            <Inp label="− Consumer Offer" k="cof" f={f} setF={setF}/>
+            <Inp label="− Special Discount" k="sdis" f={f} setF={setF}/>
+            <Inp label="− Corporate Scheme" k="corp" f={f} setF={setF}/>
+            <Tot label="Deal Price E = C − D" val={c.E} col="#a78bfa"/>
+            <div style={{height:8}}/>
+            <Inp label="− Booking Amount" k="bk" f={f} setF={setF}/>
+            <div style={{display:"flex",alignItems:"center",padding:"4px 0",borderBottom:"1px solid #131820",gap:8}}><span style={{fontSize:12,color:"#8892a4",flex:1}}>Booking Date</span><input type="date" value={f.bkDate||""} onChange={e=>setF(p=>({...p,bkDate:e.target.value}))} style={{width:130,background:"#1a1f2e",border:"1px solid #252d3d",borderRadius:8,padding:"5px 8px",fontSize:11,color:"#e2e6f0"}}/></div>
+            <Inp label="− Exchange Value" k="exv" f={f} setF={setF}/>
+            <Tot label="Net G = E − F" val={c.G} col="#60a5fa"/>
+            {isFin&&<Inp label="− Loan / Disbursal" k="loan" f={f} setF={setF}/>}
+            <div style={{display:"flex",justifyContent:"space-between",padding:"5px 0",borderBottom:"1px solid #131820",fontSize:11}}><span style={{color:"#8892a4"}}>Balance from Customer (I)</span><span style={{color:"#e2e6f0",fontWeight:700}}>{fc(c.I)}</span></div>
+            <Inp label="Payment Received (J)" k="paid" f={f} setF={setF}/>
+            <div style={{background:c.K===0?"rgba(34,197,94,0.12)":"rgba(239,68,68,0.12)",border:"1px solid "+(c.K===0?"#22c55e":"#ef4444"),borderRadius:10,padding:"11px 12px",marginTop:6}}>
+              <div style={{display:"flex",justifyContent:"space-between",alignItems:"center"}}><span style={{fontWeight:700,fontSize:13,color:"#e2e6f0"}}>Difference K = I − J</span><span style={{fontWeight:900,fontSize:20,color:c.K===0?"#22c55e":"#ef4444"}}>{fc(c.K)}</span></div>
+              {c.K===0&&<div style={{fontSize:11,color:"#22c55e",marginTop:2}}>✓ Fully settled</div>}
+            </div>
+          </div>
+        </div>
+
+        <div style={{marginBottom:14}}>
+          <div style={{fontSize:10,fontWeight:700,color:"#34d399",letterSpacing:0.8,marginBottom:6}}>DELIVERY CHECKLIST</div>
+          <div style={{background:"#12161f",border:"1px solid #1e2436",borderRadius:12,padding:12,display:"flex",flexDirection:"column",gap:8}}>
+            {[["pdi","PDI (Pre-Delivery Inspection) done"],["helmet","Helmet given to customer"],["docs","All documents handed over"],["service","Service schedule explained (1st free @ 45 days)"]].map(([k,l])=>(
+              <label key={k} style={{display:"flex",alignItems:"center",gap:9,fontSize:12,color:chk[k]?"#22c55e":"#8892a4",cursor:"pointer"}}>
+                <input type="checkbox" checked={!!chk[k]} onChange={e=>setChk(p=>({...p,[k]:e.target.checked}))}/>{l}
+              </label>
+            ))}
+          </div>
+        </div>
+
+        <div style={{marginBottom:14}}>
+          <div style={{fontSize:10,fontWeight:700,color:"#ef4444",letterSpacing:0.8,marginBottom:6}}>⚠️ MANDATORY VERIFICATION (all required to submit)</div>
+          <div style={{background:"#12161f",border:"1px solid rgba(239,68,68,0.25)",borderRadius:12,padding:12,display:"flex",flexDirection:"column",gap:8}}>
+            {VER_ALL.map(([k,l])=>(
+              <label key={k} style={{display:"flex",alignItems:"center",gap:9,fontSize:12,color:ver[k]?"#22c55e":"#e2e6f0",cursor:"pointer"}}>
+                <input type="checkbox" checked={!!ver[k]} onChange={e=>setVer(p=>({...p,[k]:e.target.checked}))}/>{ver[k]?"✅":"☐"} {l}
+              </label>
+            ))}
+            <div style={{fontSize:11,color:"#5a6478",borderTop:"1px solid #1e2436",paddingTop:8}}>{VER_ALL.filter(([k])=>ver[k]).length}/{VER_ALL.length} verified · Documents (insurance, invoice, receipt) can be uploaded after billing — not required here</div>
+          </div>
+        </div>
+
+        <div style={{background:role==="salesman"?"rgba(249,115,22,0.08)":"rgba(139,92,246,0.08)",border:"1px solid "+(role==="salesman"?"rgba(249,115,22,0.3)":"rgba(139,92,246,0.3)"),borderRadius:10,padding:"10px 12px",marginBottom:14,fontSize:12,color:role==="salesman"?"#f97316":"#a78bfa",fontWeight:600}}>{role==="salesman"?"⏳ Sent to Manager for approval":"✅ You are "+role+" — auto-approved"}</div>
+        <button onClick={submit} style={{...btn("linear-gradient(135deg,#059669,#10b981)"),width:"100%",padding:17,fontSize:16,borderRadius:16,boxShadow:"0 6px 24px rgba(16,185,129,0.35)"}}>{busy?"Saving…":"✅ Confirm Billing & Print Money Receipt"}</button>
+      </div>
+    </div>
+  );
+}
+
+function BillingView({billing:b,cust}){
+  const r=RC[cust.modelCode]||{};
+  const c=b.calc||calcB(b,r);
+  const [showR,setShowR]=useState(null);
+  const ifr=useRef(null);
+  const calcText=["NKD BAJAJ - CALCULATION SHEET","Date: "+td(),"Customer: "+cust.name,"Phone: "+cust.phone,"Model: "+(cust.model||"")+" ("+(cust.modelCode||"")+")","Chassis: "+(b.chassis||"-"),"","(A) Ex-Showroom: "+fc(c.ex),"+ Comp.Acc: "+fc(c.ca),"+ Handling: "+fc(c.hdl),"+ Insurance: "+fc(c.ins),"+ Registration: "+fc(c.reg),"+ Accessories: "+fc(c.acc),"+ Teflon: "+fc(c.tef),"+ Hypo: "+fc(c.hyp),"+ AMC: "+fc(c.amcV),"TOTAL C: "+fc(c.C),"- Discounts: "+fc(c.D),"DEAL PRICE E: "+fc(c.E),"- Booking: "+fc(c.bk),"- Exchange: "+fc(c.exv)+(cust.exchangeRegNo?" ("+cust.exchangeRegNo+")":""),"- Loan: "+fc(c.loan),"Balance I: "+fc(c.I),"PAID J: "+fc(c.paid),"DIFFERENCE K: "+fc(c.K)].join("\n");
+  const custText=encodeURIComponent(["NKD BAJAJ - MONEY RECEIPT","Date: "+td(),"Customer: "+cust.name,"Model: "+(cust.model||"")+" ("+(cust.modelCode||"")+")","Amount Received: "+fc(c.paid),"Balance: "+fc(Math.max(c.K,0)),"","Thank you for choosing NKD Bajaj, Dhanbad!"].join("\n"));
+  const officeText=encodeURIComponent(calcText);
+  function sendOffice(){
+    var num=ld("nkd_office_wa","");
+    if(!num){num=prompt("Enter office WhatsApp number (10 digits) — saved for future:");if(!num)return;sv("nkd_office_wa",num);}
+    window.open("https://wa.me/91"+num+"?text="+officeText,"_blank");
+  }
+  return(
+    <div>
+      {b.receiptHtml&&<div style={{marginBottom:12}}>
+        <button onClick={()=>setShowR(b.receiptHtml)} style={{width:"100%",background:"rgba(96,165,250,0.1)",border:"1px solid rgba(96,165,250,0.35)",borderRadius:12,padding:12,color:"#60a5fa",fontWeight:700,fontSize:13,cursor:"pointer",marginBottom:8}}>🧾 Money Receipt</button>
+        <button onClick={()=>b.calcHtml?setShowR(b.calcHtml):alert("No calc sheet saved (older billing)")} style={{width:"100%",background:"rgba(245,158,11,0.1)",border:"1px solid rgba(245,158,11,0.35)",borderRadius:12,padding:12,color:"#f59e0b",fontWeight:700,fontSize:13,cursor:"pointer",marginBottom:8}}>📊 Full Calculation Sheet (internal)</button>
+        <div style={{display:"flex",gap:8}}>
+          <a href={"https://wa.me/91"+cust.phone+"?text="+custText} target="_blank" rel="noreferrer" style={{flex:1,background:"rgba(37,211,102,0.08)",border:"1px solid rgba(37,211,102,0.3)",borderRadius:12,padding:11,color:"#25D366",fontWeight:700,fontSize:11,textAlign:"center",textDecoration:"none"}}>📲 MR → Customer</a>
+          <button onClick={sendOffice} style={{flex:1,background:"rgba(37,211,102,0.08)",border:"1px solid rgba(37,211,102,0.3)",borderRadius:12,padding:11,color:"#25D366",fontWeight:700,fontSize:11,cursor:"pointer"}}>🏢 Calc Sheet → Office No.</button>
+        </div>
+        <div style={{fontSize:10,color:"#5a6478",marginTop:6,lineHeight:1.5}}>MR (Money Receipt) goes to customer, full calc sheet goes to office only. For PDF: tap ⬇️ Download, open the file, print → save as PDF, then attach it in the WhatsApp chat that opens. (WhatsApp does not allow apps to auto-attach files.)</div>
+      </div>}
+      {showR&&(
+        <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.92)",zIndex:200,display:"flex",flexDirection:"column",padding:12}}>
+          <div style={{display:"flex",gap:8,marginBottom:8}}>
+            <button onClick={()=>dlFile(showR,showR===b.calcHtml?"CalcSheet_":"MoneyReceipt_"+cust.name.replace(/ /g,"_")+".html")} style={{flex:1,background:"#1e3a5f",border:"none",borderRadius:10,padding:11,color:"#60a5fa",fontWeight:700,fontSize:12,cursor:"pointer"}}>⬇️ Download</button>
+            <button onClick={()=>{try{ifr.current.contentWindow.print();}catch(e){alert("Print blocked here — use Download, open the file, then print/save as PDF");}}} style={{flex:1,background:"#1e2436",border:"none",borderRadius:10,padding:11,color:"#8892a4",fontWeight:700,fontSize:12,cursor:"pointer"}}>🖨️ Print</button>
+            <button onClick={()=>setShowR(false)} style={{flex:1,background:"#1e2436",border:"none",borderRadius:10,padding:11,color:"#8892a4",fontWeight:700,fontSize:13,cursor:"pointer"}}>✕ Close</button>
+          </div>
+          <iframe ref={ifr} srcDoc={showR} title="receipt" style={{flex:1,background:"#fff",borderRadius:12,border:"none",width:"100%"}}/>
+        </div>
+      )}
+      <div style={{background:cust.managerApproval==="approved"?"rgba(34,197,94,0.1)":"rgba(249,115,22,0.08)",border:"1px solid "+(cust.managerApproval==="approved"?"#22c55e":"rgba(249,115,22,0.4)"),borderRadius:11,padding:"11px 13px",marginBottom:12,fontSize:12,color:cust.managerApproval==="approved"?"#22c55e":"#f97316",fontWeight:600}}>{cust.managerApproval==="approved"?"✅ Billing Approved by Manager — record locked":cust.managerApproval==="rejected"?"❌ Rejected by Manager — correct the sheet and bill again (documents are retained)":"⏳ Awaiting Manager Approval"}</div>
+      {b.checklist&&<div style={{background:"#12161f",border:"1px solid #1e2436",borderRadius:12,padding:12,marginBottom:10}}>
+        <div style={{fontSize:10,fontWeight:700,color:"#34d399",marginBottom:8}}>DELIVERY CHECKLIST</div>
+        {[["pdi","PDI done"],["helmet","Helmet given"],["docs","Documents handed"],["service","Service explained"]].map(([k,l])=><div key={k} style={{fontSize:12,padding:"3px 0",color:b.checklist[k]?"#22c55e":"#ef4444"}}>{b.checklist[k]?"✅":"❌"} {l}</div>)}
+      </div>}
+      <div style={{background:"#12161f",border:"1px solid #1e2436",borderRadius:12,padding:12,marginBottom:10}}>
+        <div style={{fontSize:10,fontWeight:700,color:"#6b7a90",marginBottom:8}}>VEHICLE</div>
+        {[["Chassis",b.chassis],["Engine",b.engine],["Colour",b.color],["Delivery",fd(b.deliveryDate)],["Finance Bank",b.financeBank||"—"],["Reg No",b.registrationNo||"—"]].map(([k,v])=><div key={k} style={{display:"flex",justifyContent:"space-between",padding:"4px 0",borderBottom:"1px solid #1e2436",fontSize:12}}><span style={{color:"#5a6478"}}>{k}</span><span style={{color:"#e2e6f0",fontWeight:600}}>{v}</span></div>)}
+      </div>
+      <div style={{background:"#12161f",border:"1px solid #1e2436",borderRadius:12,padding:12}}>
+        <div style={{fontSize:10,fontWeight:700,color:"#6b7a90",marginBottom:8}}>AMOUNTS</div>
+        {[["Ex-Showroom",fc(c.ex)],["Add-ons B",fc(c.B)],["Total C",fc(c.C)],["Less D","−"+fc(c.D)],["Deal Price E",fc(c.E)],["Less F","−"+fc(c.F)],["Net G",fc(c.G)],["Loan H","−"+fc(c.loan||0)],["Balance I",fc(c.I)],["Received J",fc(c.paid||0)]].map(([k,v])=><div key={k} style={{display:"flex",justifyContent:"space-between",padding:"3px 0",fontSize:12,borderBottom:"1px solid #131820"}}><span style={{color:"#5a6478"}}>{k}</span><span style={{color:"#e2e6f0",fontWeight:600}}>{v}</span></div>)}
+        <div style={{display:"flex",justifyContent:"space-between",padding:"10px 0 4px",fontWeight:800}}><span style={{color:"#e2e6f0"}}>Difference K</span><span style={{color:c.K===0?"#22c55e":"#ef4444",fontSize:18}}>{fc(c.K)}</span></div>
+      </div>
+    </div>
+  );
+}
+
+function Approvals({custs,onApprove,onOpen,onEditCalc,allC}){
+  const [rem,setRem]=useState({});
+  const rejected=(allC||[]).filter(c=>c.managerApproval==="rejected"&&!c.billed);
+  return(
+    <div>
+      <div style={{fontWeight:800,fontSize:19,color:"#fff",marginBottom:4}}>Approvals &amp; Actions</div>
+      <div style={{fontSize:11,color:"#5a6478",marginBottom:14}}>Review calculation before approving</div>
+      {custs.length===0&&<div className="fu glass" style={{textAlign:"center",padding:"28px 20px",borderRadius:16,background:"#12161f",marginBottom:14}}><div style={{fontSize:32,marginBottom:6}}>✅</div><div style={{fontWeight:700,fontSize:14,color:"#fff"}}>No pending approvals</div></div>}
+      {custs.map(c=>{
+        const r=RC[c.modelCode]||{};const cl=c.billing?.calc||calcB(c.billing||{},r);
+        return(
+          <div key={c.id} className="fu glass" style={{background:"#12161f",border:"1px solid rgba(139,92,246,0.35)",borderRadius:18,marginBottom:16,overflow:"hidden"}}>
+            <div style={{padding:"12px 14px",cursor:"pointer"}} onClick={()=>onOpen(c)}>
+              <div style={{fontWeight:700,fontSize:15,color:"#fff"}}>{c.name}</div>
+              <div style={{fontSize:12,color:"#8892a4"}}>{c.model} · {c.modelCode}</div>
+              <div style={{fontSize:11,color:"#5a6478",marginTop:2}}>{c.salesman} · {fd(c.billing?.deliveryDate)}</div>
+            </div>
+            <div style={{padding:"10px 14px",background:"#0d1018"}}>
+              <div style={{fontSize:10,fontWeight:700,color:"#a78bfa",marginBottom:6}}>FULL CALCULATION SHEET</div>
+              {[["(A) Ex-Showroom",fc(cl.ex)],["+ Comp.Acc",fc(cl.ca)],["+ Handling",fc(cl.hdl)],["+ Insurance",fc(cl.ins)],["+ Registration",fc(cl.reg)],["+ Accessories",fc(cl.acc)],["+ Teflon",fc(cl.tef)],["+ Hypo",fc(cl.hyp)],["+ AMC",fc(cl.amcV)],["TOTAL C",fc(cl.C)],["− Discounts (D)",fc(cl.D)],["DEAL PRICE E",fc(cl.E)],["− Booking",fc(cl.bk)],["− Exchange",fc(cl.exv)],["− Loan",fc(cl.loan)],["Balance (I)",fc(cl.I)],["Paid (J)",fc(cl.paid)]].map(([k,v])=><div key={k} style={{display:"flex",justifyContent:"space-between",fontSize:12,padding:"3px 0",borderBottom:"1px solid #131820"}}><span style={{color:k.includes("TOTAL")||k.includes("DEAL")?"#e2e6f0":"#5a6478",fontWeight:k.includes("TOTAL")||k.includes("DEAL")?700:400}}>{k}</span><span style={{color:"#e2e6f0",fontWeight:600}}>{v}</span></div>)}
+              <div style={{display:"flex",justifyContent:"space-between",fontSize:14,padding:"8px 0 2px",fontWeight:800}}><span style={{color:"#e2e6f0"}}>Difference K</span><span style={{color:cl.K===0?"#22c55e":"#ef4444"}}>{fc(cl.K)}</span></div>
+              {c.billing&&c.billing.verify&&<div>
+                <div style={{fontSize:10,fontWeight:700,color:"#ef4444",margin:"10px 0 6px"}}>SALESMAN VERIFICATION</div>
+                <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:4,marginBottom:8}}>
+                  {(c.billing.verifyList||[]).map(([k,l])=>{
+                    const done=c.billing.verify[k];
+                    return(<div key={k} style={{fontSize:10,padding:"4px 7px",borderRadius:7,background:done?"rgba(34,197,94,0.08)":"rgba(239,68,68,0.1)",border:"1px solid "+(done?"rgba(34,197,94,0.3)":"rgba(239,68,68,0.4)"),color:done?"#22c55e":"#ef4444",fontWeight:600}}>{done?"✅":"❌"} {l}</div>);
+                  })}
+                </div>
+              </div>}
+              <div style={{fontSize:10,fontWeight:700,color:"#a78bfa",margin:"10px 0 6px"}}>DOCUMENT CHECKLIST</div>
+              <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:5,marginBottom:8}}>
+                {[["aadhar_photo","Aadhar"],["pan_photo","PAN"],["booking_proof","Booking Proof"],["invoice","Invoice"],["insurance","Insurance"],["moneyreceipt","Money Receipt"],["mr","MR"],["do_letter","DO"]].map(([k,l])=>{
+                  const has=(c.photos||{})[k];
+                  return(<div key={k} style={{display:"flex",alignItems:"center",gap:6,background:has?"rgba(34,197,94,0.08)":"rgba(107,114,128,0.08)",border:"1px solid "+(has?"rgba(34,197,94,0.3)":"#252d3d"),borderRadius:8,padding:"5px 8px"}}>
+                    {has?<img src={c.photos[k]} alt={l} style={{width:26,height:26,objectFit:"cover",borderRadius:5}}/>:<span style={{fontSize:14}}>⬜</span>}
+                    <span style={{fontSize:10,color:has?"#22c55e":"#5a6478",fontWeight:600}}>{l}</span>
+                  </div>);
+                })}
+              </div>
+              <button onClick={()=>onOpen(c)} style={{width:"100%",background:"#1e2436",border:"1px solid #252d3d",borderRadius:9,padding:8,color:"#8892a4",fontSize:11,fontWeight:600,cursor:"pointer"}}>📂 View Documents</button>
+            </div>
+            {cl.K!==0&&<div style={{margin:"0 14px 10px",background:"rgba(239,68,68,0.1)",border:"1px solid rgba(239,68,68,0.35)",borderRadius:9,padding:"8px 11px",fontSize:11,color:"#ef4444",fontWeight:700}}>⛔ Difference K = {fc(cl.K)} — approval blocked until fully settled (K must be ₹0)</div>}
+            <div style={{padding:"0 14px 8px"}}><input placeholder="Manager remark (optional — saved to history)" value={rem[c.id]||""} onChange={e=>setRem(p=>({...p,[c.id]:e.target.value}))} style={{background:"#161b27",border:"1px solid #252d3d",borderRadius:10,padding:"9px 12px",fontSize:12,color:"#e2e6f0",width:"100%",boxSizing:"border-box",outline:"none"}}/></div>
+            {cl.K!==0&&<div style={{margin:"0 14px 8px",fontSize:11,color:"#f59e0b",fontWeight:700}}>👉 Tap EDIT to correct the sheet yourself, then it auto-approves</div>}
+            <div style={{display:"flex",gap:6,padding:"10px 14px",borderTop:"1px solid #1e2436"}}>
+              <button onClick={()=>cl.K===0&&onApprove(c.id,true,rem[c.id]||"")} disabled={cl.K!==0} style={{...btn(cl.K===0?"rgba(34,197,94,0.12)":"rgba(107,114,128,0.1)",cl.K===0?"#22c55e":"#374151"),flex:1,border:"1px solid "+(cl.K===0?"rgba(34,197,94,0.4)":"#252d3d"),cursor:cl.K===0?"pointer":"not-allowed",fontSize:12,padding:"11px 4px"}}>✅ Approve</button>
+              <button onClick={()=>onEditCalc(c)} style={{...btn("rgba(245,158,11,0.15)","#f59e0b"),flex:1,border:"1px solid rgba(245,158,11,0.5)",fontSize:12,padding:"11px 4px"}}>✏️ EDIT</button>
+              <button onClick={()=>onApprove(c.id,false,rem[c.id]||"")} style={{...btn("rgba(239,68,68,0.1)","#ef4444"),flex:1,border:"1px solid rgba(239,68,68,0.3)",fontSize:12,padding:"11px 4px"}}>❌ Reject</button>
+            </div>
+          </div>
+        );
+      })}
+      {rejected.length>0&&<div style={{marginTop:14}}>
+        <div style={{fontSize:12,fontWeight:800,color:"#ef4444",marginBottom:8}}>❌ REJECTED — AWAITING CORRECTION ({rejected.length})</div>
+        {rejected.map(c=><div key={c.id} onClick={()=>onOpen(c)} className="glass" style={{background:"rgba(239,68,68,0.06)",borderRadius:12,padding:"11px 13px",marginBottom:7,cursor:"pointer"}}>
+          <div style={{fontWeight:700,fontSize:13,color:"#fff"}}>{c.name}</div>
+          <div style={{fontSize:11,color:"#8892a4"}}>{c.model} · {c.salesman} · waiting for re-bill</div>
+        </div>)}
+      </div>}
+      <div style={{marginTop:16}}>
+        <div style={{fontSize:12,fontWeight:800,color:"#f59e0b",marginBottom:8}}>🔑 EXECUTIVE PASSWORD RESETS</div>
+        <div className="glass" style={{background:"#12161f",borderRadius:14,padding:12}}>
+          {SM.map(s=>{const pws=ld("nkd_pw",{});const rec=pws[s]||{};
+            return(<div key={s} style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"7px 0",borderBottom:"1px solid #1a1f2e"}}>
+              <span style={{fontSize:12,color:"#e2e6f0"}}>{s} {rec.locked&&<span style={{color:"#ef4444",fontWeight:700,fontSize:10}}>🔒 LOCKED</span>}{rec.must&&!rec.locked&&<span style={{color:"#5a6478",fontSize:10}}> (not set yet)</span>}</span>
+              <button onClick={()=>{const p2=ld("nkd_pw",{});p2[s]={pw:"1111",must:true,fails:0,locked:false};sv("nkd_pw",p2);alert(s+" reset to 1111 — they will set a new password on next login");}} style={{background:"#1e2436",border:"1px solid #252d3d",borderRadius:8,padding:"5px 10px",fontSize:10,color:"#f59e0b",fontWeight:700,cursor:"pointer"}}>Reset → 1111</button>
+            </div>);})}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function Revival({items,onRevive}){
+  const [sel,setSel]=useState([]);
+  return(
+    <div>
+      <div style={{fontWeight:800,fontSize:19,color:"#fff",marginBottom:4}}>Cold Pool Revival</div>
+      <div style={{fontSize:11,color:"#5a6478",marginBottom:12}}>{items.length} leads dormant 6+ months</div>
+      <div style={{display:"flex",gap:7,marginBottom:12}}>
+        <button onClick={()=>setSel(items.map(c=>c.id))} style={{...btn("#1e2436","#8892a4"),flex:1,border:"1px solid #252d3d"}}>All</button>
+        <button onClick={()=>setSel([])} style={{...btn("#1e2436","#8892a4"),flex:1,border:"1px solid #252d3d"}}>Clear</button>
+        <button onClick={()=>{onRevive(sel);setSel([]);}} disabled={sel.length===0} style={{...btn(sel.length>0?"#1e3a5f":"#131820",sel.length>0?"#60a5fa":"#374151"),flex:2,border:"1px solid "+(sel.length>0?"#3b82f6":"#252d3d")}}>Revive {sel.length>0?"("+sel.length+")":""}</button>
+      </div>
+      {items.map(c=>(
+        <div key={c.id} onClick={()=>setSel(p=>p.includes(c.id)?p.filter(x=>x!==c.id):[...p,c.id])} style={{background:sel.includes(c.id)?"rgba(96,165,250,0.07)":"#12161f",border:"1px solid "+(sel.includes(c.id)?"rgba(96,165,250,0.4)":"#1e2436"),borderRadius:12,padding:"12px 14px",marginBottom:7,cursor:"pointer",display:"flex",justifyContent:"space-between",alignItems:"center"}}>
+          <div><div style={{fontWeight:600,fontSize:13,color:"#e2e6f0"}}>{c.name}</div><div style={{fontSize:11,color:"#5a6478"}}>{c.phone} · {c.model}</div><div style={{fontSize:10,color:"#374151"}}>Enquired: {fd(c.enquiryDate)}</div></div>
+          <div style={{width:22,height:22,borderRadius:6,border:"2px solid "+(sel.includes(c.id)?"#60a5fa":"#252d3d"),background:sel.includes(c.id)?"#60a5fa":"transparent",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}>{sel.includes(c.id)&&<span style={{color:"#fff",fontSize:14,fontWeight:700}}>✓</span>}</div>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+function Reports({custs,onImportCust}){
+  const allC=custs;
+  const [brF,setBrF]=useState("All");
+  custs=brF==="All"?custs:custs.filter(c=>(c.branch||SM_BRANCH[c.salesman])===brF);
+  const billed=custs.filter(c=>c.billed);
+  const conv=custs.length>0?((billed.length/custs.length)*100).toFixed(1):0;
+  const cats={};custs.forEach(c=>{if(c.cat)cats[c.cat]=(cats[c.cat]||0)+1;});
+  return(
+    <div>
+      <div style={{fontWeight:800,fontSize:19,color:"#fff",marginBottom:12}}>Owner Reports</div>
+      <div style={{display:"flex",gap:5,marginBottom:10,overflowX:"auto"}}>
+        {["All",...BRANCHES].map(b=><button key={b} onClick={()=>setBrF(b)} style={{padding:"6px 12px",borderRadius:10,fontSize:11,fontWeight:700,cursor:"pointer",flexShrink:0,background:brF===b?"#1e3a5f":"#1e2436",color:brF===b?"#60a5fa":"#8892a4",border:"none"}}>{b}</button>)}
+      </div>
+      <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:8,marginBottom:14}}>
+        {BRANCHES.map(b=>{const bc=allC.filter(c=>(c.branch||SM_BRANCH[c.salesman])===b);const bb=bc.filter(c=>c.billed);
+          const rev=bb.reduce((s,c)=>s+((c.billing&&c.billing.calc&&c.billing.calc.E)||0),0);
+          return(<div key={b} className="glass" style={{background:"#12161f",borderRadius:14,padding:"11px 8px",textAlign:"center"}}>
+            <div style={{fontSize:9,color:"#5a6478",fontWeight:700}}>{b.toUpperCase()}</div>
+            <div style={{fontSize:17,fontWeight:900,color:"#34d399",marginTop:3}}>{bb.length}</div>
+            <div style={{fontSize:9,color:"#5a6478"}}>sold · ₹{(rev/100000).toFixed(1)}L</div>
+          </div>);})}
+      </div>
+      <button onClick={()=>{
+        const rows=[["Salesman","Branch","Total Leads","Bookings","Test Rides","Docs Collected","Sold","Revenue"]];
+        SM.forEach(s=>{const m=allC.filter(c=>c.salesman===s);
+          rows.push([s,SM_BRANCH[s],m.length,m.filter(c=>c.booking).length,m.filter(c=>c.testRide).length,m.filter(c=>c.photos&&Object.keys(c.photos).some(k=>c.photos[k])).length,m.filter(c=>c.billed).length,m.filter(c=>c.billed).reduce((x,c)=>x+((c.billing&&c.billing.calc&&c.billing.calc.E)||0),0)]);});
+        dlFile(rows.map(r=>r.join(",")).join("\n"),"NKD_Branch_Report_"+td()+".csv","text/csv");
+      }} style={{width:"100%",background:"rgba(52,211,153,0.1)",border:"1px solid rgba(52,211,153,0.35)",borderRadius:12,padding:11,color:"#34d399",fontWeight:700,fontSize:12,cursor:"pointer",marginBottom:10}}>📊 Export Branch Report (Excel/CSV)</button>
+      <div className="glass" style={{background:"#12161f",borderRadius:14,padding:12,marginBottom:14}}>
+        <div style={{fontSize:11,fontWeight:800,color:"#60a5fa",marginBottom:8}}>⬆️ BULK UPLOADS (save Excel as .CSV first: File → Save As → CSV)</div>
+        <div style={{fontSize:10,color:"#5a6478",marginBottom:4}}>1. New Rate Chart — columns: code,name,cat,ex,cAcc,hdl,ins,reg,onRoad,amc</div>
+        <input type="file" accept=".csv" onChange={e=>{const fl=e.target.files[0];if(!fl)return;const rd=new FileReader();rd.onload=ev=>{
+          try{const lines=ev.target.result.split(/\r?\n/).filter(x=>x.trim());const hd=lines[0].toLowerCase().split(",").map(x=>x.trim());
+          const gi=n=>hd.indexOf(n);const obj={};
+          for(let i=1;i<lines.length;i++){const c2=lines[i].split(",");const cd=(c2[gi("code")]||"").trim().toUpperCase();if(!cd)continue;
+            obj[cd]={n:c2[gi("name")]||cd,cat:c2[gi("cat")]||"OTHER",ex:+c2[gi("ex")]||0,cAcc:+c2[gi("cacc")]||0,hdl:+c2[gi("hdl")]||600,ins:+c2[gi("ins")]||0,reg:+c2[gi("reg")]||0,onRoad:+c2[gi("onroad")]||0,amc:+c2[gi("amc")]||0};}
+          sv("nkd_rc",obj);Object.assign(RC,obj);alert("✅ Rate chart updated: "+Object.keys(obj).length+" models. New rates apply to all new billings.");}catch(err){alert("Could not read file — check column names");}
+        };rd.readAsText(fl);e.target.value="";}} style={{width:"100%",background:"#1e2436",borderRadius:9,padding:8,fontSize:11,color:"#8892a4",border:"1px dashed #2a3040",marginBottom:10}}/>
+        <div style={{fontSize:10,color:"#5a6478",marginBottom:4}}>2. Old Customers (10,000+) — columns: name,phone,model,salesman,enquirydate,status,remarks</div>
+        <input type="file" accept=".csv" onChange={e=>{const fl=e.target.files[0];if(!fl)return;const rd=new FileReader();rd.onload=ev=>{
+          try{const lines=ev.target.result.split(/\r?\n/).filter(x=>x.trim());const hd=lines[0].toLowerCase().split(",").map(x=>x.trim());
+          const gi=n=>hd.indexOf(n);const rows=[];const perDay={};
+          for(let i=1;i<lines.length;i++){const c2=lines[i].split(",");const nm=(c2[gi("name")]||"").trim();const ph=(c2[gi("phone")]||"").replace(/\D/g,"").slice(-10);if(!nm||ph.length!==10)continue;
+            const sm2=(c2[gi("salesman")]||"").trim()||SM[i%SM.length];
+            perDay[sm2]=(perDay[sm2]||0)+1;const off=Math.floor((perDay[sm2]-1)/80);
+            rows.push({id:"OLD"+Date.now()+"_"+i,name:nm,phone:ph,model:(c2[gi("model")]||"").trim(),modelCode:"",cat:"",address:"",enquiryDate:(c2[gi("enquirydate")]||td()).trim()||td(),status:(c2[gi("status")]||"Cold").trim()||"Cold",salesman:sm2,branch:SM_BRANCH[sm2]||BRANCHES[0],finance:"Cash",remarks:"["+td()+"] IMPORTED: old customer data. "+((c2[gi("remarks")]||"").trim()),followupDate:aD(td(),off),attempts:0,stopped:false,billed:false,billedDate:null,photos:{},billing:null,managerApproval:null,callLog:[]});}
+          onImportCust(rows);alert("✅ Imported "+rows.length+" customers — spread at max 80 calls/day per executive for followup");}catch(err){alert("Could not read file — check column names");}
+        };rd.readAsText(fl);e.target.value="";}} style={{width:"100%",background:"#1e2436",borderRadius:9,padding:8,fontSize:11,color:"#8892a4",border:"1px dashed #2a3040"}}/>
+      </div>
+      <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:8,marginBottom:18}}>
+        {[["Total",custs.length,"#60a5fa"],["Billed",billed.length,"#22c55e"],["Conv%",conv+"%","#f59e0b"],["Hot",custs.filter(c=>c.status==="Hot"&&!c.billed).length,"#ef4444"],["Lost",custs.filter(c=>c.status==="Lost").length,"#6b7280"],["Stopped",custs.filter(c=>c.stopped).length,"#f97316"]].map(([l,v,c])=>(
+          <div key={l} style={{background:"#12161f",border:"1px solid #1e2436",borderRadius:12,padding:"12px 8px",textAlign:"center"}}><div style={{fontSize:22,fontWeight:900,color:c,lineHeight:1}}>{v}</div><div style={{fontSize:10,color:"#5a6478",marginTop:4}}>{l}</div></div>
+        ))}
+      </div>
+      {(()=>{const fin=custs.filter(c=>c.finance==="Finance");const finB=fin.filter(c=>c.billed);
+        const exB=billed.filter(c=>c.billing&&Number(c.billing.exv)>0);
+        const avgF=billed.length?(billed.reduce((s,c)=>s+((c.callLog||[]).length),0)/billed.length).toFixed(1):0;
+        return(<div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:8,marginBottom:16}}>
+          {[["Finance Conv",fin.length?Math.round(finB.length/fin.length*100)+"%":"—","#f59e0b"],["Exchange %",billed.length?Math.round(exB.length/billed.length*100)+"%":"—","#a78bfa"],["Avg Followups",avgF,"#60a5fa"]].map(([l,v,c2])=>(
+            <div key={l} style={{background:"#12161f",border:"1px solid #1e2436",borderRadius:12,padding:"12px 8px",textAlign:"center"}}>
+              <div style={{fontSize:20,fontWeight:900,color:c2,lineHeight:1}}>{v}</div>
+              <div style={{fontSize:9,color:"#5a6478",marginTop:4}}>{l}</div>
+            </div>
+          ))}
+        </div>);})()}
+      {(()=>{const src={};custs.forEach(c=>{if(c.source)src[c.source]=(src[c.source]||0)+1;});const lost={};custs.forEach(c=>{if(c.lostReason)lost[c.lostReason]=(lost[c.lostReason]||0)+1;});
+        return(<div style={{marginBottom:16}}>
+          {Object.keys(src).length>0&&<div><div style={{fontSize:12,fontWeight:700,color:"#8892a4",marginBottom:8}}>LEAD SOURCES</div>
+          {Object.entries(src).sort((a,b)=>b[1]-a[1]).map(([k,n])=><div key={k} style={{background:"#12161f",border:"1px solid #1e2436",borderRadius:10,padding:"8px 13px",marginBottom:5,display:"flex",justifyContent:"space-between",fontSize:12}}><span style={{color:"#e2e6f0"}}>{k}</span><span style={{color:"#60a5fa",fontWeight:700}}>{n}</span></div>)}</div>}
+          {Object.keys(lost).length>0&&<div style={{marginTop:12}}><div style={{fontSize:12,fontWeight:700,color:"#ef4444",marginBottom:8}}>WHY WE LOSE CUSTOMERS</div>
+          {Object.entries(lost).sort((a,b)=>b[1]-a[1]).map(([k,n])=><div key={k} style={{background:"rgba(239,68,68,0.06)",border:"1px solid rgba(239,68,68,0.2)",borderRadius:10,padding:"8px 13px",marginBottom:5,display:"flex",justifyContent:"space-between",fontSize:12}}><span style={{color:"#e2e6f0"}}>{k}</span><span style={{color:"#ef4444",fontWeight:700}}>{n}</span></div>)}</div>}
+        </div>);})()}
+      <div style={{fontSize:12,fontWeight:700,color:"#f59e0b",marginBottom:8}}>🔑 EXECUTIVE PASSWORDS</div>
+      <div style={{background:"#12161f",border:"1px solid #1e2436",borderRadius:12,padding:12,marginBottom:16}}>
+        {SM.map(s=>{const pws=ld("nkd_pw",{});const rec=pws[s]||{};
+          return(<div key={s} style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"6px 0",borderBottom:"1px solid #1a1f2e"}}>
+            <span style={{fontSize:12,color:"#e2e6f0"}}>{s} {rec.locked&&<span style={{color:"#ef4444",fontWeight:700,fontSize:10}}>🔒 LOCKED</span>}</span>
+            <button onClick={()=>{const pws2=ld("nkd_pw",{});pws2[s]={pw:"1111",must:true,fails:0,locked:false};sv("nkd_pw",pws2);alert(s+" reset to 1111 — they must change it on next login");}} style={{background:"#1e2436",border:"1px solid #252d3d",borderRadius:8,padding:"5px 10px",fontSize:10,color:"#f59e0b",fontWeight:700,cursor:"pointer"}}>Reset → 1111</button>
+          </div>);})}
+      </div>
+      <div style={{fontSize:12,fontWeight:700,color:"#8892a4",marginBottom:8}}>SALESMAN SCOREBOARD</div>
+      {SM.map(s=>{
+        const m=custs.filter(c=>c.salesman===s);const b=m.filter(c=>c.billed).length;const pct=m.length>0?Math.round(b/m.length*100):0;
+        return(
+          <div key={s} style={{background:"#12161f",border:"1px solid #1e2436",borderRadius:12,padding:"12px 14px",marginBottom:8}}>
+            <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:6}}><div><div style={{fontWeight:600,fontSize:13,color:"#fff"}}>{s}</div><div style={{fontSize:11,color:"#5a6478"}}>{m.length} leads</div></div><div style={{textAlign:"right"}}><div style={{fontSize:20,fontWeight:900,color:"#34d399"}}>{b}</div><div style={{fontSize:9,color:"#5a6478"}}>BILLED</div></div></div>
+            <div style={{background:"#1e2436",borderRadius:5,height:5}}><div style={{background:"linear-gradient(90deg,#f97316,#34d399)",borderRadius:5,height:5,width:pct+"%",transition:"width 0.4s"}}/></div>
+            <div style={{fontSize:10,color:"#5a6478",marginTop:3}}>{pct}% conversion</div>
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
+function DocVault({custs,onImport}){
+  const [open,setOpen]=useState(null);
+  const [flt,setFlt]=useState("approved");
+  const withDocs=custs.filter(c=>{
+    const hasDocs=c.photos&&Object.keys(c.photos).filter(k=>c.photos[k]).length>0;
+    if(flt==="approved")return hasDocs&&c.billed&&c.managerApproval==="approved";
+    if(flt==="billed")return hasDocs&&c.billed;
+    return hasDocs;
+  });
+  function exportDB(){
+    var blob=new Blob([JSON.stringify(custs,null,1)],{type:"application/json"});
+    var a=document.createElement("a");a.href=URL.createObjectURL(blob);
+    a.download="NKD_Bajaj_Database_"+td()+".json";a.click();
+  }
+  function importDB(file){
+    var rd=new FileReader();
+    rd.onload=function(e){try{var d=JSON.parse(e.target.result);if(Array.isArray(d))onImport(d);else alert("Invalid database file");}catch(err){alert("Could not read file");}};
+    rd.readAsText(file);
+  }
+  const LABELS={aadhar_photo:"Aadhar",pan_photo:"PAN",booking_proof:"Booking Proof",exchange_eval:"Exchange Evaluation",delivery:"Delivery Photo",invoice:"Invoice",insurance:"Insurance",registration:"RC",moneyreceipt:"Money Receipt",exchange:"Exchange Handover",mr:"MR",do_letter:"DO",loan_app:"Loan Application",sanction:"Sanction Letter",cust_sign:"Customer Sign"};
+  return(
+    <div>
+      <div style={{fontWeight:800,fontSize:19,color:"#fff",marginBottom:4}}>📁 Document Vault</div>
+      <div style={{fontSize:11,color:"#5a6478",marginBottom:10}}>{withDocs.length} parties · tap to expand · download files</div>
+      <div style={{display:"flex",gap:6,marginBottom:10}}>
+        {[["approved","✅ Approved"],["billed","Billed"],["all","All"]].map(([k,l])=><button key={k} onClick={()=>setFlt(k)} style={{flex:1,padding:"7px",borderRadius:10,fontSize:11,fontWeight:700,cursor:"pointer",background:flt===k?"#1e3a5f":"#1e2436",color:flt===k?"#60a5fa":"#8892a4",border:"1px solid "+(flt===k?"#3b82f6":"#252d3d")}}>{l}</button>)}
+      </div>
+      <div style={{display:"flex",gap:8,marginBottom:14}}>
+        <button onClick={()=>{
+          const H=["Date","Customer","Phone","Model","Code","Chassis","Engine","MR No","Pay Mode","Financed By","Ex-Showroom (A)","Comp Acc","Handling","Insurance","Registration","Accessories","Teflon","Hypo","AMC","TOTAL C","Consumer Offer","Special Disc","Corporate","DEAL PRICE E","Booking","Booking Date","Exchange","NET G","Loan","BALANCE I","PAID J","DIFF K","Salesman","Branch","Approved By"];
+          const rows=[H];
+          custs.filter(c=>c.billed&&c.billing&&c.billing.calc).forEach(c=>{const b=c.billing,k=b.calc;
+            rows.push([c.billedDate,c.name,c.phone,c.model||"",c.modelCode||"",b.chassis||"",b.engine||"",b.mrNo||"",b.payMode||"",b.financeBank||"Cash",k.ex,k.ca,k.hdl,k.ins,k.reg,k.acc,k.tef,k.hyp,k.amcV,k.C,k.cof,k.sdis,k.corp,k.E,k.bk,b.bkDate||"",k.exv,k.G,k.loan,k.I,k.paid,k.K,c.salesman||"",c.branch||"",c.approvedBy||""].map(x=>String(x).replace(/,/g," ")));
+          });
+          if(rows.length===1){alert("No approved billings yet");return;}
+          dlFile(rows.map(r=>r.join(",")).join("\n"),"NKD_Calculations_"+td()+".csv","text/csv");
+        }} style={{width:"100%",background:"rgba(96,165,250,0.1)",border:"1px solid rgba(96,165,250,0.35)",borderRadius:11,padding:"11px",color:"#60a5fa",fontWeight:700,fontSize:12,cursor:"pointer",marginBottom:8}}>📊 Export All Calculations — Excel (line by line, A to K)</button>
+        <button onClick={exportDB} style={{flex:1,background:"rgba(52,211,153,0.1)",border:"1px solid rgba(52,211,153,0.35)",borderRadius:11,padding:"11px",color:"#34d399",fontWeight:700,fontSize:12,cursor:"pointer"}}>⬇️ Export Full Database (for server)</button>
+        <label style={{flex:1,background:"rgba(139,92,246,0.1)",border:"1px solid rgba(139,92,246,0.35)",borderRadius:11,padding:"11px",color:"#a78bfa",fontWeight:700,fontSize:12,cursor:"pointer",textAlign:"center"}}>⬆️ Import Database<input type="file" accept=".json" style={{display:"none"}} onChange={e=>e.target.files[0]&&importDB(e.target.files[0])}/></label>
+      </div>
+      {withDocs.length===0&&<div style={{color:"#374151",textAlign:"center",padding:32,fontSize:13}}>{flt==="approved"?"No approved parties with documents yet":"No documents uploaded yet"}</div>}
+      {withDocs.map(c=>{
+        const keys=Object.keys(c.photos).filter(k=>c.photos[k]);
+        const isOpen=open===c.id;
+        return(
+          <div key={c.id} style={{background:"#12161f",border:"1px solid #1e2436",borderRadius:13,marginBottom:10,overflow:"hidden"}}>
+            <div onClick={()=>setOpen(isOpen?null:c.id)} style={{padding:"12px 14px",cursor:"pointer",display:"flex",justifyContent:"space-between",alignItems:"center"}}>
+              <div><div style={{fontWeight:700,fontSize:14,color:"#fff"}}>{c.name}</div><div style={{fontSize:11,color:"#5a6478"}}>{c.phone} · {c.model} · {c.salesman}</div></div>
+              <div style={{textAlign:"right"}}><span style={{fontSize:12,color:"#60a5fa",fontWeight:700}}>{keys.length} docs</span><span style={{color:"#5a6478",marginLeft:6}}>{isOpen?"▲":"▼"}</span></div>
+            </div>
+            {isOpen&&(
+              <div style={{borderTop:"1px solid #1e2436",padding:"12px 14px",display:"flex",flexDirection:"column",gap:10}}>
+                {c.billing&&c.billing.receiptHtml&&(
+                  <button onClick={()=>dlFile(c.billing.receiptHtml,"MoneyReceipt_"+c.name.replace(/ /g,"_")+".html")} style={{background:"rgba(96,165,250,0.1)",border:"1px solid rgba(96,165,250,0.35)",borderRadius:10,padding:"10px",color:"#60a5fa",fontWeight:700,fontSize:12,cursor:"pointer"}}>⬇️ Download Money Receipt (open → print → save PDF)</button>
+                )}
+                {keys.map(k=>(
+                  <div key={k} style={{background:"#0d1018",border:"1px solid #1e2436",borderRadius:10,overflow:"hidden"}}>
+                    <div style={{padding:"8px 12px",display:"flex",justifyContent:"space-between",alignItems:"center"}}>
+                      <span style={{fontSize:12,color:"#d4d8e2",fontWeight:600}}>{LABELS[k]||k}</span>
+                      <a href={c.photos[k]} download={(LABELS[k]||k).replace(/ /g,"_")+"_"+c.name.replace(/ /g,"_")+".jpg"} style={{background:"#1e3a5f",borderRadius:8,padding:"5px 12px",color:"#60a5fa",fontSize:11,fontWeight:700,textDecoration:"none"}}>⬇️ Download</a>
+                    </div>
+                    <img src={c.photos[k]} alt={k} style={{width:"100%",maxHeight:180,objectFit:"contain",background:"#000"}}/>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
+export default function App(){
+  const [role,setRole]=useState(ld("nkd_r","salesman"));
+  const [user,setUser]=useState(ld("nkd_u",SM[0]));
+  const [custs,setCusts]=useState(()=>{const s=seedData();sv("nkd6",s);return s;});
+  const [view,setView]=useState(ld("nkd_r","salesman")==="admin"?"vault":"dashboard");
+  const [sel,setSel]=useState(null);
+  const [toast,setToast]=useState(null);
+  const [li,setLi]=useState(ld("nkd_li",false));
+  const [addOpen,setAddOpen]=useState(false);
+  const [billOpen,setBillOpen]=useState(false);
+  const [bookOpen,setBookOpen]=useState(false);
+  const [custF,setCustF]=useState("All");
+  const [dtab,setDtab]=useState(null);
+  const [fSM,setFSM]=useState("All");
+  const stack=useRef([]);
+  function nav(v){if(v!==view){stack.current.push(view);setView(v);}}
+  function goBack(){const pv=stack.current.pop();setView(pv||"dashboard");}
+  useEffect(()=>{
+    try{
+      window.history.pushState(null,"");
+      const h=()=>{goBack();try{window.history.pushState(null,"");}catch(e){}};
+      window.addEventListener("popstate",h);
+      return()=>window.removeEventListener("popstate",h);
+    }catch(e){}
+  },[]);
+  const alerts=custs.filter(c=>c.stopped&&c.status==="Lost"&&!c.alertDismissed);
+
+  useEffect(()=>{if(!sv("nkd6",custs))notify("⚠️ Storage full — delete old photos or export data","err");},[custs]);
+
+  function notify(msg,type){setToast({msg,type});setTimeout(()=>setToast(null),3000);}
+  function upd(id,patch){setCusts(p=>p.map(c=>c.id===id?{...c,...patch}:c));}
+
+  function addC(data){
+    setCusts(p=>[{...data,branch:SM_BRANCH[data.salesman]||BRANCHES[0],id:"C"+Date.now(),attempts:0,stopped:false,billed:false,billedDate:null,photos:{},billing:null,managerApproval:null},...p]);
+    notify("Customer added ✓");
+  }
+
+  function logF(cust,out,note,nxt,extra){
+    const failed=(out==="no_response"||out==="switched_off");
+    let attempts=(cust.attempts||0)+(failed?1:0),stopped=false,status=cust.status,followupDate=nxt;
+    if(failed&&attempts>=3){stopped=true;status="Lost";}
+    if(out==="not_interested"){status="Lost";}
+    if(out==="booked")status="Booked";
+    if(!followupDate&&!stopped)followupDate=aD(td(),FU[status]||3);
+    const reason=(extra&&extra.reason)?(" [Reason: "+extra.reason+(extra.competitor?" — "+extra.competitor:"")+"]"):"";
+    const rem="\n["+td()+"] "+out.toUpperCase()+": "+(note||"—")+reason;
+    upd(cust.id,{attempts,stopped,status,followupDate,remarks:(cust.remarks||"")+rem,lostReason:(extra&&extra.reason)||cust.lostReason,lostCompetitor:(extra&&extra.competitor)||cust.lostCompetitor,alertDismissed:stopped?false:cust.alertDismissed,callLog:[...(cust.callLog||[]),{date:td(),out,note}]});
+    if(stopped)notify("⚠️ Auto-stopped after 3 attempts","warn");else notify("Followup logged ✓");
+  }
+
+  function logCall(cust,dur){upd(cust.id,{callLog:[...(cust.callLog||[]),{date:td(),time:new Date().toLocaleTimeString("en-IN"),duration:dur,type:"call"}]});}
+
+  function billC(cust,data){
+    const editLog=cust.billing?("\n["+td()+"] CALC SHEET EDITED by "+user):"";
+    upd(cust.id,{remarks:(cust.remarks||"")+editLog,billed:true,billedDate:td(),status:"Billed",billing:data,billedBy:user,managerApproval:role==="salesman"?null:"approved",approvedBy:role==="salesman"?null:user,...data.details});
+    notify("✅ Billed! Receipt ready");
+  }
+
+  function approveBill(id,ok,remark){
+    const cu=custs.find(c=>c.id===id);
+    const mr=remark?("\n["+td()+"] MANAGER: "+remark):"";
+    if(ok){upd(id,{managerApproval:"approved",approvedBy:user,remarks:((cu&&cu.remarks)||"")+mr+"\n["+td()+"] APPROVED by "+user});notify("✅ Approved — record locked");}
+    else{upd(id,{managerApproval:"rejected",billed:false,status:"Booked",billing:(cu&&cu.billing)?{...cu.billing,receiptHtml:null}:null,remarks:((cu&&cu.remarks)||"")+mr+"\n["+td()+"] BILLING REJECTED by Manager — correct and re-bill. All documents retained."});notify("❌ Rejected — sent back to executive");}
+  }
+
+  const mBr=ld("nkd_br",BRANCHES[0]);
+  const myC=role==="salesman"?custs.filter(c=>c.salesman===user):role==="manager"?custs.filter(c=>(c.branch||SM_BRANCH[c.salesman])===mBr):custs;
+  const due=[...myC.filter(c=>!c.billed&&!c.stopped&&c.followupDate<=td())].sort((a,b)=>{const o={Hot:0,Warm:1,Cold:2,Booked:3};return(o[a.status]??9)-(o[b.status]??9);});
+  const pending=custs.filter(c=>c.billing&&c.managerApproval===null);
+  const revivable=custs.filter(c=>{if(c.billed)return false;const base=c.reactivatedAt||c.enquiryDate;return((new Date()-new Date(base))/(864e5*30))>=6;});
+
+  function openD(c){setSel(c);nav("detail");}
+
+  if(!li)return <Login onLogin={(r,u,b)=>{setRole(r);setUser(u);if(b)sv("nkd_br",b);sv("nkd_r",r);sv("nkd_u",u);sv("nkd_li",true);setLi(true);}}/>;
+
+  const navItems=role==="admin"?[{id:"vault",l:"Document Vault",ic:"📁"}]:[{id:"dashboard",l:"Home",ic:"🏠"},{id:"followups",l:"Followup",ic:"📞",badge:due.length},{id:"customers",l:"Customers",ic:"👥"},...(role!=="salesman"?[{id:"approvals",l:"Approve",ic:"✅",badge:pending.length}]:[]),...(role!=="salesman"?[{id:"revival",l:"Revival",ic:"🔄"}]:[]),...(role==="owner"?[{id:"reports",l:"Reports",ic:"📊"}]:[]),...(role!=="salesman"&&alerts.length>0?[{id:"alerts",l:"Alerts",ic:"⚠️",badge:alerts.length}]:[])];
+
+  return(
+    <div style={{minHeight:"100vh",background:"radial-gradient(1200px 500px at 50% -10%,#141a28 0%,#090c13 55%)",color:"#e2e6f0",fontFamily:"'Inter',-apple-system,sans-serif",maxWidth:480,margin:"0 auto"}}>
+      <style>{`
+        @import url('https://fonts.googleapis.com/css2?family=Sora:wght@400;600;700;800&display=swap');
+        *{font-family:'Sora','Inter',-apple-system,sans-serif!important;-webkit-tap-highlight-color:transparent}
+        @keyframes fadeUp{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:none}}
+        @keyframes glow{0%,100%{box-shadow:0 0 12px rgba(249,115,22,.25)}50%{box-shadow:0 0 22px rgba(249,115,22,.45)}}
+        @keyframes shimmer{0%{background-position:-200% 0}100%{background-position:200% 0}}
+        .fu{animation:fadeUp .3s cubic-bezier(.2,.8,.3,1) both}
+        .glass{background:linear-gradient(160deg,rgba(255,255,255,.045),rgba(255,255,255,.015))!important;backdrop-filter:blur(12px);border:1px solid rgba(255,255,255,.07)!important;box-shadow:0 8px 28px rgba(0,0,0,.35)}
+        button{transition:transform .12s cubic-bezier(.2,.8,.3,1),box-shadow .2s,opacity .15s}
+        button:active{transform:scale(.95)}
+        input,select,textarea{transition:border-color .18s,box-shadow .18s}
+        input:focus,select:focus,textarea:focus{border-color:#f97316!important;box-shadow:0 0 0 3px rgba(249,115,22,.15)}
+        ::-webkit-scrollbar{display:none}
+      `}</style>
+      <div style={{background:"linear-gradient(135deg,rgba(249,115,22,.12),rgba(17,21,30,.95) 40%)",backdropFilter:"blur(14px)",borderBottom:"1px solid rgba(249,115,22,.18)",padding:"13px 16px",display:"flex",alignItems:"center",justifyContent:"space-between",position:"sticky",top:0,zIndex:100}}>
+        <div style={{display:"flex",alignItems:"center",gap:10}}>
+          <div style={{width:38,height:38,borderRadius:11,background:"linear-gradient(135deg,#f97316,#ef4444)",display:"flex",alignItems:"center",justifyContent:"center",fontWeight:900,fontSize:17,color:"#fff",animation:"glow 3s ease infinite"}}>B</div>
+          <div><div style={{fontWeight:800,fontSize:13,color:"#fff"}}>NKD BAJAJ CRM</div><div style={{fontSize:10,color:"#5a6478"}}>{user} · {role}{role==="manager"?" · "+mBr:""}</div></div>
+        </div>
+        <div style={{display:"flex",alignItems:"center",gap:6}}>
+          {due.length>0&&<div style={{background:"rgba(249,115,22,0.2)",color:"#f97316",borderRadius:20,padding:"2px 7px",fontSize:10,fontWeight:800}}>📞 {due.length}</div>}
+          {role!=="salesman"&&pending.length>0&&<div onClick={()=>nav("approvals")} style={{background:"rgba(139,92,246,0.2)",color:"#a78bfa",borderRadius:20,padding:"2px 7px",fontSize:10,fontWeight:800,cursor:"pointer"}}>✓ {pending.length}</div>}
+          {role!=="salesman"&&alerts.length>0&&<div onClick={()=>nav("alerts")} style={{background:"rgba(239,68,68,0.2)",color:"#ef4444",borderRadius:20,padding:"2px 7px",fontSize:10,fontWeight:800,cursor:"pointer"}}>⚠️ {alerts.length}</div>}
+          <button onClick={()=>{sv("nkd_li",false);setLi(false);}} style={{background:"transparent",border:"1px solid #1e2436",color:"#5a6478",borderRadius:8,padding:"3px 8px",fontSize:10,cursor:"pointer"}}>Out</button>
+        </div>
+      </div>
+
+      {toast&&<div style={{position:"fixed",top:66,left:"50%",transform:"translateX(-50%)",background:toast.type==="err"?"#7f1d1d":toast.type==="warn"?"#78350f":"#064e3b",color:"#fff",padding:"9px 18px",borderRadius:12,fontSize:13,fontWeight:600,zIndex:300,whiteSpace:"nowrap"}}>{toast.msg}</div>}
+
+      <div style={{position:"fixed",bottom:0,left:0,right:0,maxWidth:480,margin:"0 auto",background:"rgba(17,21,30,.85)",backdropFilter:"blur(18px)",borderTop:"1px solid rgba(255,255,255,.07)",display:"flex",zIndex:100,paddingBottom:"env(safe-area-inset-bottom)",boxShadow:"0 -8px 30px rgba(0,0,0,.4)"}}>
+        {navItems.map(t=><button key={t.id} onClick={()=>nav(t.id)} style={{flex:1,padding:"9px 2px 11px",background:"transparent",border:"none",cursor:"pointer",display:"flex",flexDirection:"column",alignItems:"center",gap:2}}>
+          <span style={{fontSize:20}}>{t.ic}</span>
+          <span style={{fontSize:9,fontWeight:700,color:view===t.id?"#f97316":"#5a6478"}}>{t.l}</span>
+          {t.badge>0&&<span style={{position:"absolute",marginLeft:26,marginTop:-2,background:"#ef4444",color:"#fff",fontSize:8,fontWeight:800,borderRadius:8,padding:"1px 4px"}}>{t.badge}</span>}
+        </button>)}
+      </div>
+
+      <div style={{padding:16,paddingBottom:110}}>
+        {role==="admin"&&view!=="vault"&&setView("vault")}
+        {view==="dashboard"&&<Dashboard custs={myC} role={role} onOpen={openD} onNav={nav} onNavF={st=>{setCustF(st);nav("customers");}} onSvcDone={id=>{upd(id,{serviceDone:true});notify("Service marked done ✓");}} onTeamTap={s=>{setFSM(s);nav("followups");}}/>}
+        {view==="followups"&&<Followups items={due} onOpen={openD} onLog={logF} onCallLog={logCall} showSMFilter={role!=="salesman"} initSM={fSM}/>}
+        {view==="customers"&&<CustList custs={myC} onOpen={openD} initF={custF} showSM={role!=="salesman"}/>}
+        {view==="detail"&&sel&&<Detail cust={custs.find(c=>c.id===sel.id)||sel} role={role} onBack={goBack} onUpd={p=>upd(sel.id,p)} onLog={logF} onBill={()=>setBillOpen(true)} onBook={()=>setBookOpen(true)} notify={notify} initTab={dtab} clearInit={()=>setDtab(null)}/>}
+        {view==="approvals"&&<Approvals custs={pending} onApprove={approveBill} onOpen={openD} onEditCalc={c=>{setSel(c);setBillOpen(true);}} allC={myC}/>}
+        {view==="revival"&&<Revival items={revivable} onRevive={ids=>{let si=0;const perDay={};setCusts(p=>p.map(c=>{
+          if(!ids.includes(c.id))return c;
+          const sm2=SM[si++%SM.length];
+          perDay[sm2]=(perDay[sm2]||0)+1;
+          const dayOffset=Math.floor((perDay[sm2]-1)/80);
+          return{...c,reactivatedAt:td(),status:"Cold",stopped:false,attempts:0,alertDismissed:true,followupDate:aD(td(),dayOffset),salesman:sm2,remarks:(c.remarks||"")+"\n["+td()+"] REACTIVATED: cold pool — day "+(dayOffset+1)+" queue"};
+        }));notify(ids.length+" reactivated — max 80 calls/day per executive, spread across days");}}/>}
+        {view==="reports"&&<Reports custs={custs} onImportCust={rows=>{setCusts(p=>{const ex=new Set(p.map(c=>c.phone));return[...rows.filter(r=>!ex.has(r.phone)),...p];});}}/>}
+        {view==="vault"&&<DocVault custs={custs} onImport={data=>{setCusts(data);notify("✅ Database imported: "+data.length+" customers");}}/>}
+        {view==="alerts"&&(
+          <div>
+            <div style={{fontWeight:800,fontSize:19,color:"#fff",marginBottom:14}}>⚠️ Manager Alerts</div>
+            {alerts.map((c,i)=>(
+              <div key={i} style={{background:"rgba(239,68,68,0.07)",border:"1px solid rgba(239,68,68,0.3)",borderRadius:14,marginBottom:12,padding:"12px 14px"}}>
+                <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start"}}>
+                  <div><div style={{fontWeight:700,fontSize:14,color:"#fff"}}>{c.name}</div><div style={{fontSize:12,color:"#8892a4"}}>{c.phone} · {c.model}</div><div style={{fontSize:11,color:"#ef4444",marginTop:2}}>Stopped after 3 attempts · {c.salesman}</div></div>
+                  <div style={{display:"flex",flexDirection:"column",gap:6}}>
+                    <a href={"tel:"+c.phone} style={{background:"rgba(34,197,94,0.12)",border:"1px solid rgba(34,197,94,0.3)",borderRadius:8,padding:"6px 10px",display:"flex",alignItems:"center",gap:4,textDecoration:"none",color:"#22c55e",fontSize:11,fontWeight:700}}><PhIcon s={11}/>Call</a>
+                    <a href={"https://wa.me/91"+c.phone} target="_blank" rel="noreferrer" style={{background:"rgba(37,211,102,0.08)",border:"1px solid rgba(37,211,102,0.3)",borderRadius:8,padding:"6px 10px",display:"flex",alignItems:"center",gap:4,textDecoration:"none",color:"#25D366",fontSize:11,fontWeight:700}}><WAIcon s={11}/>WA</a>
+                  </div>
+                </div>
+                <button onClick={()=>upd(c.id,{alertDismissed:true})} style={{background:"transparent",border:"none",color:"#5a6478",fontSize:12,cursor:"pointer",marginTop:8}}>Dismiss</button>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+
+      {(view==="customers"||view==="dashboard")&&<button onClick={()=>setAddOpen(true)} style={{position:"fixed",bottom:78,right:20,width:58,height:56,borderRadius:28,background:"linear-gradient(135deg,#f97316,#ef4444)",border:"none",display:"flex",alignItems:"center",justifyContent:"center",cursor:"pointer",boxShadow:"0 6px 28px rgba(249,115,22,0.55)",zIndex:50,fontSize:28,color:"#fff",animation:"glow 3s ease infinite"}}>+</button>}
+      {addOpen&&<AddModal onClose={()=>setAddOpen(false)} onSave={d=>{addC(d);setAddOpen(false);}} curUser={user} role={role} existing={custs}/>}
+      {bookOpen&&sel&&<BookingModal cust={custs.find(c=>c.id===sel.id)||sel} onClose={()=>setBookOpen(false)} onSave={bk=>{const cu=custs.find(c=>c.id===sel.id)||sel;
+        var brc="<!DOCTYPE html><html><head><title>Booking Receipt</title><style>*{margin:0;padding:0;box-sizing:border-box}body{font-family:Arial;font-size:13px;padding:20px;color:#111}.logo{font-size:24px;font-weight:900;letter-spacing:2px;text-align:center}.hdr{text-align:center;border-bottom:2px solid #000;padding-bottom:10px;margin-bottom:14px}.hdr p{font-size:11px;color:#444;margin-top:2px}h2{text-align:center;font-size:17px;margin:10px 0 14px}.row{display:flex;justify-content:space-between;padding:5px 0;border-bottom:1px solid #eee}.v{font-weight:700}.total{display:flex;justify-content:space-between;padding:12px 0;border-top:2px solid #000;font-size:17px;font-weight:900;margin-top:8px}.sigs{display:flex;justify-content:space-between;margin-top:40px}.sigs div{text-align:center;font-size:11px}</style></head><body><div class=hdr><div class=logo>NKD BAJAJ</div><p>Authorised Main Dealer — Bajaj Auto Ltd.</p><p>Hirak Road, Near Kamal Katesaria School, Dhanbad</p><p>Ph: 7033099006 | info@nkdbajaj.com</p></div><h2>BOOKING RECEIPT</h2><div class=row><span>Date</span><span class=v>"+bk.date+"</span></div><div class=row><span>Customer</span><span class=v>"+cu.name+"</span></div><div class=row><span>Phone</span><span class=v>"+cu.phone+"</span></div><div class=row><span>Model</span><span class=v>"+(cu.model||"")+" ("+(cu.modelCode||"")+")</span></div><div class=row><span>Mode</span><span class=v>"+bk.mode+"</span></div>"+(bk.note?"<div class=row><span>Note</span><span class=v>"+bk.note+"</span></div>":"")+"<div class=total><span>BOOKING AMOUNT RECEIVED</span><span>"+fc(bk.amt)+"</span></div><p style='font-size:11px;color:#666;margin-top:8px'>Balance payable at delivery. Subject to realization of payment.</p><div class=sigs><div>____________________<br/>Customer Sign</div><div>____________________<br/>For NKD Bajaj</div></div></body></html>";
+        upd(cu.id,{booking:{...bk,receiptHtml:brc},status:"Booked",photos:{...(cu.photos||{}),...(bk.proof?{booking_proof:bk.proof}:{})},remarks:(cu.remarks||"")+"\n["+td()+"] BOOKED: "+fc(bk.amt)+" ("+bk.mode+") booking date "+bk.date+(bk.note?" — "+bk.note:"")});setBookOpen(false);setDtab("docs");notify("✅ Booking saved! Upload payment proof & documents below");}}/>}
+      {billOpen&&sel&&<BillingModal cust={custs.find(c=>c.id===sel.id)||sel} onClose={()=>setBillOpen(false)} onSave={d=>{billC(custs.find(c=>c.id===sel.id)||sel,d);setBillOpen(false);}} notify={notify} role={role}/>}
+    </div>
+  );
+}
