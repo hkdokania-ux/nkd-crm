@@ -11,7 +11,7 @@ Write-Host "Installing packages..." -ForegroundColor Cyan
 npm install
 
 git add -A
-git commit -m "Stronger card borders for better contrast on light background"
+git commit -m "Bold blue-gray borders on all cards and items"
 git push
 
 if ($LASTEXITCODE -eq 0) {
