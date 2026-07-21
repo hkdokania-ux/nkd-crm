@@ -400,6 +400,58 @@ function DocGrid({cust,onUpload,docs}){
     </div>
   );
 }
+function parseExcel(file,cb,errCb){
+  const rd=new FileReader();
+  rd.onload=function(e){
+    try{
+      const wb=XLSX.read(e.target.result,{type:"array"});
+      const ws=wb.Sheets[wb.SheetNames[0]];
+      const data=XLSX.utils.sheet_to_json(ws,{defval:""});
+      if(data.length===0){errCb("Empty file");return;}
+      cb(data);
+    }catch(err){errCb("Could not read file");}
+  };
+  rd.readAsArrayBuffer(file);
+}
+function UploadsHub({stockData,statusData,onStockUpload,onStatusUpload,notify}){
+  const uploads=[
+    {
+      id:"stock",ic:"🏍️",title:"Stock Statement",color:"#34d399",bg:"rgba(52,211,153,0.08)",border:"rgba(52,211,153,0.4)",
+      desc:"Branch-wise vehicle stock from dealership",
+      current:stockData.length>0?stockData.length+" vehicles loaded":null,
+      onFile:(file)=>parseExcel(file,d=>{onStockUpload(d);notify("✅ Stock uploaded — "+d.length+" vehicles");},e=>notify("❌ "+e)),
+    },
+    {
+      id:"rcstatus",ic:"📋",title:"RC / HSRP Status",color:"#60a5fa",bg:"rgba(96,165,250,0.08)",border:"rgba(96,165,250,0.4)",
+      desc:"RC and HSRP status report from RTO",
+      current:statusData.length>0?statusData.length+" records loaded":null,
+      onFile:(file)=>parseExcel(file,d=>{onStatusUpload(d);notify("✅ RC/HSRP status uploaded — "+d.length+" records");},e=>notify("❌ "+e)),
+    },
+  ];
+  return(
+    <div>
+      <div style={{fontWeight:800,fontSize:19,color:"#fff",marginBottom:4}}>📤 Uploads</div>
+      <div style={{fontSize:11,color:"#5a6478",marginBottom:18}}>Upload Excel files to keep data fresh. Any format, any columns.</div>
+      {uploads.map(u=>(
+        <div key={u.id} style={{background:"#12161f",border:"1px solid #1e2436",borderRadius:16,padding:"16px 16px",marginBottom:14}}>
+          <div style={{display:"flex",alignItems:"center",gap:10,marginBottom:10}}>
+            <span style={{fontSize:30}}>{u.ic}</span>
+            <div>
+              <div style={{fontWeight:700,fontSize:15,color:"#fff"}}>{u.title}</div>
+              <div style={{fontSize:11,color:"#5a6478"}}>{u.desc}</div>
+            </div>
+          </div>
+          {u.current&&<div style={{background:"rgba(34,197,94,0.08)",border:"1px solid rgba(34,197,94,0.25)",borderRadius:9,padding:"6px 12px",marginBottom:10,fontSize:12,color:"#22c55e",fontWeight:600}}>✅ {u.current}</div>}
+          <label style={{display:"block",background:u.bg,border:"1px dashed "+u.border,borderRadius:11,padding:"12px",cursor:"pointer",textAlign:"center"}}>
+            <div style={{fontSize:13,color:u.color,fontWeight:700}}>{u.current?"🔄 Replace":"📂 Choose Excel File"}</div>
+            <div style={{fontSize:10,color:"#5a6478",marginTop:2}}>.xlsx · .xls · .csv supported</div>
+            <input type="file" accept=".xlsx,.xls,.csv" style={{display:"none"}} onChange={e=>{if(e.target.files&&e.target.files[0]){u.onFile(e.target.files[0]);e.target.value="";}}}/>
+          </label>
+        </div>
+      ))}
+    </div>
+  );
+}
 function findStockCol(keys,words){return keys.find(k=>words.some(w=>k.toLowerCase().includes(w)))||null;}
 function StockView({stockData,billedChassis,role,onUpload,notify}){
   const [q,setQ]=useState("");
@@ -435,14 +487,7 @@ function StockView({stockData,billedChassis,role,onUpload,notify}){
     <div>
       <div style={{fontWeight:800,fontSize:19,color:"#fff",marginBottom:4}}>🏍️ Stock Available</div>
       <div style={{fontSize:11,color:"#5a6478",marginBottom:14}}>{rows.length>0?available.length+" available · "+billedChassis.length+" billed":"No stock uploaded yet"}</div>
-      {(role==="owner"||role==="admin")&&(
-        <label style={{display:"block",background:"rgba(52,211,153,0.08)",border:"1px dashed rgba(52,211,153,0.4)",borderRadius:12,padding:"12px 14px",marginBottom:14,cursor:"pointer",textAlign:"center"}}>
-          <div style={{fontSize:13,color:"#34d399",fontWeight:700}}>📤 Upload Stock Excel</div>
-          <div style={{fontSize:11,color:"#5a6478",marginTop:3}}>{rows.length>0?"Replace current stock":"Upload branch-wise stock Excel"}</div>
-          <input type="file" accept=".xlsx,.xls,.csv" style={{display:"none"}} onChange={e=>{if(e.target.files&&e.target.files[0]){handleFile(e.target.files[0]);e.target.value="";}}}/>
-        </label>
-      )}
-      {rows.length===0&&role==="salesman"&&<div style={{background:"rgba(52,211,153,0.07)",border:"1px solid rgba(52,211,153,0.2)",borderRadius:12,padding:16,textAlign:"center",marginBottom:14}}><div style={{fontSize:28,marginBottom:6}}>📦</div><div style={{fontSize:13,color:"#34d399",fontWeight:700}}>No stock data yet</div><div style={{fontSize:11,color:"#5a6478",marginTop:4}}>Ask Owner/Admin to upload the stock Excel</div></div>}
+      {rows.length===0&&<div style={{background:"rgba(52,211,153,0.07)",border:"1px solid rgba(52,211,153,0.2)",borderRadius:12,padding:16,textAlign:"center",marginBottom:14}}><div style={{fontSize:28,marginBottom:6}}>📦</div><div style={{fontSize:13,color:"#34d399",fontWeight:700}}>No stock data yet</div><div style={{fontSize:11,color:"#5a6478",marginTop:4}}>{role==="owner"||role==="admin"?"Go to 📤 Uploads tab to upload stock Excel":"Ask Owner/Admin to upload stock Excel"}</div></div>}
       {rows.length>0&&<input placeholder="🔍 Search model, chassis, colour, branch…" style={{...inp,marginBottom:10,padding:"11px 14px",fontSize:13,borderRadius:12}} value={q} onChange={e=>setQ(e.target.value)}/>}
       {rows.length>0&&q.trim().length<2&&byModel.length>0&&(
         <div style={{display:"flex",flexWrap:"wrap",gap:6,marginBottom:12}}>
@@ -502,20 +547,7 @@ function RCHSRPSearch({statusData,role,onUpload,notify}){
     <div>
       <div style={{fontWeight:800,fontSize:19,color:"#fff",marginBottom:4}}>🔍 RC / HSRP Status</div>
       <div style={{fontSize:11,color:"#5a6478",marginBottom:14}}>{rows.length>0?rows.length+" records loaded":"No data yet — upload Excel below"}</div>
-      {(role==="owner"||role==="admin")&&(
-        <label style={{display:"block",background:"rgba(96,165,250,0.08)",border:"1px dashed rgba(96,165,250,0.4)",borderRadius:12,padding:"12px 14px",marginBottom:14,cursor:"pointer",textAlign:"center"}}>
-          <div style={{fontSize:13,color:"#60a5fa",fontWeight:700}}>📤 Upload Status Excel</div>
-          <div style={{fontSize:11,color:"#5a6478",marginTop:3}}>{rows.length>0?"Replace current data":"Upload the RC/HSRP status Excel from RTO"}</div>
-          <input type="file" accept=".xlsx,.xls,.csv" style={{display:"none"}} onChange={e=>{if(e.target.files&&e.target.files[0]){handleFile(e.target.files[0]);e.target.value="";}}}/>
-        </label>
-      )}
-      {rows.length===0&&(role==="salesman"||role==="manager")&&(
-        <div style={{background:"rgba(249,115,22,0.07)",border:"1px solid rgba(249,115,22,0.2)",borderRadius:12,padding:16,textAlign:"center",marginBottom:14}}>
-          <div style={{fontSize:28,marginBottom:6}}>📋</div>
-          <div style={{fontSize:13,color:"#f97316",fontWeight:700}}>No status data uploaded yet</div>
-          <div style={{fontSize:11,color:"#5a6478",marginTop:4}}>Ask your Manager/Owner to upload the RC/HSRP status Excel</div>
-        </div>
-      )}
+      {rows.length===0&&<div style={{background:"rgba(249,115,22,0.07)",border:"1px solid rgba(249,115,22,0.2)",borderRadius:12,padding:16,textAlign:"center",marginBottom:14}}><div style={{fontSize:28,marginBottom:6}}>📋</div><div style={{fontSize:13,color:"#f97316",fontWeight:700}}>No status data uploaded yet</div><div style={{fontSize:11,color:"#5a6478",marginTop:4}}>{role==="owner"||role==="admin"?"Go to 📤 Uploads tab to upload RC/HSRP Excel":"Ask Owner/Admin to upload the RC/HSRP status Excel"}</div></div>}
       {rows.length>0&&(
         <input placeholder="🔍 Search by name, chassis, reg no, engine, phone…" style={{...inp,marginBottom:12,padding:"13px 14px",fontSize:14,borderRadius:13}} value={q} onChange={e=>setQ(e.target.value)} autoFocus/>
       )}
@@ -1445,7 +1477,7 @@ export default function App(){
   if(!fbReady)return(<div style={{minHeight:"100vh",background:"#090c13",display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",gap:14}}><div style={{width:110,background:"#fff",borderRadius:16,padding:"8px 12px"}}><img src="/logo.png" alt="NKD Bajaj" style={{width:"100%"}}/></div><div style={{color:"#f97316",fontWeight:700,fontSize:15}}>NKD Bajaj CRM</div><div style={{color:"#5a6478",fontSize:12}}>Connecting to database…</div></div>);
   if(!li)return <Login onLogin={(r,u,b)=>{setRole(r);setUser(u);if(b)sv("nkd_br",b);sv("nkd_r",r);sv("nkd_u",u);sv("nkd_li",true);setLi(true);}}/>;
 
-  const navItems=role==="admin"?[{id:"vault",l:"Document Vault",ic:"📁"},{id:"rcstatus",l:"RC/HSRP",ic:"🔍"},{id:"stock",l:"Stock",ic:"🏍️"}]:[{id:"dashboard",l:"Home",ic:"🏠"},{id:"followups",l:"Followup",ic:"📞",badge:due.length},{id:"customers",l:"Customers",ic:"👥"},{id:"stock",l:"Stock",ic:"🏍️"},{id:"rcstatus",l:"RC/HSRP",ic:"🔍"},...(role!=="salesman"?[{id:"approvals",l:"Approve",ic:"✅",badge:pending.length}]:[]),...(role!=="salesman"?[{id:"revival",l:"Revival",ic:"🔄"}]:[]),...(role==="owner"?[{id:"reports",l:"Reports",ic:"📊"}]:[]),...(role==="owner"?[{id:"vault",l:"Vault",ic:"📁"}]:[]),...(role!=="salesman"&&alerts.length>0?[{id:"alerts",l:"Alerts",ic:"⚠️",badge:alerts.length}]:[])];
+  const navItems=role==="admin"?[{id:"vault",l:"Document Vault",ic:"📁"},{id:"uploads",l:"Uploads",ic:"📤"},{id:"stock",l:"Stock",ic:"🏍️"},{id:"rcstatus",l:"RC/HSRP",ic:"🔍"}]:[{id:"dashboard",l:"Home",ic:"🏠"},{id:"followups",l:"Followup",ic:"📞",badge:due.length},{id:"customers",l:"Customers",ic:"👥"},{id:"stock",l:"Stock",ic:"🏍️"},{id:"rcstatus",l:"RC/HSRP",ic:"🔍"},...(role!=="salesman"?[{id:"approvals",l:"Approve",ic:"✅",badge:pending.length}]:[]),...(role!=="salesman"?[{id:"revival",l:"Revival",ic:"🔄"}]:[]),...(role==="owner"?[{id:"reports",l:"Reports",ic:"📊"}]:[]),...(role==="owner"?[{id:"vault",l:"Vault",ic:"📁"}]:[]),...(role==="owner"?[{id:"uploads",l:"Uploads",ic:"📤"}]:[]),...(role!=="salesman"&&alerts.length>0?[{id:"alerts",l:"Alerts",ic:"⚠️",badge:alerts.length}]:[])];
 
   return(
     <div style={{minHeight:"100vh",background:"radial-gradient(1200px 500px at 50% -10%,#141a28 0%,#090c13 55%)",color:"#e2e6f0",fontFamily:"'Inter',-apple-system,sans-serif",maxWidth:480,margin:"0 auto"}}>
@@ -1487,11 +1519,12 @@ export default function App(){
       </div>
 
       <div style={{padding:16,paddingBottom:110}}>
-        {role==="admin"&&view!=="vault"&&view!=="rcstatus"&&view!=="stock"&&setView("vault")}
+        {role==="admin"&&view!=="vault"&&view!=="rcstatus"&&view!=="stock"&&view!=="uploads"&&setView("vault")}
         {view==="dashboard"&&<Dashboard custs={myC} role={role} onOpen={openD} onNav={nav} onNavF={st=>{setCustF(st);nav("customers");}} onSvcDone={id=>{upd(id,{serviceDone:true});notify("Service marked done ✓");}} onTeamTap={s=>{setFSM(s);nav("followups");}}/>}
         {view==="followups"&&<Followups items={due} onOpen={openD} onLog={logF} onCallLog={logCall} showSMFilter={role!=="salesman"} initSM={fSM}/>}
         {view==="customers"&&<CustList custs={myC} onOpen={openD} initF={custF} showSM={role!=="salesman"}/>}
         {view==="detail"&&sel&&<Detail cust={custs.find(c=>c.id===sel.id)||sel} role={role} onBack={goBack} onUpd={p=>upd(sel.id,p)} onLog={logF} onBill={()=>setBillOpen(true)} onBook={()=>setBookOpen(true)} notify={notify} initTab={dtab} clearInit={()=>setDtab(null)}/>}
+        {view==="uploads"&&<div style={{padding:"0 16px 80px"}}><UploadsHub stockData={stockData} statusData={statusData} onStockUpload={saveStockData} onStatusUpload={saveStatusData} notify={notify}/></div>}
         {view==="stock"&&<div style={{padding:"0 16px 80px"}}><StockView stockData={stockData} billedChassis={billedChassis} role={role} onUpload={saveStockData} notify={notify}/></div>}
         {view==="rcstatus"&&<div style={{padding:"0 16px 80px"}}><RCHSRPSearch statusData={statusData} role={role} onUpload={saveStatusData} notify={notify}/></div>}
         {view==="approvals"&&<Approvals custs={pending} onApprove={approveBill} onOpen={openD} onEditCalc={c=>{setSel(c);setBillOpen(true);}} allC={myC}/>}

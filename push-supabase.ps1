@@ -8,7 +8,7 @@ Write-Host "`n=== Pushing update ===" -ForegroundColor Cyan
 }
 
 git add -A
-git commit -m "Chassis field: type freely + autocomplete from stock"
+git commit -m "Single Uploads tab for Stock + RC/HSRP uploads (Owner/Admin only)"
 git push
 
 if ($LASTEXITCODE -eq 0) {
