@@ -447,7 +447,7 @@ function RCHSRPSearch({statusData,role,onUpload,notify}){
         </div>
       )}
       {rows.length>0&&(
-        <input placeholder="🔍 Search by name, chassis, engine, phone…" style={{...inp,marginBottom:12,padding:"13px 14px",fontSize:14,borderRadius:13}} value={q} onChange={e=>setQ(e.target.value)} autoFocus/>
+        <input placeholder="🔍 Search by name, chassis, reg no, engine, phone…" style={{...inp,marginBottom:12,padding:"13px 14px",fontSize:14,borderRadius:13}} value={q} onChange={e=>setQ(e.target.value)} autoFocus/>
       )}
       {q.trim().length>=2&&filtered.length===0&&<div style={{textAlign:"center",padding:24,color:"#5a6478",fontSize:13}}>No records found for "{q}"</div>}
       {filtered.map((row,i)=>(

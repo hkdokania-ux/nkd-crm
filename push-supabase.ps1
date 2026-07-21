@@ -8,7 +8,7 @@ Write-Host "`n=== Pushing update ===" -ForegroundColor Cyan
 }
 
 git add -A
-git commit -m "RC/HSRP upload restricted to Owner+Admin only; salesman+manager can only search"
+git commit -m "Add reg no to RC/HSRP search placeholder"
 git push
 
 if ($LASTEXITCODE -eq 0) {
