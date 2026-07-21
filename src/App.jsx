@@ -135,7 +135,7 @@ function Login({onLogin}){
     <div style={{minHeight:"100vh",background:"#090c13",display:"flex",alignItems:"center",justifyContent:"center",padding:16}}>
       <div className="fu glass" style={{width:"100%",maxWidth:340,background:"#12161f",borderRadius:26,padding:32,border:"1px solid #1e2436"}}>
         <div style={{textAlign:"center",marginBottom:24}}>
-          <div style={{width:72,height:72,borderRadius:20,background:"linear-gradient(135deg,#f97316,#ef4444)",display:"flex",alignItems:"center",justifyContent:"center",fontWeight:900,fontSize:32,color:"#fff",margin:"0 auto 14px",animation:"glow 3s ease infinite"}}>B</div>
+          <div style={{width:120,borderRadius:16,background:"#fff",padding:"8px 12px",margin:"0 auto 14px",display:"flex",alignItems:"center",justifyContent:"center",animation:"glow 3s ease infinite"}}><img src="/logo.png" alt="NKD Bajaj" style={{width:"100%",display:"block"}}/></div>
           <div style={{fontWeight:800,fontSize:20,color:"#fff"}}>NKD Bajaj CRM</div>
           <div style={{color:"#5a6478",fontSize:12,marginTop:3}}>Dhanbad · 3 Showrooms</div>
         </div>
