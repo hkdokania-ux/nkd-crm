@@ -11,7 +11,7 @@ Write-Host "Installing packages..." -ForegroundColor Cyan
 npm install
 
 git add -A
-git commit -m "Multi-payment support: split cash/cheque/UPI/RTGS in billing form + PDF receipts"
+git commit -m "Light theme: white bg, card shadows, larger nav tabs, beautiful environment"
 git push
 
 if ($LASTEXITCODE -eq 0) {
