@@ -8,7 +8,7 @@ Write-Host "`n=== Pushing update ===" -ForegroundColor Cyan
 }
 
 git add -A
-git commit -m "Single Uploads tab for Stock + RC/HSRP uploads (Owner/Admin only)"
+git commit -m "Two separate Excel reports: Billing Team + Accounts Team; single Uploads tab"
 git push
 
 if ($LASTEXITCODE -eq 0) {
