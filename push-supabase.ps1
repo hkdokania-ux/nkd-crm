@@ -8,7 +8,7 @@ Write-Host "`n=== Pushing update ===" -ForegroundColor Cyan
 }
 
 git add -A
-git commit -m "Add reg no to RC/HSRP search placeholder"
+git commit -m "Chassis field: type freely + autocomplete from stock"
 git push
 
 if ($LASTEXITCODE -eq 0) {

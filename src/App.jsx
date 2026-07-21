@@ -400,6 +400,76 @@ function DocGrid({cust,onUpload,docs}){
     </div>
   );
 }
+function findStockCol(keys,words){return keys.find(k=>words.some(w=>k.toLowerCase().includes(w)))||null;}
+function StockView({stockData,billedChassis,role,onUpload,notify}){
+  const [q,setQ]=useState("");
+  const rows=stockData||[];
+  const keys=rows.length>0?Object.keys(rows[0]):[];
+  const chassisKey=findStockCol(keys,["chassis","frame"]);
+  const engineKey=findStockCol(keys,["engine"]);
+  const colorKey=findStockCol(keys,["color","colour"]);
+  const modelKey=findStockCol(keys,["model","name","variant"]);
+  const branchKey=findStockCol(keys,["branch","location","godown","store"]);
+  const available=rows.filter(r=>!billedChassis.includes(String(r[chassisKey]||"").trim().toUpperCase()));
+  const filtered=q.trim().length<2?available:available.filter(r=>keys.some(k=>String(r[k]||"").toLowerCase().includes(q.toLowerCase())));
+  function handleFile(file){
+    const rd=new FileReader();
+    rd.onload=function(e){
+      try{
+        const wb=XLSX.read(e.target.result,{type:"array"});
+        const ws=wb.Sheets[wb.SheetNames[0]];
+        const data=XLSX.utils.sheet_to_json(ws,{defval:""});
+        if(data.length===0){notify("❌ Empty Excel file");return;}
+        onUpload(data);notify("✅ Stock uploaded — "+data.length+" vehicles");
+      }catch(err){notify("❌ Could not read file");}
+    };
+    rd.readAsArrayBuffer(file);
+  }
+  const byModel=useMemo(()=>{
+    if(!modelKey)return[];
+    const map={};
+    filtered.forEach(r=>{const m=String(r[modelKey]||"Other");map[m]=(map[m]||0)+1;});
+    return Object.entries(map).sort((a,b)=>b[1]-a[1]);
+  },[filtered,modelKey]);
+  return(
+    <div>
+      <div style={{fontWeight:800,fontSize:19,color:"#fff",marginBottom:4}}>🏍️ Stock Available</div>
+      <div style={{fontSize:11,color:"#5a6478",marginBottom:14}}>{rows.length>0?available.length+" available · "+billedChassis.length+" billed":"No stock uploaded yet"}</div>
+      {(role==="owner"||role==="admin")&&(
+        <label style={{display:"block",background:"rgba(52,211,153,0.08)",border:"1px dashed rgba(52,211,153,0.4)",borderRadius:12,padding:"12px 14px",marginBottom:14,cursor:"pointer",textAlign:"center"}}>
+          <div style={{fontSize:13,color:"#34d399",fontWeight:700}}>📤 Upload Stock Excel</div>
+          <div style={{fontSize:11,color:"#5a6478",marginTop:3}}>{rows.length>0?"Replace current stock":"Upload branch-wise stock Excel"}</div>
+          <input type="file" accept=".xlsx,.xls,.csv" style={{display:"none"}} onChange={e=>{if(e.target.files&&e.target.files[0]){handleFile(e.target.files[0]);e.target.value="";}}}/>
+        </label>
+      )}
+      {rows.length===0&&role==="salesman"&&<div style={{background:"rgba(52,211,153,0.07)",border:"1px solid rgba(52,211,153,0.2)",borderRadius:12,padding:16,textAlign:"center",marginBottom:14}}><div style={{fontSize:28,marginBottom:6}}>📦</div><div style={{fontSize:13,color:"#34d399",fontWeight:700}}>No stock data yet</div><div style={{fontSize:11,color:"#5a6478",marginTop:4}}>Ask Owner/Admin to upload the stock Excel</div></div>}
+      {rows.length>0&&<input placeholder="🔍 Search model, chassis, colour, branch…" style={{...inp,marginBottom:10,padding:"11px 14px",fontSize:13,borderRadius:12}} value={q} onChange={e=>setQ(e.target.value)}/>}
+      {rows.length>0&&q.trim().length<2&&byModel.length>0&&(
+        <div style={{display:"flex",flexWrap:"wrap",gap:6,marginBottom:12}}>
+          {byModel.map(([m,cnt])=>(
+            <div key={m} style={{background:"#12161f",border:"1px solid #1e2436",borderRadius:10,padding:"6px 12px",cursor:"pointer"}} onClick={()=>setQ(m)}>
+              <span style={{fontSize:11,color:"#e2e6f0",fontWeight:600}}>{m}</span>
+              <span style={{fontSize:10,color:"#34d399",fontWeight:700,marginLeft:6}}>{cnt}</span>
+            </div>
+          ))}
+        </div>
+      )}
+      {q.trim().length>=2&&filtered.length===0&&<div style={{textAlign:"center",padding:20,color:"#5a6478",fontSize:13}}>No stock found for "{q}"</div>}
+      {filtered.slice(0,50).map((row,i)=>(
+        <div key={i} style={{background:"#12161f",border:"1px solid #1e2436",borderRadius:12,padding:"10px 14px",marginBottom:7}}>
+          {modelKey&&<div style={{fontWeight:700,fontSize:13,color:"#fff",marginBottom:4}}>{row[modelKey]}</div>}
+          <div style={{display:"flex",flexWrap:"wrap",gap:6}}>
+            {chassisKey&&<span style={{fontSize:11,color:"#60a5fa"}}>🔩 {row[chassisKey]}</span>}
+            {engineKey&&<span style={{fontSize:11,color:"#8892a4"}}>⚙️ {row[engineKey]}</span>}
+            {colorKey&&<span style={{fontSize:11,color:"#a78bfa"}}>🎨 {row[colorKey]}</span>}
+            {branchKey&&<span style={{fontSize:11,color:"#34d399"}}>📍 {row[branchKey]}</span>}
+          </div>
+        </div>
+      ))}
+      {filtered.length>50&&<div style={{textAlign:"center",color:"#5a6478",fontSize:12,padding:8}}>Showing 50 of {filtered.length} — search to narrow down</div>}
+    </div>
+  );
+}
 function RCHSRPSearch({statusData,role,onUpload,notify}){
   const [q,setQ]=useState("");
   const rows=statusData||[];
@@ -746,7 +816,7 @@ function Tot({label,val,col}){
     </div>
   );
 }
-function BillingModal({cust,onClose,onSave,notify,role}){
+function BillingModal({cust,onClose,onSave,notify,role,stockData,billedChassis}){
   const r=RC[cust.modelCode]||{};
   const isFin=cust.finance==="Finance";
   const eb=cust.billing||{};
@@ -760,6 +830,22 @@ function BillingModal({cust,onClose,onSave,notify,role}){
     aadharV:p.aadharV||!!f.aadhar,nomineeV:p.nomineeV||!!(f.nominee&&f.nomineeRel),
     chassisV:p.chassisV||!!f.chassis,engineV:p.engineV||!!f.engine,colorV:p.colorV||!!f.color}));},
     [f.billName,f.fatherName,f.aadhar,f.nominee,f.nomineeRel,f.chassis,f.engine,f.color]);
+  const sRows=stockData||[];
+  const sKeys=sRows.length>0?Object.keys(sRows[0]):[];
+  const sChassisKey=findStockCol(sKeys,["chassis","frame"]);
+  const sEngineKey=findStockCol(sKeys,["engine"]);
+  const sColorKey=findStockCol(sKeys,["color","colour"]);
+  const sModelKey=findStockCol(sKeys,["model","name","variant"]);
+  const modelStr=(cust.model||"").toLowerCase();
+  const modelCode=(cust.modelCode||"").toLowerCase();
+  const availableForModel=sRows.filter(row=>{
+    const m=String(row[sModelKey]||"").toLowerCase();
+    return(m.includes(modelStr.slice(0,6))||m.includes(modelCode))&&!(billedChassis||[]).includes(String(row[sChassisKey]||"").trim().toUpperCase());
+  });
+  function pickChassis(chassisVal){
+    const row=availableForModel.find(r=>String(r[sChassisKey]||"")===chassisVal);
+    setF(p=>({...p,chassis:chassisVal,engine:row&&sEngineKey?String(row[sEngineKey]||""):p.engine,color:row&&sColorKey?String(row[sColorKey]||""):p.color}));
+  }
 
   function buildReceipt(){
     var rows="<div class=row><span>Date</span><span class=v>"+td()+"</span></div>";
@@ -857,7 +943,12 @@ function BillingModal({cust,onClose,onSave,notify,role}){
           <div style={{fontSize:10,fontWeight:700,color:"#6b7a90",letterSpacing:0.8,marginBottom:6}}>VEHICLE DETAILS</div>
           <div style={{background:"#12161f",border:"1px solid #1e2436",borderRadius:12,padding:12}}>
             <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:8}}>
-              {[{k:"chassis",l:"Chassis No *"},{k:"engine",l:"Engine No"},{k:"color",l:"Colour"},{k:"deliveryDate",l:"Delivery Date",t:"date"},{k:"financeBank",l:"Finance Bank"},{k:"registrationNo",l:"Reg No"},{k:"insuranceNo",l:"Insurance No"},{k:"mrNo",l:"MR No."},{k:"payMode",l:"Payment Mode (Cash/UPI/Cheque/RTGS)"}].map(({k,l,t})=>(
+              <div style={{gridColumn:"1/-1"}}>
+                <label style={{...lbl,fontSize:10}}>Chassis No * {availableForModel.length>0&&<span style={{color:"#34d399",fontWeight:700}}>({availableForModel.length} in stock)</span>}{availableForModel.length===0&&sRows.length>0&&<span style={{color:"#f97316",fontWeight:700}}>(no stock for this model)</span>}</label>
+                <input list="chassis-list" value={f.chassis||""} onChange={e=>pickChassis(e.target.value)} placeholder="Type or search chassis no…" style={{...inp,fontSize:12,padding:"8px 10px"}}/>
+                {availableForModel.length>0&&<datalist id="chassis-list">{availableForModel.map((row,i)=>{const ch=String(row[sChassisKey]||"");return(<option key={i} value={ch}>{sColorKey&&row[sColorKey]?row[sColorKey]:""}</option>);})}</datalist>}
+              </div>
+              {[{k:"engine",l:"Engine No"},{k:"color",l:"Colour"},{k:"deliveryDate",l:"Delivery Date",t:"date"},{k:"financeBank",l:"Finance Bank"},{k:"registrationNo",l:"Reg No"},{k:"insuranceNo",l:"Insurance No"},{k:"mrNo",l:"MR No."},{k:"payMode",l:"Payment Mode (Cash/UPI/Cheque/RTGS)"}].map(({k,l,t})=>(
                 <div key={k}><label style={{...lbl,fontSize:10}}>{l}</label><input type={t||"text"} value={f[k]||""} onChange={e=>setF(p=>({...p,[k]:e.target.value}))} style={{...inp,fontSize:12,padding:"8px 10px"}}/></div>
               ))}
             </div>
@@ -1276,6 +1367,9 @@ export default function App(){
   const [fSM,setFSM]=useState("All");
   const [statusData,setStatusData]=useState(()=>ld("nkd_rcstatus",[]));
   function saveStatusData(data){setStatusData(data);sv("nkd_rcstatus",data);_dbSet("nkd_rcstatus",data);}
+  const [stockData,setStockData]=useState(()=>ld("nkd_stock",[]));
+  function saveStockData(data){setStockData(data);sv("nkd_stock",data);_dbSet("nkd_stock",data);}
+  const billedChassis=useMemo(()=>custs.filter(c=>c.billed&&c.billing&&c.billing.chassis).map(c=>String(c.billing.chassis).trim().toUpperCase()),[custs]);
   const stack=useRef([]);
   function nav(v){if(v!==view){stack.current.push(view);setView(v);}}
   function goBack(){const pv=stack.current.pop();setView(pv||"dashboard");}
@@ -1351,7 +1445,7 @@ export default function App(){
   if(!fbReady)return(<div style={{minHeight:"100vh",background:"#090c13",display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",gap:14}}><div style={{width:110,background:"#fff",borderRadius:16,padding:"8px 12px"}}><img src="/logo.png" alt="NKD Bajaj" style={{width:"100%"}}/></div><div style={{color:"#f97316",fontWeight:700,fontSize:15}}>NKD Bajaj CRM</div><div style={{color:"#5a6478",fontSize:12}}>Connecting to database…</div></div>);
   if(!li)return <Login onLogin={(r,u,b)=>{setRole(r);setUser(u);if(b)sv("nkd_br",b);sv("nkd_r",r);sv("nkd_u",u);sv("nkd_li",true);setLi(true);}}/>;
 
-  const navItems=role==="admin"?[{id:"vault",l:"Document Vault",ic:"📁"},{id:"rcstatus",l:"RC/HSRP",ic:"🔍"}]:[{id:"dashboard",l:"Home",ic:"🏠"},{id:"followups",l:"Followup",ic:"📞",badge:due.length},{id:"customers",l:"Customers",ic:"👥"},{id:"rcstatus",l:"RC/HSRP",ic:"🔍"},...(role!=="salesman"?[{id:"approvals",l:"Approve",ic:"✅",badge:pending.length}]:[]),...(role!=="salesman"?[{id:"revival",l:"Revival",ic:"🔄"}]:[]),...(role==="owner"?[{id:"reports",l:"Reports",ic:"📊"}]:[]),...(role==="owner"?[{id:"vault",l:"Vault",ic:"📁"}]:[]),...(role!=="salesman"&&alerts.length>0?[{id:"alerts",l:"Alerts",ic:"⚠️",badge:alerts.length}]:[])];
+  const navItems=role==="admin"?[{id:"vault",l:"Document Vault",ic:"📁"},{id:"rcstatus",l:"RC/HSRP",ic:"🔍"},{id:"stock",l:"Stock",ic:"🏍️"}]:[{id:"dashboard",l:"Home",ic:"🏠"},{id:"followups",l:"Followup",ic:"📞",badge:due.length},{id:"customers",l:"Customers",ic:"👥"},{id:"stock",l:"Stock",ic:"🏍️"},{id:"rcstatus",l:"RC/HSRP",ic:"🔍"},...(role!=="salesman"?[{id:"approvals",l:"Approve",ic:"✅",badge:pending.length}]:[]),...(role!=="salesman"?[{id:"revival",l:"Revival",ic:"🔄"}]:[]),...(role==="owner"?[{id:"reports",l:"Reports",ic:"📊"}]:[]),...(role==="owner"?[{id:"vault",l:"Vault",ic:"📁"}]:[]),...(role!=="salesman"&&alerts.length>0?[{id:"alerts",l:"Alerts",ic:"⚠️",badge:alerts.length}]:[])];
 
   return(
     <div style={{minHeight:"100vh",background:"radial-gradient(1200px 500px at 50% -10%,#141a28 0%,#090c13 55%)",color:"#e2e6f0",fontFamily:"'Inter',-apple-system,sans-serif",maxWidth:480,margin:"0 auto"}}>
@@ -1393,11 +1487,12 @@ export default function App(){
       </div>
 
       <div style={{padding:16,paddingBottom:110}}>
-        {role==="admin"&&view!=="vault"&&view!=="rcstatus"&&setView("vault")}
+        {role==="admin"&&view!=="vault"&&view!=="rcstatus"&&view!=="stock"&&setView("vault")}
         {view==="dashboard"&&<Dashboard custs={myC} role={role} onOpen={openD} onNav={nav} onNavF={st=>{setCustF(st);nav("customers");}} onSvcDone={id=>{upd(id,{serviceDone:true});notify("Service marked done ✓");}} onTeamTap={s=>{setFSM(s);nav("followups");}}/>}
         {view==="followups"&&<Followups items={due} onOpen={openD} onLog={logF} onCallLog={logCall} showSMFilter={role!=="salesman"} initSM={fSM}/>}
         {view==="customers"&&<CustList custs={myC} onOpen={openD} initF={custF} showSM={role!=="salesman"}/>}
         {view==="detail"&&sel&&<Detail cust={custs.find(c=>c.id===sel.id)||sel} role={role} onBack={goBack} onUpd={p=>upd(sel.id,p)} onLog={logF} onBill={()=>setBillOpen(true)} onBook={()=>setBookOpen(true)} notify={notify} initTab={dtab} clearInit={()=>setDtab(null)}/>}
+        {view==="stock"&&<div style={{padding:"0 16px 80px"}}><StockView stockData={stockData} billedChassis={billedChassis} role={role} onUpload={saveStockData} notify={notify}/></div>}
         {view==="rcstatus"&&<div style={{padding:"0 16px 80px"}}><RCHSRPSearch statusData={statusData} role={role} onUpload={saveStatusData} notify={notify}/></div>}
         {view==="approvals"&&<Approvals custs={pending} onApprove={approveBill} onOpen={openD} onEditCalc={c=>{setSel(c);setBillOpen(true);}} allC={myC}/>}
         {view==="revival"&&<Revival items={revivable} onRevive={ids=>{let si=0;const perDay={};setCusts(p=>p.map(c=>{
@@ -1433,7 +1528,7 @@ export default function App(){
       {bookOpen&&sel&&<BookingModal cust={custs.find(c=>c.id===sel.id)||sel} onClose={()=>setBookOpen(false)} onSave={bk=>{const cu=custs.find(c=>c.id===sel.id)||sel;
         var brc="<!DOCTYPE html><html><head><title>Booking Receipt</title><style>*{margin:0;padding:0;box-sizing:border-box}body{font-family:Arial;font-size:13px;padding:20px;color:#111}.logo{font-size:24px;font-weight:900;letter-spacing:2px;text-align:center}.hdr{text-align:center;border-bottom:2px solid #000;padding-bottom:10px;margin-bottom:14px}.hdr p{font-size:11px;color:#444;margin-top:2px}h2{text-align:center;font-size:17px;margin:10px 0 14px}.row{display:flex;justify-content:space-between;padding:5px 0;border-bottom:1px solid #eee}.v{font-weight:700}.total{display:flex;justify-content:space-between;padding:12px 0;border-top:2px solid #000;font-size:17px;font-weight:900;margin-top:8px}.sigs{display:flex;justify-content:space-between;margin-top:40px}.sigs div{text-align:center;font-size:11px}</style></head><body><div class=hdr><div class=logo>NKD BAJAJ</div><p>Authorised Main Dealer — Bajaj Auto Ltd.</p><p>Hirak Road, Near Kamal Katesaria School, Dhanbad</p><p>Ph: 7033099006 | info@nkdbajaj.com</p></div><h2>BOOKING RECEIPT</h2><div class=row><span>Date</span><span class=v>"+bk.date+"</span></div><div class=row><span>Customer</span><span class=v>"+cu.name+"</span></div><div class=row><span>Phone</span><span class=v>"+cu.phone+"</span></div><div class=row><span>Model</span><span class=v>"+(cu.model||"")+" ("+(cu.modelCode||"")+")</span></div><div class=row><span>Mode</span><span class=v>"+bk.mode+"</span></div>"+(bk.note?"<div class=row><span>Note</span><span class=v>"+bk.note+"</span></div>":"")+"<div class=total><span>BOOKING AMOUNT RECEIVED</span><span>"+fc(bk.amt)+"</span></div><p style='font-size:11px;color:#666;margin-top:8px'>Balance payable at delivery. Subject to realization of payment.</p><div class=sigs><div>____________________<br/>Customer Sign</div><div>____________________<br/>For NKD Bajaj</div></div></body></html>";
         upd(cu.id,{booking:{...bk,receiptHtml:brc},status:"Booked",photos:{...(cu.photos||{}),...(bk.proof?{booking_proof:bk.proof}:{})},remarks:(cu.remarks||"")+"\n["+td()+"] BOOKED: "+fc(bk.amt)+" ("+bk.mode+") booking date "+bk.date+(bk.note?" — "+bk.note:"")});setBookOpen(false);setDtab("docs");notify("✅ Booking saved! Upload payment proof & documents below");}}/>}
-      {billOpen&&sel&&<BillingModal cust={custs.find(c=>c.id===sel.id)||sel} onClose={()=>setBillOpen(false)} onSave={d=>{billC(custs.find(c=>c.id===sel.id)||sel,d);setBillOpen(false);}} notify={notify} role={role}/>}
+      {billOpen&&sel&&<BillingModal cust={custs.find(c=>c.id===sel.id)||sel} onClose={()=>setBillOpen(false)} onSave={d=>{billC(custs.find(c=>c.id===sel.id)||sel,d);setBillOpen(false);}} notify={notify} role={role} stockData={stockData} billedChassis={billedChassis}/>}
     </div>
   );
 }
