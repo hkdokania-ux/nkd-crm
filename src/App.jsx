@@ -400,68 +400,71 @@ function DocGrid({cust,onUpload,docs}){
     </div>
   );
 }
-const AS_ITEMS=[
-  {key:"hsrpApplied",l:"HSRP Applied",ic:"🔢"},
-  {key:"hsrpFitted",l:"HSRP Plate Fitted",ic:"🪪"},
-  {key:"rcApplied",l:"RC Applied",ic:"📋"},
-  {key:"rcReceived",l:"RC Received",ic:"📬"},
-  {key:"insuranceCopy",l:"Insurance Copy Received",ic:"🛡️"},
-];
-function AfterSaleTracker({cust,onUpd,notify}){
-  const as=cust.afterSale||{};
-  const items=[...AS_ITEMS,...(cust.finance==="Finance"?[{key:"financeNoc",l:"Finance NOC Received",ic:"💰"}]:[])];
-  function toggle(key){
-    const cur=as[key]||{};
-    const done=!cur.done;
-    onUpd({afterSale:{...as,[key]:{done,date:done?td():null}}});
-    notify(done?"✅ Marked done":"Marked pending");
+function RCHSRPSearch({statusData,role,onUpload,notify}){
+  const [q,setQ]=useState("");
+  const rows=statusData||[];
+  const cols=rows.length>0?Object.keys(rows[0]):[];
+  const filtered=q.trim().length<2?[]:rows.filter(r=>cols.some(c=>String(r[c]||"").toLowerCase().includes(q.toLowerCase())));
+  function handleFile(file){
+    const rd=new FileReader();
+    rd.onload=function(e){
+      try{
+        const wb=XLSX.read(e.target.result,{type:"array"});
+        const ws=wb.Sheets[wb.SheetNames[0]];
+        const data=XLSX.utils.sheet_to_json(ws,{defval:""});
+        if(data.length===0){notify("❌ Empty Excel file");return;}
+        onUpload(data);
+        notify("✅ Status data uploaded — "+data.length+" records");
+      }catch(err){notify("❌ Could not read file");}
+    };
+    rd.readAsArrayBuffer(file);
   }
-  const doneCount=items.filter(i=>(as[i.key]||{}).done).length;
+  const STATUS_KEYS=["hsrp","rc","insurance","noc","status","remark","rto"];
+  function statusColor(val){
+    const v=String(val||"").toLowerCase();
+    if(v.includes("done")||v.includes("received")||v.includes("fitted")||v.includes("yes")||v.includes("complete"))return"#22c55e";
+    if(v.includes("pending")||v.includes("applied")||v.includes("process"))return"#f97316";
+    if(v.includes("no")||v.includes("not"))return"#ef4444";
+    return"#8892a4";
+  }
+  function isStatusCol(c){return STATUS_KEYS.some(k=>c.toLowerCase().includes(k));}
   return(
     <div>
-      <div style={{fontWeight:800,fontSize:16,color:"#fff",marginBottom:4}}>🚗 After-Sale Tracker</div>
-      <div style={{fontSize:11,color:"#5a6478",marginBottom:14}}>{doneCount}/{items.length} completed · {cust.name}</div>
-      {items.map(({key,l,ic})=>{
-        const item=as[key]||{done:false,date:null};
-        return(
-          <div key={key} style={{background:"#12161f",border:"1px solid "+(item.done?"rgba(34,197,94,0.35)":"#1e2436"),borderRadius:13,padding:"12px 14px",marginBottom:8,display:"flex",alignItems:"center",gap:12}}>
-            <span style={{fontSize:24,minWidth:28}}>{item.done?"✅":"⏳"}</span>
-            <div style={{flex:1}}>
-              <div style={{fontSize:13,fontWeight:700,color:item.done?"#22c55e":"#e2e6f0"}}>{ic} {l}</div>
-              <div style={{fontSize:11,color:"#5a6478"}}>{item.done&&item.date?"Done on "+fd(item.date):"Pending"}</div>
-            </div>
-            <button onClick={()=>toggle(key)} style={{background:item.done?"rgba(239,68,68,0.1)":"rgba(34,197,94,0.1)",border:"1px solid "+(item.done?"rgba(239,68,68,0.3)":"rgba(34,197,94,0.3)"),borderRadius:9,padding:"6px 12px",color:item.done?"#ef4444":"#22c55e",fontWeight:700,fontSize:11,cursor:"pointer",whiteSpace:"nowrap"}}>{item.done?"Undo":"Mark Done"}</button>
-          </div>
-        );
-      })}
-    </div>
-  );
-}
-function AfterSalePending({custs,onOpen}){
-  const billed=custs.filter(c=>c.billed);
-  const pending=billed.map(c=>{
-    const as=c.afterSale||{};
-    const items=[...AS_ITEMS,...(c.finance==="Finance"?[{key:"financeNoc",l:"Finance NOC",ic:"💰"}]:[])];
-    const pendingItems=items.filter(i=>!(as[i.key]||{}).done);
-    return{c,pendingItems};
-  }).filter(x=>x.pendingItems.length>0);
-  if(pending.length===0)return(<div style={{textAlign:"center",padding:40}}><div style={{fontSize:40,marginBottom:12}}>🎉</div><div style={{color:"#22c55e",fontWeight:700,fontSize:16}}>All clear!</div><div style={{color:"#5a6478",fontSize:12,marginTop:4}}>No pending after-sale items</div></div>);
-  return(
-    <div>
-      <div style={{fontWeight:800,fontSize:19,color:"#fff",marginBottom:4}}>🔔 After-Sale Pending</div>
-      <div style={{fontSize:11,color:"#5a6478",marginBottom:14}}>{pending.length} customers with pending items</div>
-      {pending.map(({c,pendingItems})=>(
-        <div key={c.id} onClick={()=>onOpen(c,"aftersale")} style={{background:"#12161f",border:"1px solid rgba(249,115,22,0.3)",borderRadius:13,padding:"12px 14px",marginBottom:9,cursor:"pointer"}}>
-          <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:6}}>
-            <div><div style={{fontWeight:700,fontSize:14,color:"#fff"}}>{c.name}</div><div style={{fontSize:11,color:"#5a6478"}}>{c.phone} · {c.model}</div></div>
-            <span style={{background:"rgba(239,68,68,0.15)",color:"#ef4444",fontSize:10,fontWeight:800,padding:"2px 8px",borderRadius:20}}>{pendingItems.length} pending</span>
-          </div>
-          <div style={{display:"flex",flexWrap:"wrap",gap:5}}>
-            {pendingItems.map(i=><span key={i.key} style={{background:"rgba(249,115,22,0.12)",color:"#f97316",fontSize:10,fontWeight:700,padding:"2px 8px",borderRadius:20}}>{i.ic} {i.l}</span>)}
-          </div>
-          <div style={{fontSize:10,color:"#5a6478",marginTop:6}}>Billed: {fd(c.billedDate)} · {c.salesman}</div>
+      <div style={{fontWeight:800,fontSize:19,color:"#fff",marginBottom:4}}>🔍 RC / HSRP Status</div>
+      <div style={{fontSize:11,color:"#5a6478",marginBottom:14}}>{rows.length>0?rows.length+" records loaded":"No data yet — upload Excel below"}</div>
+      {(role==="owner"||role==="admin")&&(
+        <label style={{display:"block",background:"rgba(96,165,250,0.08)",border:"1px dashed rgba(96,165,250,0.4)",borderRadius:12,padding:"12px 14px",marginBottom:14,cursor:"pointer",textAlign:"center"}}>
+          <div style={{fontSize:13,color:"#60a5fa",fontWeight:700}}>📤 Upload Status Excel</div>
+          <div style={{fontSize:11,color:"#5a6478",marginTop:3}}>{rows.length>0?"Replace current data":"Upload the RC/HSRP status Excel from RTO"}</div>
+          <input type="file" accept=".xlsx,.xls,.csv" style={{display:"none"}} onChange={e=>{if(e.target.files&&e.target.files[0]){handleFile(e.target.files[0]);e.target.value="";}}}/>
+        </label>
+      )}
+      {rows.length===0&&(role==="salesman"||role==="manager")&&(
+        <div style={{background:"rgba(249,115,22,0.07)",border:"1px solid rgba(249,115,22,0.2)",borderRadius:12,padding:16,textAlign:"center",marginBottom:14}}>
+          <div style={{fontSize:28,marginBottom:6}}>📋</div>
+          <div style={{fontSize:13,color:"#f97316",fontWeight:700}}>No status data uploaded yet</div>
+          <div style={{fontSize:11,color:"#5a6478",marginTop:4}}>Ask your Manager/Owner to upload the RC/HSRP status Excel</div>
+        </div>
+      )}
+      {rows.length>0&&(
+        <input placeholder="🔍 Search by name, chassis, engine, phone…" style={{...inp,marginBottom:12,padding:"13px 14px",fontSize:14,borderRadius:13}} value={q} onChange={e=>setQ(e.target.value)} autoFocus/>
+      )}
+      {q.trim().length>=2&&filtered.length===0&&<div style={{textAlign:"center",padding:24,color:"#5a6478",fontSize:13}}>No records found for "{q}"</div>}
+      {filtered.map((row,i)=>(
+        <div key={i} style={{background:"#12161f",border:"1px solid #1e2436",borderRadius:13,padding:"12px 14px",marginBottom:9}}>
+          {cols.map(c=>{
+            const val=row[c];
+            const isSt=isStatusCol(c);
+            return val!==""?(
+              <div key={c} style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:5,gap:8}}>
+                <span style={{fontSize:11,color:"#5a6478",flexShrink:0}}>{c}</span>
+                <span style={{fontSize:12,fontWeight:isSt?700:500,color:isSt?statusColor(val):"#e2e6f0",textAlign:"right"}}>{String(val)}</span>
+              </div>
+            ):null;
+          })}
         </div>
       ))}
+      {q.trim().length<2&&rows.length>0&&<div style={{textAlign:"center",color:"#374151",fontSize:12,padding:16}}>Type at least 2 characters to search</div>}
     </div>
   );
 }
@@ -482,7 +485,7 @@ function Detail({cust,role,onBack,onUpd,onLog,onBill,onBook,notify,initTab,clear
     });
   });}
 
-  const tabs=["info","history","followup","docs",...(cust.billed?["billing","aftersale"]:[])];
+  const tabs=["info","history","followup","docs",...(cust.billed?["billing"]:[])];
 
   return(
     <div>
@@ -602,7 +605,6 @@ function Detail({cust,role,onBack,onUpd,onLog,onBill,onBook,notify,initTab,clear
 
       {tab==="billing"&&cust.billing&&<BillingView billing={cust.billing} cust={cust}/>}
 
-      {tab==="aftersale"&&<AfterSaleTracker cust={cust} onUpd={onUpd} notify={notify}/>}
 
       {tab==="docs"&&(
         <div>
@@ -1272,6 +1274,8 @@ export default function App(){
   const [custF,setCustF]=useState("All");
   const [dtab,setDtab]=useState(null);
   const [fSM,setFSM]=useState("All");
+  const [statusData,setStatusData]=useState(()=>ld("nkd_rcstatus",[]));
+  function saveStatusData(data){setStatusData(data);sv("nkd_rcstatus",data);_dbSet("nkd_rcstatus",data);}
   const stack=useRef([]);
   function nav(v){if(v!==view){stack.current.push(view);setView(v);}}
   function goBack(){const pv=stack.current.pop();setView(pv||"dashboard");}
@@ -1343,12 +1347,11 @@ export default function App(){
   const revivable=custs.filter(c=>{if(c.billed)return false;const base=c.reactivatedAt||c.enquiryDate;return((new Date()-new Date(base))/(864e5*30))>=6;});
 
   function openD(c,tab){setSel(c);if(tab)setDtab(tab);nav("detail");}
-  const afterSalePendingCount=useMemo(()=>myC.filter(c=>{if(!c.billed)return false;const as=c.afterSale||{};const items=[...AS_ITEMS,...(c.finance==="Finance"?[{key:"financeNoc"}]:[])];return items.some(i=>!(as[i.key]||{}).done);}).length,[myC]);
 
   if(!fbReady)return(<div style={{minHeight:"100vh",background:"#090c13",display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",gap:14}}><div style={{width:110,background:"#fff",borderRadius:16,padding:"8px 12px"}}><img src="/logo.png" alt="NKD Bajaj" style={{width:"100%"}}/></div><div style={{color:"#f97316",fontWeight:700,fontSize:15}}>NKD Bajaj CRM</div><div style={{color:"#5a6478",fontSize:12}}>Connecting to database…</div></div>);
   if(!li)return <Login onLogin={(r,u,b)=>{setRole(r);setUser(u);if(b)sv("nkd_br",b);sv("nkd_r",r);sv("nkd_u",u);sv("nkd_li",true);setLi(true);}}/>;
 
-  const navItems=role==="admin"?[{id:"vault",l:"Document Vault",ic:"📁"}]:[{id:"dashboard",l:"Home",ic:"🏠"},{id:"followups",l:"Followup",ic:"📞",badge:due.length},{id:"customers",l:"Customers",ic:"👥"},{id:"aftersale",l:"After Sale",ic:"🔔",badge:afterSalePendingCount||null},...(role!=="salesman"?[{id:"approvals",l:"Approve",ic:"✅",badge:pending.length}]:[]),...(role!=="salesman"?[{id:"revival",l:"Revival",ic:"🔄"}]:[]),...(role==="owner"?[{id:"reports",l:"Reports",ic:"📊"}]:[]),...(role==="owner"?[{id:"vault",l:"Vault",ic:"📁"}]:[]),...(role!=="salesman"&&alerts.length>0?[{id:"alerts",l:"Alerts",ic:"⚠️",badge:alerts.length}]:[])];
+  const navItems=role==="admin"?[{id:"vault",l:"Document Vault",ic:"📁"},{id:"rcstatus",l:"RC/HSRP",ic:"🔍"}]:[{id:"dashboard",l:"Home",ic:"🏠"},{id:"followups",l:"Followup",ic:"📞",badge:due.length},{id:"customers",l:"Customers",ic:"👥"},{id:"rcstatus",l:"RC/HSRP",ic:"🔍"},...(role!=="salesman"?[{id:"approvals",l:"Approve",ic:"✅",badge:pending.length}]:[]),...(role!=="salesman"?[{id:"revival",l:"Revival",ic:"🔄"}]:[]),...(role==="owner"?[{id:"reports",l:"Reports",ic:"📊"}]:[]),...(role==="owner"?[{id:"vault",l:"Vault",ic:"📁"}]:[]),...(role!=="salesman"&&alerts.length>0?[{id:"alerts",l:"Alerts",ic:"⚠️",badge:alerts.length}]:[])];
 
   return(
     <div style={{minHeight:"100vh",background:"radial-gradient(1200px 500px at 50% -10%,#141a28 0%,#090c13 55%)",color:"#e2e6f0",fontFamily:"'Inter',-apple-system,sans-serif",maxWidth:480,margin:"0 auto"}}>
@@ -1390,12 +1393,12 @@ export default function App(){
       </div>
 
       <div style={{padding:16,paddingBottom:110}}>
-        {role==="admin"&&view!=="vault"&&setView("vault")}
+        {role==="admin"&&view!=="vault"&&view!=="rcstatus"&&setView("vault")}
         {view==="dashboard"&&<Dashboard custs={myC} role={role} onOpen={openD} onNav={nav} onNavF={st=>{setCustF(st);nav("customers");}} onSvcDone={id=>{upd(id,{serviceDone:true});notify("Service marked done ✓");}} onTeamTap={s=>{setFSM(s);nav("followups");}}/>}
         {view==="followups"&&<Followups items={due} onOpen={openD} onLog={logF} onCallLog={logCall} showSMFilter={role!=="salesman"} initSM={fSM}/>}
         {view==="customers"&&<CustList custs={myC} onOpen={openD} initF={custF} showSM={role!=="salesman"}/>}
         {view==="detail"&&sel&&<Detail cust={custs.find(c=>c.id===sel.id)||sel} role={role} onBack={goBack} onUpd={p=>upd(sel.id,p)} onLog={logF} onBill={()=>setBillOpen(true)} onBook={()=>setBookOpen(true)} notify={notify} initTab={dtab} clearInit={()=>setDtab(null)}/>}
-        {view==="aftersale"&&<div style={{padding:"0 16px 80px"}}><AfterSalePending custs={myC} onOpen={openD}/></div>}
+        {view==="rcstatus"&&<div style={{padding:"0 16px 80px"}}><RCHSRPSearch statusData={statusData} role={role} onUpload={saveStatusData} notify={notify}/></div>}
         {view==="approvals"&&<Approvals custs={pending} onApprove={approveBill} onOpen={openD} onEditCalc={c=>{setSel(c);setBillOpen(true);}} allC={myC}/>}
         {view==="revival"&&<Revival items={revivable} onRevive={ids=>{let si=0;const perDay={};setCusts(p=>p.map(c=>{
           if(!ids.includes(c.id))return c;
