@@ -1,4 +1,8 @@
 import{useState,useEffect,useRef,useMemo}from"react";
+import{createClient}from"@supabase/supabase-js";
+const _sb=createClient("https://acwpqkywhxxnxylewtbo.supabase.co","eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFjd3Bxa3l3aHh4bnh5bGV3dGJvIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODQ2MjI0MDYsImV4cCI6MjEwMDE5ODQwNn0.0_d4LLJ1loNklPCVayHk8M2B0rn-r8ut66siLcRbLt8");
+function _dbGet(k){return _sb.from("store").select("value").eq("key",k).maybeSingle().then(({data})=>data?.value??null).catch(()=>null);}
+function _dbSet(k,v){_sb.from("store").upsert({key:k,value:v}).catch(()=>{});}
 
 const RC={DY13:{n:"CT110 X ES NXT",cat:"CT",ex:71184,cAcc:0,hdl:600,ins:6834,reg:8506,onRoad:88824,amc:1050},DY08:{n:"CT 110 X ES",cat:"CT",ex:65207,cAcc:0,hdl:600,ins:6716,reg:8087,onRoad:82310,amc:1050},JK39:{n:"Platina 100 ES NXT",cat:"PLATINA",ex:69142,cAcc:0,hdl:600,ins:6788,reg:6793,onRoad:85023,amc:1050},JK38:{n:"Platina 110 Drum ES NXT",cat:"PLATINA",ex:73142,cAcc:0,hdl:600,ins:6872,reg:8643,onRoad:90957,amc:1050},JH31:{n:"Freedom 125 Drum OBD2A",cat:"FREEDOM",ex:91625,cAcc:788,hdl:600,ins:7236,reg:9937,onRoad:111886,amc:1322},JH36:{n:"Freedom 125 Disc LED",cat:"FREEDOM",ex:111604,cAcc:788,hdl:600,ins:7631,reg:13567,onRoad:135890,amc:1322},JH37:{n:"Freedom 125 Drum LED",cat:"FREEDOM",ex:104117,cAcc:788,hdl:600,ins:7484,reg:12894,onRoad:127583,amc:1322},JZ51:{n:"Pulsar N125 Top",cat:"N125",ex:92530,cAcc:788,hdl:600,ins:7254,reg:10000,onRoad:112872,amc:1322},JZ53:{n:"Pulsar N125 Mid",cat:"N125",ex:86836,cAcc:738,hdl:600,ins:7254,reg:9602,onRoad:106730,amc:1322},JZ56:{n:"Pulsar N125 Top OBD2B",cat:"N125",ex:92990,cAcc:788,hdl:600,ins:7254,reg:10032,onRoad:113364,amc:1322},DH65:{n:"PULSAR 125 Neon DISC",cat:"P125",ex:82081,cAcc:788,hdl:600,ins:7001,reg:9269,onRoad:101439,amc:1322},DH62:{n:"PULSAR 125 Carbon Disc",cat:"P125",ex:86175,cAcc:788,hdl:600,ins:7114,reg:9555,onRoad:105932,amc:1322},DH70:{n:"Pulsar 125 CF Split Seat LED",cat:"P125",ex:93934,cAcc:788,hdl:600,ins:7282,reg:10098,onRoad:114402,amc:1322},DH71:{n:"Pulsar 125 CF Disc LED",cat:"P125",ex:91757,cAcc:788,hdl:600,ins:7240,reg:9946,onRoad:112031,amc:1322},JF58:{n:"Pulsar NS 125 UG OBD2B",cat:"NS125",ex:99409,cAcc:876,hdl:600,ins:7390,reg:10482,onRoad:120457,amc:1322},JF60:{n:"Pulsar NS 125 ABS OBD2B",cat:"NS125",ex:99999,cAcc:876,hdl:600,ins:7402,reg:10523,onRoad:121100,amc:1322},DH60:{n:"PULSAR 150 SD UG",cat:"P150",ex:107941,cAcc:876,hdl:600,ins:7559,reg:13238,onRoad:131914,amc:1322},DH69:{n:"PULSAR 150 TD UG",cat:"P150",ex:117794,cAcc:876,hdl:600,ins:7753,reg:14124,onRoad:142847,amc:1322},DH63:{n:"PULSAR 150 TD OBD2B",cat:"P150",ex:111982,cAcc:876,hdl:600,ins:7639,reg:13601,onRoad:136398,amc:1322},JF43:{n:"PULSAR NS 160 UG",cat:"NS160",ex:129476,cAcc:876,hdl:600,ins:12130,reg:15176,onRoad:159958,amc:1699},JF55:{n:"PULSAR NS 160 Twin Channel",cat:"NS160",ex:124638,cAcc:876,hdl:600,ins:12035,reg:14740,onRoad:154589,amc:1699},JF45:{n:"PULSAR NS 160 OBD2B",cat:"NS160",ex:133139,cAcc:876,hdl:600,ins:12202,reg:15506,onRoad:164023,amc:1699},JR50:{n:"Pulsar N 160 TD",cat:"N160",ex:114053,cAcc:876,hdl:600,ins:11826,reg:13788,onRoad:142843,amc:1699},JR37:{n:"Pulsar N 160",cat:"N160",ex:117658,cAcc:876,hdl:600,ins:11897,reg:14112,onRoad:146843,amc:1699},JR33:{n:"Pulsar N 160 UG OBD2B",cat:"N160",ex:129381,cAcc:876,hdl:600,ins:12128,reg:15167,onRoad:159852,amc:1699},JR83:{n:"Pulsar N160 Split Seat USD",cat:"N160",ex:130355,cAcc:876,hdl:600,ins:12148,reg:15255,onRoad:160934,amc:1699},JL30:{n:"PULSAR NS 200 Twin Channel",cat:"NS200",ex:137795,cAcc:876,hdl:600,ins:12294,reg:15925,onRoad:169190,amc:1699},JL25:{n:"PULSAR NS 200 OBD2B",cat:"NS200",ex:147978,cAcc:876,hdl:600,ins:12495,reg:16841,onRoad:180490,amc:1699},DJ16:{n:"PULSAR 180",cat:"P180",ex:123552,cAcc:876,hdl:600,ins:12013,reg:14643,onRoad:153384,amc:1699},DT22:{n:"PULSAR RS 200",cat:"RS200",ex:177384,cAcc:0,hdl:600,ins:13075,reg:19488,onRoad:212247,amc:1699},JR34:{n:"PULSAR N 250 OBD2B",cat:"N250",ex:139405,cAcc:876,hdl:600,ins:12326,reg:16069,onRoad:170976,amc:1699},PD39:{n:"AVENGER 160 Street",cat:"AVENGER",ex:113103,cAcc:876,hdl:600,ins:11807,reg:13702,onRoad:141788,amc:1699},PD40:{n:"AVENGER 220 STREET",cat:"AVENGER",ex:131293,cAcc:876,hdl:600,ins:12166,reg:15339,onRoad:161974,amc:1699},JF53:{n:"Dominar 250 UG",cat:"DOMINAR",ex:182924,cAcc:876,hdl:600,ins:13185,reg:19986,onRoad:219271,amc:1699},JF62:{n:"Dominar 400 UG",cat:"DOMINAR",ex:204370,cAcc:876,hdl:600,ins:13608,reg:21916,onRoad:243070,amc:1699},DK14:{n:"Pulsar 220 F LED",cat:"P220F",ex:134732,cAcc:0,hdl:600,ins:12234,reg:15649,onRoad:165791,amc:1699},JL32:{n:"Pulsar NS 400Z OBD2B",cat:"NS400",ex:182174,cAcc:876,hdl:600,ins:13170,reg:19919,onRoad:218439,amc:1699}};
 
@@ -118,15 +122,15 @@ function Login({onLogin}){
       const pws=ld("nkd_pw",{});
       const rec=pws[user]||{pw:"1111",must:true,fails:0,locked:false};
       if(rec.locked){alert("🔒 Account locked after 5 wrong attempts.\nAsk Admin/Owner to reset your password.");return;}
-      if(spw!==rec.pw){rec.fails=(rec.fails||0)+1;if(rec.fails>=5){rec.locked=true;alert("🔒 Account LOCKED (5 wrong attempts). Admin has been flagged.");}else{alert("Wrong password ("+rec.fails+"/5 attempts)");}pws[user]=rec;sv("nkd_pw",pws);return;}
+      if(spw!==rec.pw){rec.fails=(rec.fails||0)+1;if(rec.fails>=5){rec.locked=true;alert("🔒 Account LOCKED (5 wrong attempts). Admin has been flagged.");}else{alert("Wrong password ("+rec.fails+"/5 attempts)");}pws[user]=rec;sv("nkd_pw",pws);_dbSet("passwords",pws);return;}
       rec.fails=0;
-      if(rec.must&&!chg){setChg(true);pws[user]=rec;sv("nkd_pw",pws);return;}
+      if(rec.must&&!chg){setChg(true);pws[user]=rec;sv("nkd_pw",pws);_dbSet("passwords",pws);return;}
       if(rec.must&&chg){
         if(!npw1||npw1.length<4){alert("New password must be at least 4 characters");return;}
         if(npw1!==npw2){alert("New passwords do not match");return;}
         rec.pw=npw1;rec.must=false;
       }
-      pws[user]=rec;sv("nkd_pw",pws);
+      pws[user]=rec;sv("nkd_pw",pws);_dbSet("passwords",pws);
     }
     if(role!=="salesman"&&pin!==({manager:"1234",owner:"0000",admin:"9999"}[role])){alert("Wrong PIN");return;}
     onLogin(role,role==="salesman"?user:role==="manager"?"Manager":role==="admin"?"Admin":"Owner",role==="manager"?br:null);
@@ -418,7 +422,7 @@ function Detail({cust,role,onBack,onUpd,onLog,onBill,onBook,notify,initTab,clear
       {!cust.billed&&!cust.stopped&&<button onClick={()=>{const taking=!cust.testRide;onUpd({testRide:taking?{date:td()}:null,remarks:(cust.remarks||"")+(taking?"\n["+td()+"] TEST RIDE taken":"")});if(taking){setTab("docs");notify("🚦 Test ride recorded — upload the license here");}}} style={{width:"100%",background:cust.testRide?"rgba(34,197,94,0.1)":"rgba(96,165,250,0.08)",border:"1px solid "+(cust.testRide?"rgba(34,197,94,0.35)":"rgba(96,165,250,0.3)"),borderRadius:12,padding:"10px",color:cust.testRide?"#22c55e":"#60a5fa",fontWeight:700,fontSize:12,cursor:"pointer",marginBottom:8}}>🏍️ Test Ride {cust.testRide?"✓ Done "+fd(cust.testRide.date):"— Tap when taken (upload license in Docs)"}</button>}
       {!cust.billed&&cust.booking&&cust.booking.receiptHtml&&<div style={{display:"flex",gap:8,marginBottom:12}}>
         <button onClick={()=>dlFile(cust.booking.receiptHtml,"BookingReceipt_"+cust.name.replace(/ /g,"_")+".html")} style={{flex:1,background:"#1e3a5f",border:"none",borderRadius:10,padding:10,color:"#60a5fa",fontWeight:700,fontSize:11,cursor:"pointer"}}>⬇️ Booking Receipt (→PDF)</button>
-        <button onClick={()=>{var num=ld("nkd_office_wa","");if(!num){num=prompt("Enter office WhatsApp number (10 digits):");if(!num)return;sv("nkd_office_wa",num);}window.open("https://wa.me/91"+num+"?text="+encodeURIComponent("NKD BAJAJ - BOOKING RECORD\nDate: "+cust.booking.date+"\nCustomer: "+cust.name+"\nPhone: "+cust.phone+"\nModel: "+(cust.model||"")+" ("+(cust.modelCode||"")+")\nSalesman: "+cust.salesman+"\nBooking Amount: "+fc(cust.booking.amt)+" ("+cust.booking.mode+")"+(cust.booking.note?"\nNote: "+cust.booking.note:"")),"_blank");}} style={{flex:1,background:"rgba(37,211,102,0.08)",border:"1px solid rgba(37,211,102,0.3)",borderRadius:10,padding:10,color:"#25D366",fontWeight:700,fontSize:11,cursor:"pointer"}}>📲 Booking → Office</button>
+        <button onClick={()=>{var num=ld("nkd_office_wa","");if(!num){num=prompt("Enter office WhatsApp number (10 digits):");if(!num)return;sv("nkd_office_wa",num);_dbSet("office_wa",num);}window.open("https://wa.me/91"+num+"?text="+encodeURIComponent("NKD BAJAJ - BOOKING RECORD\nDate: "+cust.booking.date+"\nCustomer: "+cust.name+"\nPhone: "+cust.phone+"\nModel: "+(cust.model||"")+" ("+(cust.modelCode||"")+")\nSalesman: "+cust.salesman+"\nBooking Amount: "+fc(cust.booking.amt)+" ("+cust.booking.mode+")"+(cust.booking.note?"\nNote: "+cust.booking.note:"")),"_blank");}} style={{flex:1,background:"rgba(37,211,102,0.08)",border:"1px solid rgba(37,211,102,0.3)",borderRadius:10,padding:10,color:"#25D366",fontWeight:700,fontSize:11,cursor:"pointer"}}>📲 Booking → Office</button>
       </div>}
       {cust.managerApproval==="rejected"&&!cust.billed&&<div style={{background:"rgba(239,68,68,0.12)",border:"1px solid rgba(239,68,68,0.5)",borderRadius:12,padding:"11px 13px",marginBottom:12}}>
         <div style={{fontSize:12,color:"#ef4444",fontWeight:800,marginBottom:3}}>❌ BILLING REJECTED BY MANAGER</div>
@@ -851,7 +855,7 @@ function BillingView({billing:b,cust}){
   const officeText=encodeURIComponent(calcText);
   function sendOffice(){
     var num=ld("nkd_office_wa","");
-    if(!num){num=prompt("Enter office WhatsApp number (10 digits) — saved for future:");if(!num)return;sv("nkd_office_wa",num);}
+    if(!num){num=prompt("Enter office WhatsApp number (10 digits) — saved for future:");if(!num)return;sv("nkd_office_wa",num);_dbSet("office_wa",num);}
     window.open("https://wa.me/91"+num+"?text="+officeText,"_blank");
   }
   return(
@@ -959,7 +963,7 @@ function Approvals({custs,onApprove,onOpen,onEditCalc,allC}){
           {SM.map(s=>{const pws=ld("nkd_pw",{});const rec=pws[s]||{};
             return(<div key={s} style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"7px 0",borderBottom:"1px solid #1a1f2e"}}>
               <span style={{fontSize:12,color:"#e2e6f0"}}>{s} {rec.locked&&<span style={{color:"#ef4444",fontWeight:700,fontSize:10}}>🔒 LOCKED</span>}{rec.must&&!rec.locked&&<span style={{color:"#5a6478",fontSize:10}}> (not set yet)</span>}</span>
-              <button onClick={()=>{const p2=ld("nkd_pw",{});p2[s]={pw:"1111",must:true,fails:0,locked:false};sv("nkd_pw",p2);alert(s+" reset to 1111 — they will set a new password on next login");}} style={{background:"#1e2436",border:"1px solid #252d3d",borderRadius:8,padding:"5px 10px",fontSize:10,color:"#f59e0b",fontWeight:700,cursor:"pointer"}}>Reset → 1111</button>
+              <button onClick={()=>{const p2=ld("nkd_pw",{});p2[s]={pw:"1111",must:true,fails:0,locked:false};sv("nkd_pw",p2);_dbSet("passwords",p2);alert(s+" reset to 1111 — they will set a new password on next login");}} style={{background:"#1e2436",border:"1px solid #252d3d",borderRadius:8,padding:"5px 10px",fontSize:10,color:"#f59e0b",fontWeight:700,cursor:"pointer"}}>Reset → 1111</button>
             </div>);})}
         </div>
       </div>
@@ -1024,7 +1028,7 @@ function Reports({custs,onImportCust}){
           const gi=n=>hd.indexOf(n);const obj={};
           for(let i=1;i<lines.length;i++){const c2=lines[i].split(",");const cd=(c2[gi("code")]||"").trim().toUpperCase();if(!cd)continue;
             obj[cd]={n:c2[gi("name")]||cd,cat:c2[gi("cat")]||"OTHER",ex:+c2[gi("ex")]||0,cAcc:+c2[gi("cacc")]||0,hdl:+c2[gi("hdl")]||600,ins:+c2[gi("ins")]||0,reg:+c2[gi("reg")]||0,onRoad:+c2[gi("onroad")]||0,amc:+c2[gi("amc")]||0};}
-          sv("nkd_rc",obj);Object.assign(RC,obj);alert("✅ Rate chart updated: "+Object.keys(obj).length+" models. New rates apply to all new billings.");}catch(err){alert("Could not read file — check column names");}
+          sv("nkd_rc",obj);_dbSet("rate_chart",obj);Object.assign(RC,obj);alert("✅ Rate chart updated: "+Object.keys(obj).length+" models. New rates apply to all new billings.");}catch(err){alert("Could not read file — check column names");}
         };rd.readAsText(fl);e.target.value="";}} style={{width:"100%",background:"#1e2436",borderRadius:9,padding:8,fontSize:11,color:"#8892a4",border:"1px dashed #2a3040",marginBottom:10}}/>
         <div style={{fontSize:10,color:"#5a6478",marginBottom:4}}>2. Old Customers (10,000+) — columns: name,phone,model,salesman,enquirydate,status,remarks</div>
         <input type="file" accept=".csv" onChange={e=>{const fl=e.target.files[0];if(!fl)return;const rd=new FileReader();rd.onload=ev=>{
@@ -1065,7 +1069,7 @@ function Reports({custs,onImportCust}){
         {SM.map(s=>{const pws=ld("nkd_pw",{});const rec=pws[s]||{};
           return(<div key={s} style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"6px 0",borderBottom:"1px solid #1a1f2e"}}>
             <span style={{fontSize:12,color:"#e2e6f0"}}>{s} {rec.locked&&<span style={{color:"#ef4444",fontWeight:700,fontSize:10}}>🔒 LOCKED</span>}</span>
-            <button onClick={()=>{const pws2=ld("nkd_pw",{});pws2[s]={pw:"1111",must:true,fails:0,locked:false};sv("nkd_pw",pws2);alert(s+" reset to 1111 — they must change it on next login");}} style={{background:"#1e2436",border:"1px solid #252d3d",borderRadius:8,padding:"5px 10px",fontSize:10,color:"#f59e0b",fontWeight:700,cursor:"pointer"}}>Reset → 1111</button>
+            <button onClick={()=>{const pws2=ld("nkd_pw",{});pws2[s]={pw:"1111",must:true,fails:0,locked:false};sv("nkd_pw",pws2);_dbSet("passwords",pws2);alert(s+" reset to 1111 — they must change it on next login");}} style={{background:"#1e2436",border:"1px solid #252d3d",borderRadius:8,padding:"5px 10px",fontSize:10,color:"#f59e0b",fontWeight:700,cursor:"pointer"}}>Reset → 1111</button>
           </div>);})}
       </div>
       <div style={{fontSize:12,fontWeight:700,color:"#8892a4",marginBottom:8}}>SALESMAN SCOREBOARD</div>
@@ -1159,7 +1163,8 @@ function DocVault({custs,onImport}){
 export default function App(){
   const [role,setRole]=useState(ld("nkd_r","salesman"));
   const [user,setUser]=useState(ld("nkd_u",SM[0]));
-  const [custs,setCusts]=useState(()=>{const s=seedData();sv("nkd6",s);return s;});
+  const [custs,setCusts]=useState(seedData);
+  const [fbReady,setFbReady]=useState(false);
   const [view,setView]=useState(ld("nkd_r","salesman")==="admin"?"vault":"dashboard");
   const [sel,setSel]=useState(null);
   const [toast,setToast]=useState(null);
@@ -1183,7 +1188,20 @@ export default function App(){
   },[]);
   const alerts=custs.filter(c=>c.stopped&&c.status==="Lost"&&!c.alertDismissed);
 
-  useEffect(()=>{if(!sv("nkd6",custs))notify("⚠️ Storage full — delete old photos or export data","err");},[custs]);
+  useEffect(()=>{
+    Promise.all([
+      _dbGet("custs").then(d=>{if(d&&d.length){sv("nkd6",d);setCusts(d);}}),
+      _dbGet("passwords").then(d=>{if(d)sv("nkd_pw",d);}),
+      _dbGet("rate_chart").then(d=>{if(d){sv("nkd_rc",d);try{Object.assign(RC,d);}catch(e){}}}),
+      _dbGet("office_wa").then(d=>{if(d)sv("nkd_office_wa",d);}),
+    ]).catch(()=>{}).finally(()=>setFbReady(true));
+  },[]);
+
+  useEffect(()=>{
+    if(!fbReady)return;
+    sv("nkd6",custs);
+    _dbSet("custs",custs);
+  },[custs,fbReady]);
 
   function notify(msg,type){setToast({msg,type});setTimeout(()=>setToast(null),3000);}
   function upd(id,patch){setCusts(p=>p.map(c=>c.id===id?{...c,...patch}:c));}
@@ -1229,6 +1247,7 @@ export default function App(){
 
   function openD(c){setSel(c);nav("detail");}
 
+  if(!fbReady)return(<div style={{minHeight:"100vh",background:"#090c13",display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",gap:14}}><div style={{width:110,background:"#fff",borderRadius:16,padding:"8px 12px"}}><img src="/logo.png" alt="NKD Bajaj" style={{width:"100%"}}/></div><div style={{color:"#f97316",fontWeight:700,fontSize:15}}>NKD Bajaj CRM</div><div style={{color:"#5a6478",fontSize:12}}>Connecting to database…</div></div>);
   if(!li)return <Login onLogin={(r,u,b)=>{setRole(r);setUser(u);if(b)sv("nkd_br",b);sv("nkd_r",r);sv("nkd_u",u);sv("nkd_li",true);setLi(true);}}/>;
 
   const navItems=role==="admin"?[{id:"vault",l:"Document Vault",ic:"📁"}]:[{id:"dashboard",l:"Home",ic:"🏠"},{id:"followups",l:"Followup",ic:"📞",badge:due.length},{id:"customers",l:"Customers",ic:"👥"},...(role!=="salesman"?[{id:"approvals",l:"Approve",ic:"✅",badge:pending.length}]:[]),...(role!=="salesman"?[{id:"revival",l:"Revival",ic:"🔄"}]:[]),...(role==="owner"?[{id:"reports",l:"Reports",ic:"📊"}]:[]),...(role!=="salesman"&&alerts.length>0?[{id:"alerts",l:"Alerts",ic:"⚠️",badge:alerts.length}]:[])];
