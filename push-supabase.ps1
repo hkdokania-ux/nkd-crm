@@ -11,7 +11,7 @@ Write-Host "Installing packages..." -ForegroundColor Cyan
 npm install
 
 git add -A
-git commit -m "Bold blue-gray borders on all cards and items"
+git commit -m "Ageing report: oldest stock first, age badges, summary by bracket"
 git push
 
 if ($LASTEXITCODE -eq 0) {

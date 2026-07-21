@@ -588,6 +588,7 @@ function UploadsHub({stockData,statusData,onStockUpload,onStatusUpload,notify}){
 function findStockCol(keys,words){return keys.find(k=>words.some(w=>k.toLowerCase().includes(w)))||null;}
 function StockView({stockData,billedChassis,role,onUpload,notify}){
   const [q,setQ]=useState("");
+  const [tab,setTab]=useState("stock"); // "stock" | "ageing"
   const rows=stockData||[];
   const keys=rows.length>0?Object.keys(rows[0]):[];
   const chassisKey=findStockCol(keys,["chassis","frame"]);
@@ -595,56 +596,128 @@ function StockView({stockData,billedChassis,role,onUpload,notify}){
   const colorKey=findStockCol(keys,["color","colour"]);
   const modelKey=findStockCol(keys,["model","name","variant"]);
   const branchKey=findStockCol(keys,["branch","location","godown","store"]);
+  const dateKey=findStockCol(keys,["date","invoice","inward","receipt","received","entry","purchase","billing"]);
   const available=rows.filter(r=>!billedChassis.includes(String(r[chassisKey]||"").trim().toUpperCase()));
-  const filtered=q.trim().length<2?available:available.filter(r=>keys.some(k=>String(r[k]||"").toLowerCase().includes(q.toLowerCase())));
-  function handleFile(file){
-    const rd=new FileReader();
-    rd.onload=function(e){
-      try{
-        const wb=XLSX.read(e.target.result,{type:"array"});
-        const ws=wb.Sheets[wb.SheetNames[0]];
-        const data=XLSX.utils.sheet_to_json(ws,{defval:""});
-        if(data.length===0){notify("❌ Empty Excel file");return;}
-        onUpload(data);notify("✅ Stock uploaded — "+data.length+" vehicles");
-      }catch(err){notify("❌ Could not read file");}
-    };
-    rd.readAsArrayBuffer(file);
+
+  function getAge(row){
+    if(!dateKey||!row[dateKey])return null;
+    // Try parsing various date formats
+    const raw=String(row[dateKey]).trim();
+    let d=new Date(raw);
+    // Handle DD/MM/YYYY
+    if(isNaN(d)&&raw.includes("/")){const p=raw.split("/");if(p.length===3)d=new Date(p[2]+"-"+p[1].padStart(2,"0")+"-"+p[0].padStart(2,"0"));}
+    // Handle DD-MM-YYYY
+    if(isNaN(d)&&raw.includes("-")&&raw.length<=10){const p=raw.split("-");if(p.length===3&&p[0].length<=2)d=new Date(p[2]+"-"+p[1].padStart(2,"0")+"-"+p[0].padStart(2,"0"));}
+    if(isNaN(d))return null;
+    return Math.floor((Date.now()-d.getTime())/(1000*60*60*24));
   }
+  function ageBadge(days){
+    if(days===null)return{bg:"#f1f5f9",border:"#6b8fb5",col:"#64748b",label:"No date",tag:"—"};
+    if(days<=30)return{bg:"rgba(34,197,94,0.1)",border:"rgba(34,197,94,0.5)",col:"#16a34a",label:"Fresh",tag:days+"d"};
+    if(days<=60)return{bg:"rgba(234,179,8,0.1)",border:"rgba(234,179,8,0.55)",col:"#ca8a04",label:"Moderate",tag:days+"d"};
+    if(days<=90)return{bg:"rgba(249,115,22,0.1)",border:"rgba(249,115,22,0.55)",col:"#ea580c",label:"Ageing",tag:days+"d"};
+    return{bg:"rgba(239,68,68,0.1)",border:"rgba(239,68,68,0.6)",col:"#dc2626",label:"OLD STOCK",tag:days+"d ⚠️"};
+  }
+
+  const filtered=q.trim().length<2?available:available.filter(r=>keys.some(k=>String(r[k]||"").toLowerCase().includes(q.toLowerCase())));
   const byModel=useMemo(()=>{
     if(!modelKey)return[];
     const map={};
     filtered.forEach(r=>{const m=String(r[modelKey]||"Other");map[m]=(map[m]||0)+1;});
     return Object.entries(map).sort((a,b)=>b[1]-a[1]);
   },[filtered,modelKey]);
+
+  // Ageing: sort oldest first, with age attached
+  const ageingRows=useMemo(()=>{
+    const withAge=available.map(r=>({...r,__age:getAge(r)}));
+    const qL=q.toLowerCase().trim();
+    const filt=qL.length<2?withAge:withAge.filter(r=>keys.some(k=>String(r[k]||"").toLowerCase().includes(qL)));
+    return filt.sort((a,b)=>{
+      if(a.__age===null&&b.__age===null)return 0;
+      if(a.__age===null)return 1;
+      if(b.__age===null)return -1;
+      return b.__age-a.__age; // oldest first
+    });
+  },[available,q,keys]);
+
+  // Ageing summary
+  const ageSummary=useMemo(()=>{
+    const s={fresh:0,mod:0,ageing:0,old:0,nodate:0};
+    available.forEach(r=>{const d=getAge(r);if(d===null)s.nodate++;else if(d<=30)s.fresh++;else if(d<=60)s.mod++;else if(d<=90)s.ageing++;else s.old++;});
+    return s;
+  },[available]);
+
+  const StockCard=({row,i})=>{
+    const age=row.__age!==undefined?row.__age:getAge(row);
+    const ab=ageBadge(age);
+    return(
+      <div key={i} style={{background:age>90?"rgba(239,68,68,0.04)":age>60?"rgba(249,115,22,0.04)":"#ffffff",border:"1px solid "+ab.border,borderRadius:12,padding:"10px 14px",marginBottom:8}}>
+        <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:5}}>
+          {modelKey&&<div style={{fontWeight:700,fontSize:13,color:"#1e293b",flex:1}}>{row[modelKey]}</div>}
+          {age!==null&&<span style={{fontSize:10,fontWeight:800,background:ab.bg,color:ab.col,padding:"2px 8px",borderRadius:10,border:"1px solid "+ab.border,flexShrink:0,marginLeft:8}}>{ab.tag}</span>}
+        </div>
+        <div style={{display:"flex",flexWrap:"wrap",gap:6}}>
+          {chassisKey&&<span style={{fontSize:11,color:"#60a5fa"}}>🔩 {row[chassisKey]}</span>}
+          {engineKey&&<span style={{fontSize:11,color:"#64748b"}}>⚙️ {row[engineKey]}</span>}
+          {colorKey&&<span style={{fontSize:11,color:"#a78bfa"}}>🎨 {row[colorKey]}</span>}
+          {branchKey&&<span style={{fontSize:11,color:"#34d399"}}>📍 {row[branchKey]}</span>}
+          {dateKey&&row[dateKey]&&<span style={{fontSize:11,color:"#94a3b8"}}>📅 {String(row[dateKey]).slice(0,12)}</span>}
+        </div>
+        {age>90&&<div style={{fontSize:10,color:"#dc2626",fontWeight:700,marginTop:5}}>⚠️ Push for sale — in stock {age} days</div>}
+      </div>
+    );
+  };
+
   return(
     <div>
-      <div style={{fontWeight:800,fontSize:19,color:"#1e293b",marginBottom:4}}>🏍️ Stock Available</div>
-      <div style={{fontSize:11,color:"#94a3b8",marginBottom:14}}>{rows.length>0?available.length+" available · "+billedChassis.length+" billed":"No stock uploaded yet"}</div>
-      {rows.length===0&&<div style={{background:"rgba(52,211,153,0.07)",border:"1px solid rgba(52,211,153,0.2)",borderRadius:12,padding:16,textAlign:"center",marginBottom:14}}><div style={{fontSize:28,marginBottom:6}}>📦</div><div style={{fontSize:13,color:"#34d399",fontWeight:700}}>No stock data yet</div><div style={{fontSize:11,color:"#94a3b8",marginTop:4}}>{role==="owner"||role==="admin"?"Go to 📤 Uploads tab to upload stock Excel":"Ask Owner/Admin to upload stock Excel"}</div></div>}
+      <div style={{fontWeight:800,fontSize:19,color:"#1e293b",marginBottom:4}}>🏍️ Stock</div>
+      <div style={{fontSize:11,color:"#94a3b8",marginBottom:10}}>{rows.length>0?available.length+" available · "+billedChassis.length+" billed":"No stock uploaded yet"}</div>
+
+      {/* Tab toggle */}
+      {rows.length>0&&<div style={{display:"flex",gap:8,marginBottom:12}}>
+        {[["stock","📦 Stock Search"],["ageing","📊 Ageing Report"]].map(([id,l])=>(
+          <button key={id} onClick={()=>setTab(id)} style={{flex:1,padding:"9px",borderRadius:10,fontSize:12,fontWeight:700,cursor:"pointer",border:"1px solid "+(tab===id?"#3b82f6":"#6b8fb5"),background:tab===id?"#dbeafe":"#ffffff",color:tab===id?"#1d4ed8":"#475569"}}>{l}</button>
+        ))}
+      </div>}
+
+      {rows.length===0&&<div style={{background:"rgba(52,211,153,0.07)",border:"1px solid rgba(52,211,153,0.3)",borderRadius:12,padding:16,textAlign:"center",marginBottom:14}}><div style={{fontSize:28,marginBottom:6}}>📦</div><div style={{fontSize:13,color:"#34d399",fontWeight:700}}>No stock data yet</div><div style={{fontSize:11,color:"#94a3b8",marginTop:4}}>{role==="owner"||role==="admin"?"Go to 📤 Uploads tab to upload stock Excel":"Ask Owner/Admin to upload stock Excel"}</div></div>}
+
       {rows.length>0&&<input placeholder="🔍 Search model, chassis, colour, branch…" style={{...inp,marginBottom:10,padding:"11px 14px",fontSize:13,borderRadius:12}} value={q} onChange={e=>setQ(e.target.value)}/>}
-      {rows.length>0&&q.trim().length<2&&byModel.length>0&&(
-        <div style={{display:"flex",flexWrap:"wrap",gap:6,marginBottom:12}}>
-          {byModel.map(([m,cnt])=>(
-            <div key={m} style={{background:"#ffffff",border:"1px solid #6b8fb5",borderRadius:10,padding:"6px 12px",cursor:"pointer"}} onClick={()=>setQ(m)}>
-              <span style={{fontSize:11,color:"#1e293b",fontWeight:600}}>{m}</span>
-              <span style={{fontSize:10,color:"#34d399",fontWeight:700,marginLeft:6}}>{cnt}</span>
+
+      {/* ── STOCK SEARCH TAB ── */}
+      {tab==="stock"&&<>
+        {q.trim().length<2&&byModel.length>0&&(
+          <div style={{display:"flex",flexWrap:"wrap",gap:6,marginBottom:12}}>
+            {byModel.map(([m,cnt])=>(
+              <div key={m} style={{background:"#ffffff",border:"1px solid #6b8fb5",borderRadius:10,padding:"6px 12px",cursor:"pointer"}} onClick={()=>setQ(m)}>
+                <span style={{fontSize:11,color:"#1e293b",fontWeight:600}}>{m}</span>
+                <span style={{fontSize:10,color:"#34d399",fontWeight:700,marginLeft:6}}>{cnt}</span>
+              </div>
+            ))}
+          </div>
+        )}
+        {q.trim().length>=2&&filtered.length===0&&<div style={{textAlign:"center",padding:20,color:"#94a3b8",fontSize:13}}>No stock found for "{q}"</div>}
+        {filtered.slice(0,50).map((row,i)=><StockCard key={i} row={row} i={i}/>)}
+        {filtered.length>50&&<div style={{textAlign:"center",color:"#94a3b8",fontSize:12,padding:8}}>Showing 50 of {filtered.length} — search to narrow down</div>}
+      </>}
+
+      {/* ── AGEING REPORT TAB ── */}
+      {tab==="ageing"&&<>
+        {/* Summary cards */}
+        {dateKey&&<div style={{display:"grid",gridTemplateColumns:"repeat(4,1fr)",gap:7,marginBottom:14}}>
+          {[["0–30d","Fresh",ageSummary.fresh,"#16a34a","rgba(34,197,94,0.12)"],["31–60d","Moderate",ageSummary.mod,"#ca8a04","rgba(234,179,8,0.12)"],["61–90d","Ageing",ageSummary.ageing,"#ea580c","rgba(249,115,22,0.12)"],["90d+","Old Stock",ageSummary.old,"#dc2626","rgba(239,68,68,0.12)"]].map(([range,label,cnt,col,bg])=>(
+            <div key={range} style={{background:bg,border:"1px solid "+col+"55",borderRadius:10,padding:"8px 6px",textAlign:"center"}}>
+              <div style={{fontSize:18,fontWeight:900,color:col}}>{cnt}</div>
+              <div style={{fontSize:9,fontWeight:700,color:col}}>{label}</div>
+              <div style={{fontSize:9,color:"#94a3b8",marginTop:1}}>{range}</div>
             </div>
           ))}
-        </div>
-      )}
-      {q.trim().length>=2&&filtered.length===0&&<div style={{textAlign:"center",padding:20,color:"#94a3b8",fontSize:13}}>No stock found for "{q}"</div>}
-      {filtered.slice(0,50).map((row,i)=>(
-        <div key={i} style={{background:"#ffffff",border:"1px solid #6b8fb5",borderRadius:12,padding:"10px 14px",marginBottom:7}}>
-          {modelKey&&<div style={{fontWeight:700,fontSize:13,color:"#1e293b",marginBottom:4}}>{row[modelKey]}</div>}
-          <div style={{display:"flex",flexWrap:"wrap",gap:6}}>
-            {chassisKey&&<span style={{fontSize:11,color:"#60a5fa"}}>🔩 {row[chassisKey]}</span>}
-            {engineKey&&<span style={{fontSize:11,color:"#64748b"}}>⚙️ {row[engineKey]}</span>}
-            {colorKey&&<span style={{fontSize:11,color:"#a78bfa"}}>🎨 {row[colorKey]}</span>}
-            {branchKey&&<span style={{fontSize:11,color:"#34d399"}}>📍 {row[branchKey]}</span>}
-          </div>
-        </div>
-      ))}
-      {filtered.length>50&&<div style={{textAlign:"center",color:"#94a3b8",fontSize:12,padding:8}}>Showing 50 of {filtered.length} — search to narrow down</div>}
+        </div>}
+        {!dateKey&&<div style={{background:"rgba(249,115,22,0.08)",border:"1px solid rgba(249,115,22,0.35)",borderRadius:10,padding:"10px 14px",marginBottom:12,fontSize:12,color:"#ea580c"}}>⚠️ No date column found in stock Excel. Add a column like "Invoice Date" or "Inward Date" to see ageing.</div>}
+        {ageingRows.length===0&&<div style={{textAlign:"center",padding:20,color:"#94a3b8",fontSize:13}}>No stock to show</div>}
+        {ageingRows.slice(0,80).map((row,i)=><StockCard key={i} row={row} i={i}/>)}
+        {ageingRows.length>80&&<div style={{textAlign:"center",color:"#94a3b8",fontSize:12,padding:8}}>Showing 80 of {ageingRows.length}</div>}
+      </>}
     </div>
   );
 }
