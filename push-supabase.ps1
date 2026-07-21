@@ -8,7 +8,7 @@ Write-Host "`n=== Pushing update ===" -ForegroundColor Cyan
 }
 
 git add -A
-git commit -m "Add Vault tab to Owner role for Excel export"
+git commit -m "Move Excel export button into Reports tab"
 git push
 
 if ($LASTEXITCODE -eq 0) {

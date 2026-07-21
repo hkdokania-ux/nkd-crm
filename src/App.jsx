@@ -1003,6 +1003,18 @@ function Reports({custs,onImportCust}){
   return(
     <div>
       <div style={{fontWeight:800,fontSize:19,color:"#fff",marginBottom:12}}>Owner Reports</div>
+      <button onClick={()=>{
+        const H=["Bill Date","Customer","Phone","Father Name","Aadhar","PAN","Model","Code","Chassis","Engine","Colour","Delivery Date","MR No","Pay Mode","Financed By","Reg No","Ex-Showroom","Comp Acc","Handling","Insurance","Registration","Accessories","Teflon","Hypo","AMC","TOTAL ON-ROAD","Consumer Offer","Special Disc","Corporate","DEAL PRICE","Booking Amt","Exchange Vehicle","Exchange Value","NET AMT","Loan","BALANCE","PAID","DIFF","Salesman","Branch","Approved By","Enquiry Date"];
+        const rows=allC.filter(c=>c.billed&&c.billing&&c.billing.calc).map(c=>{const b=c.billing,k=b.calc;
+          return[c.billedDate||"",c.name||"",c.phone||"",c.fatherName||"",c.aadhar||"",c.pan||"",c.model||"",c.modelCode||"",b.chassis||"",b.engine||"",b.color||"",b.deliveryDate||"",b.mrNo||"",b.payMode||"",b.financeBank||"Cash",b.registrationNo||"",k.ex,k.ca,k.hdl,k.ins,k.reg,k.acc,k.tef,k.hyp,k.amcV,k.C,k.cof,k.sdis,k.corp,k.E,k.bk,c.exchangeAsked||"",k.exv,k.G,k.loan,k.I,k.paid,k.K,c.salesman||"",c.branch||"",c.approvedBy||"",c.enquiryDate||""];
+        });
+        if(rows.length===0){alert("No billed customers yet");return;}
+        const wb=XLSX.utils.book_new();
+        const ws=XLSX.utils.aoa_to_sheet([H,...rows]);
+        ws["!cols"]=H.map(()=>({wch:16}));
+        XLSX.utils.book_append_sheet(wb,ws,"Chassis Report");
+        XLSX.writeFile(wb,"NKD_Chassis_Report_"+td()+".xlsx");
+      }} style={{width:"100%",background:"rgba(52,211,153,0.1)",border:"1px solid rgba(52,211,153,0.35)",borderRadius:11,padding:"13px",color:"#34d399",fontWeight:700,fontSize:13,cursor:"pointer",marginBottom:14}}>📊 Export Chassis-wise Excel (.xlsx)</button>
       <div style={{display:"flex",gap:5,marginBottom:10,overflowX:"auto"}}>
         {["All",...BRANCHES].map(b=><button key={b} onClick={()=>setBrF(b)} style={{padding:"6px 12px",borderRadius:10,fontSize:11,fontWeight:700,cursor:"pointer",flexShrink:0,background:brF===b?"#1e3a5f":"#1e2436",color:brF===b?"#60a5fa":"#8892a4",border:"none"}}>{b}</button>)}
       </div>
