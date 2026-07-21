@@ -11,7 +11,7 @@ Write-Host "Installing packages..." -ForegroundColor Cyan
 npm install
 
 git add -A
-git commit -m "Booking receipt PDF + WhatsApp share (customer + office)"
+git commit -m "Multi-payment support: split cash/cheque/UPI/RTGS in billing form + PDF receipts"
 git push
 
 if ($LASTEXITCODE -eq 0) {

@@ -77,13 +77,16 @@ function makeMRDoc(cust,b,c,pageOnly){
   y+=2;hline(y);y+=6;
   // Vehicle block
   line("VEHICLE DETAILS",pad,y,10,"bold");y+=7;
-  const vehRows=[["Model",cust.model||""],["Model Code",cust.modelCode||""],["Chassis No",b.chassis||""],["Engine No",b.engine||""],["Colour",b.color||""],["Delivery Date",fd(b.deliveryDate)],["Reg No",b.registrationNo||""],["Finance By",b.financeBank||"Cash"],["Pay Mode",b.payMode||""]];
+  const vehRows=[["Model",cust.model||""],["Model Code",cust.modelCode||""],["Chassis No",b.chassis||""],["Engine No",b.engine||""],["Colour",b.color||""],["Delivery Date",fd(b.deliveryDate)],["Reg No",b.registrationNo||""],["Finance By",b.financeBank||"Cash"]];
   vehRows.forEach(([l,v])=>{if(v&&v!=="—"){row(l,v,y);y+=7;}});
   y+=2;hline(y);y+=6;
   // Amount block
   line("AMOUNT DETAILS",pad,y,10,"bold");y+=7;
-  const amtRows=[["On-Road Price (C)",fc(c.C)],["Consumer Offer",c.cof?"-"+fc(c.cof):""],["Special Discount",c.sdis?"-"+fc(c.sdis):""],["Corporate Scheme",c.corp?"-"+fc(c.corp):""],["DEAL PRICE (E)",fc(c.E)],["Booking Amount",c.bk?"-"+fc(c.bk):""],["Exchange Value",c.exv?"-"+fc(c.exv):""],["Loan / Disbursal",c.loan?"-"+fc(c.loan):""],["Balance from Customer",fc(c.I)],["Amount Received (J)",fc(c.paid)],["BALANCE (K)",fc(Math.max(c.K,0))]];
-  amtRows.forEach(([l,v])=>{if(v&&v!=="₹0"&&v!==""){const isTot=l.startsWith("DEAL")||l.startsWith("BALANCE");if(isTot){doc.setFontSize(11);doc.setFont("helvetica","bold");}else{doc.setFontSize(10);doc.setFont("helvetica","normal");}doc.text(l,pad,y);doc.text(v,W-pad,y,{align:"right"});y+=isTot?8:6;}});
+  const amtRows=[["On-Road Price (C)",fc(c.C)],["Consumer Offer",c.cof?"-"+fc(c.cof):""],["Special Discount",c.sdis?"-"+fc(c.sdis):""],["Corporate Scheme",c.corp?"-"+fc(c.corp):""],["DEAL PRICE (E)",fc(c.E)],["Booking Amount",c.bk?"-"+fc(c.bk):""],["Exchange Value",c.exv?"-"+fc(c.exv):""],["Loan / Disbursal",c.loan?"-"+fc(c.loan):""],["Balance from Customer",fc(c.I)]];
+  amtRows.forEach(([l,v])=>{if(v&&v!=="₹0"&&v!==""){const isTot=l.startsWith("DEAL");if(isTot){doc.setFontSize(11);doc.setFont("helvetica","bold");}else{doc.setFontSize(10);doc.setFont("helvetica","normal");}doc.text(l,pad,y);doc.text(v,W-pad,y,{align:"right"});y+=isTot?8:6;}});
+  const pmts=(b.payments&&b.payments.length?b.payments:[{mode:b.payMode||"",amt:c.paid,ref:""}]).filter(p=>Number(p.amt||0)>0);
+  if(pmts.length>1){doc.setFontSize(10);doc.setFont("helvetica","bold");doc.text("Payment Received",pad,y);doc.text(fc(c.paid),W-pad,y,{align:"right"});y+=7;pmts.forEach(p=>{doc.setFontSize(9);doc.setFont("helvetica","normal");const lbl="  "+p.mode+(p.ref?" ["+p.ref+"]":"");doc.text(lbl,pad,y);doc.text(fc(Number(p.amt)),W-pad,y,{align:"right"});y+=6;});}else{doc.setFontSize(10);doc.setFont("helvetica","normal");const lbl="Amount Received"+(pmts[0]?(" ("+pmts[0].mode+(pmts[0].ref?" — "+pmts[0].ref:"")+")"):"")+(" (J)");doc.text(lbl,pad,y);doc.text(fc(c.paid),W-pad,y,{align:"right"});y+=6;}
+  doc.setFontSize(11);doc.setFont("helvetica","bold");doc.text("BALANCE (K)",pad,y);doc.text(fc(Math.max(c.K,0)),W-pad,y,{align:"right"});y+=8;
   y+=4;hline(y);y+=10;
   // Signature
   line("Customer Signature",pad,y+16,9);line("Authorised Signatory",W-pad,y+16,9,"normal","right");
@@ -104,11 +107,13 @@ function makeCalcDoc(cust,b,c){
   line("Phone: "+cust.phone,pad,y,10);line("MR No: "+(b.mrNo||"—"),W-pad,y,10,"normal","right");y+=7;
   line("Model: "+(cust.model||"")+" ("+cust.modelCode+")",pad,y,10);y+=7;
   line("Chassis: "+(b.chassis||""),pad,y,10);line("Engine: "+(b.engine||""),W-pad,y,10,"normal","right");y+=7;
-  line("Pay Mode: "+(b.payMode||""),pad,y,10);line("Financed By: "+(b.financeBank||"Cash"),W-pad,y,10,"normal","right");y+=7;
+  line("Pay Mode: "+((b.payments&&b.payments.length?b.payments.filter(p=>Number(p.amt||0)>0).map(p=>p.mode+(p.ref?" ("+p.ref+")":"")).join(" + "):b.payMode)||""),pad,y,10);line("Financed By: "+(b.financeBank||"Cash"),W-pad,y,10,"normal","right");y+=7;
   line("Salesman: "+(cust.salesman||""),pad,y,10);line("Branch: "+(cust.branch||""),W-pad,y,10,"normal","right");y+=5;
   hline(y);y+=6;
   line("CALCULATION",pad,y,11,"bold");y+=8;
-  const items=[["(A) Ex-Showroom",fc(c.ex)],["+ Comp. Accessories",fc(c.ca)],["+ Handling",fc(c.hdl)],["+ Insurance (5yr)",fc(c.ins)],["+ Registration",fc(c.reg)],["+ Accessories",fc(c.acc)],["+ Teflon",fc(c.tef)],["+ Hypothication",fc(c.hyp)],["+ AMC",fc(c.amcV)],["TOTAL ON-ROAD (C)",fc(c.C),"bold"],[""," "],["— Consumer Offer",c.cof?fc(c.cof):""],["— Special Discount",c.sdis?fc(c.sdis):""],["— Corporate",c.corp?fc(c.corp):""],["DEAL PRICE (E)",fc(c.E),"bold"],[""," "],["— Booking Amount",c.bk?fc(c.bk):""],["— Exchange Value",c.exv?fc(c.exv):""],["NET (G)",fc(c.G),"bold"],["— Loan / Disbursal",c.loan?fc(c.loan):""],["Balance from Customer (I)",fc(c.I),"bold"],["Payment Received (J)",fc(c.paid)],["DIFFERENCE (K)",fc(c.K),"bold"]];
+  const calcPmts=(b.payments&&b.payments.length?b.payments:[{mode:b.payMode||"",amt:c.paid,ref:""}]).filter(p=>Number(p.amt||0)>0);
+  const payItems=calcPmts.length>1?[["Payment Received (J)",fc(c.paid),"bold"],...calcPmts.map(p=>["  "+p.mode+(p.ref?" ["+p.ref+"]":""),fc(Number(p.amt))])]:[[("Payment Received"+(calcPmts[0]?(" — "+calcPmts[0].mode+(calcPmts[0].ref?" ("+calcPmts[0].ref+")":"")):"")+" (J)"),fc(c.paid)]];
+  const items=[["(A) Ex-Showroom",fc(c.ex)],["+ Comp. Accessories",fc(c.ca)],["+ Handling",fc(c.hdl)],["+ Insurance (5yr)",fc(c.ins)],["+ Registration",fc(c.reg)],["+ Accessories",fc(c.acc)],["+ Teflon",fc(c.tef)],["+ Hypothication",fc(c.hyp)],["+ AMC",fc(c.amcV)],["TOTAL ON-ROAD (C)",fc(c.C),"bold"],[""," "],["— Consumer Offer",c.cof?fc(c.cof):""],["— Special Discount",c.sdis?fc(c.sdis):""],["— Corporate",c.corp?fc(c.corp):""],["DEAL PRICE (E)",fc(c.E),"bold"],[""," "],["— Booking Amount",c.bk?fc(c.bk):""],["— Exchange Value",c.exv?fc(c.exv):""],["NET (G)",fc(c.G),"bold"],["— Loan / Disbursal",c.loan?fc(c.loan):""],["Balance from Customer (I)",fc(c.I),"bold"],...payItems,["DIFFERENCE (K)",fc(c.K),"bold"]];
   items.forEach(([l,v,style])=>{if(l===""){y+=3;return;}if(!v||v==="₹0")return;row(l,v,y,style==="bold");y+=style==="bold"?8:6;});
   y+=4;hline(y);y+=6;
   line("Approved By: "+(cust.approvedBy||"—"),pad,y,10);line("Enquiry Date: "+fd(cust.enquiryDate),W-pad,y,10,"normal","right");
@@ -129,7 +134,11 @@ function makeCombinedDoc(cust,b,c){
   [["Customer",cust.name||""],["Father / Husband",cust.fatherName||""],["Phone",cust.phone||""],["Model",cust.model||""],["Chassis No",b.chassis||""],["Colour",b.color||""]].forEach(([l,v])=>{if(v){row(l,v,y);y+=7;}});
   y+=2;hline(y);y+=6;
   line("AMOUNT DETAILS",pad,y,10,"bold");y+=7;
-  [["Deal Price",fc(c.E)],["Loan Amount",c.loan?fc(c.loan):""],["Balance from Customer",fc(c.I)],["Amount Received",fc(c.paid)],["BALANCE",fc(Math.max(c.K,0))]].forEach(([l,v])=>{if(v&&v!=="₹0"){const isTot=l==="BALANCE"||l==="Amount Received";doc.setFontSize(isTot?11:10);doc.setFont("helvetica",isTot?"bold":"normal");doc.text(l,pad,y);doc.text(v,W-pad,y,{align:"right"});y+=isTot?8:6;}});
+  const cmbPmts=(b.payments&&b.payments.length?b.payments:[{mode:b.payMode||"",amt:c.paid,ref:""}]).filter(p=>Number(p.amt||0)>0);
+  const cmbAmtRows=[["Deal Price",fc(c.E)],["Loan Amount",c.loan?fc(c.loan):""],["Balance from Customer",fc(c.I)]];
+  cmbAmtRows.forEach(([l,v])=>{if(v&&v!=="₹0"){doc.setFontSize(10);doc.setFont("helvetica","normal");doc.text(l,pad,y);doc.text(v,W-pad,y,{align:"right"});y+=6;}});
+  if(cmbPmts.length>1){doc.setFontSize(11);doc.setFont("helvetica","bold");doc.text("Amount Received",pad,y);doc.text(fc(c.paid),W-pad,y,{align:"right"});y+=7;cmbPmts.forEach(p=>{doc.setFontSize(9);doc.setFont("helvetica","normal");doc.text("  "+p.mode+(p.ref?" ["+p.ref+"]":""),pad,y);doc.text(fc(Number(p.amt)),W-pad,y,{align:"right"});y+=6;});}else{doc.setFontSize(11);doc.setFont("helvetica","bold");const lbl="Amount Received"+(cmbPmts[0]?(" ("+cmbPmts[0].mode+(cmbPmts[0].ref?" — "+cmbPmts[0].ref:"")+")"):"")+":";doc.text(lbl,pad,y);doc.text(fc(c.paid),W-pad,y,{align:"right"});y+=8;}
+  doc.setFontSize(11);doc.setFont("helvetica","bold");doc.text("BALANCE",pad,y);doc.text(fc(Math.max(c.K,0)),W-pad,y,{align:"right"});y+=8;
   y+=6;hline(y);y+=10;
   line("Customer Signature",pad,y+16,9);line("Authorised Signatory",W-pad,y+16,9,"normal","right");
   line("______________________",pad,y+14,9);line("______________________",W-pad,y+14,9,"normal","right");
@@ -188,7 +197,9 @@ function calcB(f,r){
   const B=hdl+ins+reg+ca+acc+tef+hyp+amcV,C=ex+B;
   const cof=Number(f.cof||0),sdis=Number(f.sdis||0),corp=Number(f.corp||0),D=cof+sdis+corp,E=C-D;
   const bk=Number(f.bk||0),exv=Number(f.exv||0),F=bk+exv,G=E-F;
-  const loan=Number(f.loan||0),I=G-loan,paid=Number(f.paid||0),K=I-paid;
+  const loan=Number(f.loan||0),I=G-loan;
+  const paid=f.payments&&f.payments.length?(f.payments.reduce((s,p)=>s+Number(p.amt||0),0)):Number(f.paid||0);
+  const K=I-paid;
   return{ex,ca,hdl,ins,reg,acc,tef,hyp,amcV,B,C,cof,sdis,corp,D,E,bk,exv,F,G,loan,I,paid,K};
 }
 
@@ -975,7 +986,7 @@ function BillingModal({cust,onClose,onSave,notify,role,stockData,billedChassis})
   const r=RC[cust.modelCode]||{};
   const isFin=cust.finance==="Finance";
   const eb=cust.billing||{};
-  const [f,setF]=useState({...eb,billName:eb.billName||cust.name,exchName:cust.exchangeName||"",exchModel:cust.exchangeAsked||"",exchRegNo:cust.exchangeRegNo||"",bkDate:(cust.booking&&cust.booking.date)||td(),fatherName:cust.fatherName||"",dob:cust.dob||"",aadhar:cust.aadhar||"",pan:cust.pan||"",nominee:cust.nominee||"",nomineeRel:cust.nomineeRel||"",hdl:eb.hdl!==undefined?eb.hdl:(r.hdl||600),ins:eb.ins!==undefined?eb.ins:(r.ins||0),reg:eb.reg!==undefined?eb.reg:(r.reg||0),acc:0,tef:isFin?500:0,hyp:isFin?500:0,addAmc:false,cof:0,sdis:0,corp:0,bk:(cust.booking&&cust.booking.amt)||0,exv:Number(cust.exchangeOffered)||0,loan:0,paid:0,chassis:"",engine:"",color:"",deliveryDate:td(),financeBank:"",registrationNo:"",insuranceNo:""});
+  const [f,setF]=useState({...eb,billName:eb.billName||cust.name,exchName:cust.exchangeName||"",exchModel:cust.exchangeAsked||"",exchRegNo:cust.exchangeRegNo||"",bkDate:(cust.booking&&cust.booking.date)||td(),fatherName:cust.fatherName||"",dob:cust.dob||"",aadhar:cust.aadhar||"",pan:cust.pan||"",nominee:cust.nominee||"",nomineeRel:cust.nomineeRel||"",hdl:eb.hdl!==undefined?eb.hdl:(r.hdl||600),ins:eb.ins!==undefined?eb.ins:(r.ins||0),reg:eb.reg!==undefined?eb.reg:(r.reg||0),acc:0,tef:isFin?500:0,hyp:isFin?500:0,addAmc:false,cof:0,sdis:0,corp:0,bk:(cust.booking&&cust.booking.amt)||0,exv:Number(cust.exchangeOffered)||0,loan:0,payments:eb.payments&&eb.payments.length?eb.payments:(eb.paid||eb.payMode?[{mode:eb.payMode||"Cash",amt:Number(eb.paid||0),ref:""}]:[{mode:"Cash",amt:0,ref:""}]),chassis:"",engine:"",color:"",deliveryDate:td(),financeBank:"",registrationNo:"",insuranceNo:""});
   const c=calcB(f,r);
   const [chk,setChk]=useState(eb.checklist||{pdi:false,helmet:false,docs:false,service:false});
   const VER_ALL=[["nameV","Customer name verified"],["fatherV","Father name verified"],["aadharV","Aadhar number verified"],["nomineeV","Nominee & relation added"],["chassisV","Chassis number verified"],["engineV","Engine number verified"],["colorV","Colour verified"]];
@@ -1018,7 +1029,8 @@ function BillingModal({cust,onClose,onSave,notify,role,stockData,billedChassis})
     if(f.registrationNo)rows+="<div class=row><span>Reg No</span><span class=v>"+f.registrationNo+"</span></div>";
     rows+="<hr/>";
     if(f.mrNo)rows+="<div class=row><span>MR No.</span><span class=v>"+f.mrNo+"</span></div>";
-    if(f.payMode)rows+="<div class=row><span>Payment Mode</span><span class=v>"+f.payMode+"</span></div>";
+    var activePmts=(f.payments||[]).filter(p=>Number(p.amt||0)>0);
+    if(activePmts.length>1){activePmts.forEach(p=>{rows+="<div class=row><span>"+p.mode+(p.ref?" ("+p.ref+")":"")+"</span><span class=v>"+fc(Number(p.amt))+"</span></div>";});}else if(activePmts.length===1){rows+="<div class=row><span>Payment Mode</span><span class=v>"+activePmts[0].mode+(activePmts[0].ref?" ("+activePmts[0].ref+")":"")+"</span></div>";}
     var CALCROWS="";
     CALCROWS+="<div class=row><span>Ex-Showroom (A)</span><span class=v>"+fc(c.ex)+"</span></div>";
     if(c.ca)CALCROWS+="<div class=row><span>+ Comp.Acc</span><span>"+fc(c.ca)+"</span></div>";
@@ -1058,8 +1070,11 @@ function BillingModal({cust,onClose,onSave,notify,role,stockData,billedChassis})
     if(missing.length>0){alert("⚠️ Cannot submit — verify these first:\n\n"+missing.map(([,l])=>"☐ "+l).join("\n"));return;}
     var html=buildReceipt();
     var CALC_G=window.__CG||"";
-    var calcHtml=html.replace("MONEY RECEIPT","CALCULATION SHEET (INTERNAL)").replace("</h2>","</h2>"+["<div class=row><span>Payment Mode</span><span class=v>"+(f.payMode||"—")+"</span></div>","<div class=row><span>MR No.</span><span class=v>"+(f.mrNo||"—")+"</span></div>","<div class=row><span>Financed By</span><span class=v>"+(f.financeBank||"Cash")+"</span></div>"].join("")+CALC_G);
-    onSave({...f,calc:c,calcHtml:calcHtml,checklist:chk,verify:ver,verifyList:VER_ALL.map(([k,l])=>[k,l]),receiptHtml:html,details:{name:f.billName||cust.name,exchangeName:f.exchName,exchangeAsked:f.exchModel,exchangeRegNo:f.exchRegNo,exchangeOffered:String(f.exv||""),fatherName:f.fatherName,address:cust.address,dob:f.dob,nominee:f.nominee,nomineeRel:f.nomineeRel,aadhar:f.aadhar,pan:f.pan}});
+    var activePmtsS=(f.payments||[]).filter(p=>Number(p.amt||0)>0);
+    var payModeSummary=activePmtsS.map(p=>p.mode+(p.ref?" ("+p.ref+")":"")).join(" + ")||"—";
+    var payModeRows=activePmtsS.map(p=>"<div class=row><span>"+p.mode+(p.ref?" ("+p.ref+")":"")+"</span><span class=v>"+fc(Number(p.amt))+"</span></div>").join("");
+    var calcHtml=html.replace("MONEY RECEIPT","CALCULATION SHEET (INTERNAL)").replace("</h2>","</h2>"+[payModeRows||("<div class=row><span>Payment Mode</span><span class=v>—</span></div>"),"<div class=row><span>MR No.</span><span class=v>"+(f.mrNo||"—")+"</span></div>","<div class=row><span>Financed By</span><span class=v>"+(f.financeBank||"Cash")+"</span></div>"].join("")+CALC_G);
+    onSave({...f,payMode:payModeSummary,paid:c.paid,calc:c,calcHtml:calcHtml,checklist:chk,verify:ver,verifyList:VER_ALL.map(([k,l])=>[k,l]),receiptHtml:html,details:{name:f.billName||cust.name,exchangeName:f.exchName,exchangeAsked:f.exchModel,exchangeRegNo:f.exchRegNo,exchangeOffered:String(f.exv||""),fatherName:f.fatherName,address:cust.address,dob:f.dob,nominee:f.nominee,nomineeRel:f.nomineeRel,aadhar:f.aadhar,pan:f.pan}});
     setBusy(true);
     notify(role==="salesman"?"✅ Sent to Manager for approval — receipt saved in Billing tab":"✅ Billed & approved — receipt saved in Billing tab");
   }
@@ -1103,7 +1118,7 @@ function BillingModal({cust,onClose,onSave,notify,role,stockData,billedChassis})
                 <input list="chassis-list" value={f.chassis||""} onChange={e=>pickChassis(e.target.value)} placeholder="Type or search chassis no…" style={{...inp,fontSize:12,padding:"8px 10px"}}/>
                 {availableForModel.length>0&&<datalist id="chassis-list">{availableForModel.map((row,i)=>{const ch=String(row[sChassisKey]||"");return(<option key={i} value={ch}>{sColorKey&&row[sColorKey]?row[sColorKey]:""}</option>);})}</datalist>}
               </div>
-              {[{k:"engine",l:"Engine No"},{k:"color",l:"Colour"},{k:"deliveryDate",l:"Delivery Date",t:"date"},{k:"financeBank",l:"Finance Bank"},{k:"registrationNo",l:"Reg No"},{k:"insuranceNo",l:"Insurance No"},{k:"mrNo",l:"MR No."},{k:"payMode",l:"Payment Mode (Cash/UPI/Cheque/RTGS)"}].map(({k,l,t})=>(
+              {[{k:"engine",l:"Engine No"},{k:"color",l:"Colour"},{k:"deliveryDate",l:"Delivery Date",t:"date"},{k:"financeBank",l:"Finance Bank"},{k:"registrationNo",l:"Reg No"},{k:"insuranceNo",l:"Insurance No"},{k:"mrNo",l:"MR No."}].map(({k,l,t})=>(
                 <div key={k}><label style={{...lbl,fontSize:10}}>{l}</label><input type={t||"text"} value={f[k]||""} onChange={e=>setF(p=>({...p,[k]:e.target.value}))} style={{...inp,fontSize:12,padding:"8px 10px"}}/></div>
               ))}
             </div>
@@ -1137,7 +1152,21 @@ function BillingModal({cust,onClose,onSave,notify,role,stockData,billedChassis})
             <Tot label="Net G = E − F" val={c.G} col="#60a5fa"/>
             {isFin&&<Inp label="− Loan / Disbursal" k="loan" f={f} setF={setF}/>}
             <div style={{display:"flex",justifyContent:"space-between",padding:"5px 0",borderBottom:"1px solid #131820",fontSize:11}}><span style={{color:"#8892a4"}}>Balance from Customer (I)</span><span style={{color:"#e2e6f0",fontWeight:700}}>{fc(c.I)}</span></div>
-            <Inp label="Payment Received (J)" k="paid" f={f} setF={setF}/>
+            <div style={{borderTop:"1px solid #252d3d",paddingTop:8,marginTop:4}}>
+              <div style={{fontSize:10,color:"#f97316",fontWeight:700,marginBottom:6}}>PAYMENT RECEIVED (J)</div>
+              {(f.payments||[]).map((p,i)=>(
+                <div key={i} style={{display:"flex",gap:6,marginBottom:6,alignItems:"center"}}>
+                  <select value={p.mode} onChange={e=>{const px=[...f.payments];px[i]={...px[i],mode:e.target.value};setF(q=>({...q,payments:px}));}} style={{background:"#1a1f2e",border:"1px solid #252d3d",borderRadius:8,padding:"5px 6px",fontSize:11,color:"#e2e6f0",width:90,flexShrink:0}}>
+                    {["Cash","Cheque","UPI","RTGS","Finance"].map(m=><option key={m}>{m}</option>)}
+                  </select>
+                  <input type="number" value={p.amt||""} placeholder="Amount" onChange={e=>{const px=[...f.payments];px[i]={...px[i],amt:e.target.value};setF(q=>({...q,payments:px}));}} style={{flex:1,background:"#1a1f2e",border:"1px solid #252d3d",borderRadius:8,padding:"5px 8px",fontSize:11,color:"#e2e6f0"}}/>
+                  <input value={p.ref||""} placeholder="Cheque No / Ref" onChange={e=>{const px=[...f.payments];px[i]={...px[i],ref:e.target.value};setF(q=>({...q,payments:px}));}} style={{flex:1,background:"#1a1f2e",border:"1px solid #252d3d",borderRadius:8,padding:"5px 8px",fontSize:11,color:"#e2e6f0"}}/>
+                  {(f.payments||[]).length>1&&<button onClick={()=>setF(q=>({...q,payments:q.payments.filter((_,j)=>j!==i)}))} style={{background:"rgba(239,68,68,0.15)",border:"none",borderRadius:6,padding:"4px 8px",color:"#ef4444",cursor:"pointer",fontSize:13,flexShrink:0}}>✕</button>}
+                </div>
+              ))}
+              <button onClick={()=>setF(q=>({...q,payments:[...(q.payments||[]),{mode:"Cash",amt:"",ref:""}]}))} style={{width:"100%",background:"rgba(96,165,250,0.07)",border:"1px dashed rgba(96,165,250,0.3)",borderRadius:8,padding:"6px",color:"#60a5fa",fontSize:11,cursor:"pointer",marginBottom:4}}>+ Add Payment Entry</button>
+              <div style={{display:"flex",justifyContent:"space-between",padding:"5px 0",fontSize:12,fontWeight:700}}><span style={{color:"#8892a4"}}>Total Received (J)</span><span style={{color:"#e2e6f0"}}>{fc(c.paid)}</span></div>
+            </div>
             <div style={{background:c.K===0?"rgba(34,197,94,0.12)":"rgba(239,68,68,0.12)",border:"1px solid "+(c.K===0?"#22c55e":"#ef4444"),borderRadius:10,padding:"11px 12px",marginTop:6}}>
               <div style={{display:"flex",justifyContent:"space-between",alignItems:"center"}}><span style={{fontWeight:700,fontSize:13,color:"#e2e6f0"}}>Difference K = I − J</span><span style={{fontWeight:900,fontSize:20,color:c.K===0?"#22c55e":"#ef4444"}}>{fc(c.K)}</span></div>
               {c.K===0&&<div style={{fontSize:11,color:"#22c55e",marginTop:2}}>✓ Fully settled</div>}
