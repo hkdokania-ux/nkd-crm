@@ -11,7 +11,7 @@ Write-Host "Installing packages..." -ForegroundColor Cyan
 npm install
 
 git add -A
-git commit -m "Light theme: white bg, card shadows, larger nav tabs, beautiful environment"
+git commit -m "Stronger card borders for better contrast on light background"
 git push
 
 if ($LASTEXITCODE -eq 0) {
