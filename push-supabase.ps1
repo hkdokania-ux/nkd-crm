@@ -8,7 +8,7 @@ Write-Host "`n=== Pushing update ===" -ForegroundColor Cyan
 }
 
 git add -A
-git commit -m "Add chassis-wise Excel export (.xlsx)"
+git commit -m "Fix Supabase upsert + add chassis-wise Excel export"
 git push
 
 if ($LASTEXITCODE -eq 0) {
