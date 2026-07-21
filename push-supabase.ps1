@@ -7,8 +7,11 @@ Write-Host "`n=== Pushing update ===" -ForegroundColor Cyan
     if (Test-Path $f) { Remove-Item $f -Force; Write-Host "Removed $f" -ForegroundColor Yellow }
 }
 
+Write-Host "Installing packages..." -ForegroundColor Cyan
+npm install
+
 git add -A
-git commit -m "Two separate Excel reports: Billing Team + Accounts Team; single Uploads tab"
+git commit -m "Booking receipt PDF + WhatsApp share (customer + office)"
 git push
 
 if ($LASTEXITCODE -eq 0) {

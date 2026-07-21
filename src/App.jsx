@@ -1,5 +1,6 @@
 import{useState,useEffect,useRef,useMemo}from"react";
 import*as XLSX from"xlsx";
+import{jsPDF}from"jspdf";
 import{createClient}from"@supabase/supabase-js";
 const _sb=createClient("https://acwpqkywhxxnxylewtbo.supabase.co","eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFjd3Bxa3l3aHh4bnh5bGV3dGJvIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODQ2MjI0MDYsImV4cCI6MjEwMDE5ODQwNn0.0_d4LLJ1loNklPCVayHk8M2B0rn-r8ut66siLcRbLt8");
 function _dbGet(k){return Promise.resolve(_sb.from("store").select("value").eq("key",k).maybeSingle()).then(({data})=>data?.value??null).catch(()=>null);}
@@ -53,6 +54,127 @@ function dlFile(content,filename,mime){
     document.body.appendChild(a);a.click();document.body.removeChild(a);
     setTimeout(function(){URL.revokeObjectURL(url);},2000);
   }catch(e){alert("Download blocked in this preview — will work in the deployed app/browser");}
+}
+function makeMRDoc(cust,b,c,pageOnly){
+  const doc=new jsPDF({unit:"mm",format:"a4"});
+  const W=210,pad=18;
+  let y=18;
+  function line(text,x,yy,size,style,align){doc.setFontSize(size||11);doc.setFont("helvetica",style||"normal");doc.text(text,x,yy,{align:align||"left"});}
+  function hline(yy){doc.setDrawColor(200);doc.line(pad,yy,W-pad,yy);}
+  function row(l,v,yy){line(l,pad,yy,10,"normal");line(v,W-pad,yy,10,"bold","right");}
+  // Header
+  line("NKD BAJAJ",W/2,y,18,"bold","center");y+=7;
+  line("Authorised Bajaj Dealer | Dhanbad",W/2,y,9,"normal","center");y+=5;
+  hline(y);y+=6;
+  // Title
+  line("MONEY RECEIPT",W/2,y,15,"bold","center");y+=8;
+  hline(y);y+=6;
+  // MR details row
+  line("MR No: "+(b.mrNo||"—"),pad,y,10);line("Date: "+fd(cust.billedDate||td()),W-pad,y,10,"normal","right");y+=10;
+  // Customer block
+  const custRows=[["Customer Name",cust.name||""],["Father / Husband",cust.fatherName||""],["Address",cust.address||""],["Phone",cust.phone||""],["Aadhar",cust.aadhar||""],["PAN",cust.pan||""]];
+  custRows.forEach(([l,v])=>{if(v){row(l,v,y);y+=7;}});
+  y+=2;hline(y);y+=6;
+  // Vehicle block
+  line("VEHICLE DETAILS",pad,y,10,"bold");y+=7;
+  const vehRows=[["Model",cust.model||""],["Model Code",cust.modelCode||""],["Chassis No",b.chassis||""],["Engine No",b.engine||""],["Colour",b.color||""],["Delivery Date",fd(b.deliveryDate)],["Reg No",b.registrationNo||""],["Finance By",b.financeBank||"Cash"],["Pay Mode",b.payMode||""]];
+  vehRows.forEach(([l,v])=>{if(v&&v!=="—"){row(l,v,y);y+=7;}});
+  y+=2;hline(y);y+=6;
+  // Amount block
+  line("AMOUNT DETAILS",pad,y,10,"bold");y+=7;
+  const amtRows=[["On-Road Price (C)",fc(c.C)],["Consumer Offer",c.cof?"-"+fc(c.cof):""],["Special Discount",c.sdis?"-"+fc(c.sdis):""],["Corporate Scheme",c.corp?"-"+fc(c.corp):""],["DEAL PRICE (E)",fc(c.E)],["Booking Amount",c.bk?"-"+fc(c.bk):""],["Exchange Value",c.exv?"-"+fc(c.exv):""],["Loan / Disbursal",c.loan?"-"+fc(c.loan):""],["Balance from Customer",fc(c.I)],["Amount Received (J)",fc(c.paid)],["BALANCE (K)",fc(Math.max(c.K,0))]];
+  amtRows.forEach(([l,v])=>{if(v&&v!=="₹0"&&v!==""){const isTot=l.startsWith("DEAL")||l.startsWith("BALANCE");if(isTot){doc.setFontSize(11);doc.setFont("helvetica","bold");}else{doc.setFontSize(10);doc.setFont("helvetica","normal");}doc.text(l,pad,y);doc.text(v,W-pad,y,{align:"right"});y+=isTot?8:6;}});
+  y+=4;hline(y);y+=10;
+  // Signature
+  line("Customer Signature",pad,y+16,9);line("Authorised Signatory",W-pad,y+16,9,"normal","right");
+  line("______________________",pad,y+14,9);line("______________________",W-pad,y+14,9,"normal","right");
+  line("NKD Bajaj, Dhanbad",W-pad,y+22,8,"italic","right");
+  return doc;
+}
+function makeCalcDoc(cust,b,c){
+  const doc=new jsPDF({unit:"mm",format:"a4"});
+  const W=210,pad=18;
+  let y=18;
+  function line(text,x,yy,size,style,align){doc.setFontSize(size||11);doc.setFont("helvetica",style||"normal");doc.text(text,x,yy,{align:align||"left"});}
+  function hline(yy){doc.setDrawColor(200);doc.line(pad,yy,W-pad,yy);}
+  function row(l,v,yy,bold){doc.setFontSize(bold?11:10);doc.setFont("helvetica",bold?"bold":"normal");doc.text(l,pad,yy);doc.text(v,W-pad,yy,{align:"right"});}
+  line("NKD BAJAJ",W/2,y,18,"bold","center");y+=7;
+  line("CALCULATION SHEET (INTERNAL — OFFICE COPY)",W/2,y,9,"normal","center");y+=5;hline(y);y+=6;
+  line("Customer: "+cust.name,pad,y,10,"bold");line("Date: "+fd(cust.billedDate||td()),W-pad,y,10,"normal","right");y+=7;
+  line("Phone: "+cust.phone,pad,y,10);line("MR No: "+(b.mrNo||"—"),W-pad,y,10,"normal","right");y+=7;
+  line("Model: "+(cust.model||"")+" ("+cust.modelCode+")",pad,y,10);y+=7;
+  line("Chassis: "+(b.chassis||""),pad,y,10);line("Engine: "+(b.engine||""),W-pad,y,10,"normal","right");y+=7;
+  line("Pay Mode: "+(b.payMode||""),pad,y,10);line("Financed By: "+(b.financeBank||"Cash"),W-pad,y,10,"normal","right");y+=7;
+  line("Salesman: "+(cust.salesman||""),pad,y,10);line("Branch: "+(cust.branch||""),W-pad,y,10,"normal","right");y+=5;
+  hline(y);y+=6;
+  line("CALCULATION",pad,y,11,"bold");y+=8;
+  const items=[["(A) Ex-Showroom",fc(c.ex)],["+ Comp. Accessories",fc(c.ca)],["+ Handling",fc(c.hdl)],["+ Insurance (5yr)",fc(c.ins)],["+ Registration",fc(c.reg)],["+ Accessories",fc(c.acc)],["+ Teflon",fc(c.tef)],["+ Hypothication",fc(c.hyp)],["+ AMC",fc(c.amcV)],["TOTAL ON-ROAD (C)",fc(c.C),"bold"],[""," "],["— Consumer Offer",c.cof?fc(c.cof):""],["— Special Discount",c.sdis?fc(c.sdis):""],["— Corporate",c.corp?fc(c.corp):""],["DEAL PRICE (E)",fc(c.E),"bold"],[""," "],["— Booking Amount",c.bk?fc(c.bk):""],["— Exchange Value",c.exv?fc(c.exv):""],["NET (G)",fc(c.G),"bold"],["— Loan / Disbursal",c.loan?fc(c.loan):""],["Balance from Customer (I)",fc(c.I),"bold"],["Payment Received (J)",fc(c.paid)],["DIFFERENCE (K)",fc(c.K),"bold"]];
+  items.forEach(([l,v,style])=>{if(l===""){y+=3;return;}if(!v||v==="₹0")return;row(l,v,y,style==="bold");y+=style==="bold"?8:6;});
+  y+=4;hline(y);y+=6;
+  line("Approved By: "+(cust.approvedBy||"—"),pad,y,10);line("Enquiry Date: "+fd(cust.enquiryDate),W-pad,y,10,"normal","right");
+  return doc;
+}
+function makeCombinedDoc(cust,b,c){
+  const doc=makeCalcDoc(cust,b,c);
+  doc.addPage();
+  // re-draw MR on page 2
+  const W=210,pad=18;let y=18;
+  function line(text,x,yy,size,style,align){doc.setFontSize(size||11);doc.setFont("helvetica",style||"normal");doc.text(text,x,yy,{align:align||"left"});}
+  function hline(yy){doc.setDrawColor(200);doc.line(pad,yy,W-pad,yy);}
+  function row(l,v,yy){line(l,pad,yy,10,"normal");line(v,W-pad,yy,10,"bold","right");}
+  line("NKD BAJAJ",W/2,y,18,"bold","center");y+=7;
+  line("Authorised Bajaj Dealer | Dhanbad",W/2,y,9,"normal","center");y+=5;hline(y);y+=6;
+  line("MONEY RECEIPT",W/2,y,15,"bold","center");y+=8;hline(y);y+=6;
+  line("MR No: "+(b.mrNo||"—"),pad,y,10);line("Date: "+fd(cust.billedDate||td()),W-pad,y,10,"normal","right");y+=10;
+  [["Customer",cust.name||""],["Father / Husband",cust.fatherName||""],["Phone",cust.phone||""],["Model",cust.model||""],["Chassis No",b.chassis||""],["Colour",b.color||""]].forEach(([l,v])=>{if(v){row(l,v,y);y+=7;}});
+  y+=2;hline(y);y+=6;
+  line("AMOUNT DETAILS",pad,y,10,"bold");y+=7;
+  [["Deal Price",fc(c.E)],["Loan Amount",c.loan?fc(c.loan):""],["Balance from Customer",fc(c.I)],["Amount Received",fc(c.paid)],["BALANCE",fc(Math.max(c.K,0))]].forEach(([l,v])=>{if(v&&v!=="₹0"){const isTot=l==="BALANCE"||l==="Amount Received";doc.setFontSize(isTot?11:10);doc.setFont("helvetica",isTot?"bold":"normal");doc.text(l,pad,y);doc.text(v,W-pad,y,{align:"right"});y+=isTot?8:6;}});
+  y+=6;hline(y);y+=10;
+  line("Customer Signature",pad,y+16,9);line("Authorised Signatory",W-pad,y+16,9,"normal","right");
+  line("______________________",pad,y+14,9);line("______________________",W-pad,y+14,9,"normal","right");
+  return doc;
+}
+function makeBookingPdf(cust){
+  const bk=cust.booking||{};
+  const doc=new jsPDF({unit:"mm",format:"a4"});
+  const W=210,pad=18;let y=18;
+  function line(text,x,yy,size,style,align){doc.setFontSize(size||11);doc.setFont("helvetica",style||"normal");doc.text(text,x,yy,{align:align||"left"});}
+  function hline(yy){doc.setDrawColor(200);doc.line(pad,yy,W-pad,yy);}
+  function row(l,v,yy){line(l,pad,yy,10,"normal");line(v,W-pad,yy,10,"bold","right");}
+  line("NKD BAJAJ",W/2,y,18,"bold","center");y+=7;
+  line("Authorised Bajaj Dealer | Dhanbad",W/2,y,9,"normal","center");y+=5;
+  hline(y);y+=6;
+  line("BOOKING RECEIPT",W/2,y,15,"bold","center");y+=8;
+  hline(y);y+=6;
+  line("Date: "+fd(bk.date||td()),W-pad,y,10,"normal","right");y+=10;
+  [["Customer Name",cust.name||""],["Father / Husband",cust.fatherName||""],["Address",cust.address||""],["Phone",cust.phone||""],["Model",cust.model||""],["Colour",cust.colour||""]].forEach(([l,v])=>{if(v){row(l,v,y);y+=7;}});
+  y+=2;hline(y);y+=6;
+  line("BOOKING DETAILS",pad,y,10,"bold");y+=8;
+  [["Booking Amount",fc(bk.amt||0)],["Payment Mode",bk.mode||""],["Booking Date",fd(bk.date)],["Exchange Asked",cust.exchangeAsked||""]].forEach(([l,v])=>{if(v&&v!=="—"){const isTot=l==="Booking Amount";doc.setFontSize(isTot?12:10);doc.setFont("helvetica",isTot?"bold":"normal");doc.text(l,pad,y);doc.text(v,W-pad,y,{align:"right"});y+=isTot?9:7;}});
+  if(bk.note){y+=2;line("Note: "+bk.note,pad,y,9,"italic");y+=6;}
+  y+=4;hline(y);y+=8;
+  line("This is a provisional booking receipt. Final billing subject to document verification.",pad,y,8,"italic");
+  y+=12;
+  line("Customer Signature",pad,y+16,9);line("Authorised Signatory",W-pad,y+16,9,"normal","right");
+  line("______________________",pad,y+14,9);line("______________________",W-pad,y+14,9,"normal","right");
+  line("NKD Bajaj, Dhanbad",W-pad,y+22,8,"italic","right");
+  return doc;
+}
+async function sharePdf(doc,filename,phone,msg){
+  const blob=doc.output("blob");
+  const file=new File([blob],filename,{type:"application/pdf"});
+  try{
+    if(navigator.share&&navigator.canShare&&navigator.canShare({files:[file]})){
+      await navigator.share({files:[file],title:"NKD Bajaj",text:msg||""});
+      return;
+    }
+  }catch(e){if(e&&e.name==="AbortError")return;}
+  // Fallback: download + open WhatsApp
+  const url=URL.createObjectURL(blob);
+  const a=document.createElement("a");a.href=url;a.download=filename;a.click();
+  setTimeout(()=>URL.revokeObjectURL(url),3000);
+  if(phone)setTimeout(()=>window.open("https://wa.me/91"+phone,"_blank"),800);
 }
 function sv(k,v){try{localStorage.setItem(k,JSON.stringify(v));return true;}catch(e){return false;}}
 function ld(k,d){try{const v=localStorage.getItem(k);return v?JSON.parse(v):d;}catch(e){return d;}}
@@ -605,9 +727,10 @@ function Detail({cust,role,onBack,onUpd,onLog,onBill,onBook,notify,initTab,clear
 
       {!cust.billed&&!cust.stopped&&<button onClick={onBook} style={{width:"100%",background:"rgba(139,92,246,0.1)",border:"1px solid rgba(139,92,246,0.35)",borderRadius:12,padding:"11px",color:"#a78bfa",fontWeight:700,fontSize:13,cursor:"pointer",marginBottom:cust.booking&&cust.booking.receiptHtml?8:12}}>📝 {cust.booking?"Booking: "+fc(cust.booking.amt)+" on "+fd(cust.booking.date)+" — Edit":"Take Booking Amount (without documents)"}</button>}
       {!cust.billed&&!cust.stopped&&<button onClick={()=>{const taking=!cust.testRide;onUpd({testRide:taking?{date:td()}:null,remarks:(cust.remarks||"")+(taking?"\n["+td()+"] TEST RIDE taken":"")});if(taking){setTab("docs");notify("🚦 Test ride recorded — upload the license here");}}} style={{width:"100%",background:cust.testRide?"rgba(34,197,94,0.1)":"rgba(96,165,250,0.08)",border:"1px solid "+(cust.testRide?"rgba(34,197,94,0.35)":"rgba(96,165,250,0.3)"),borderRadius:12,padding:"10px",color:cust.testRide?"#22c55e":"#60a5fa",fontWeight:700,fontSize:12,cursor:"pointer",marginBottom:8}}>🏍️ Test Ride {cust.testRide?"✓ Done "+fd(cust.testRide.date):"— Tap when taken (upload license in Docs)"}</button>}
-      {!cust.billed&&cust.booking&&cust.booking.receiptHtml&&<div style={{display:"flex",gap:8,marginBottom:12}}>
-        <button onClick={()=>dlFile(cust.booking.receiptHtml,"BookingReceipt_"+cust.name.replace(/ /g,"_")+".html")} style={{flex:1,background:"#1e3a5f",border:"none",borderRadius:10,padding:10,color:"#60a5fa",fontWeight:700,fontSize:11,cursor:"pointer"}}>⬇️ Booking Receipt (→PDF)</button>
-        <button onClick={()=>{var num=ld("nkd_office_wa","");if(!num){num=prompt("Enter office WhatsApp number (10 digits):");if(!num)return;sv("nkd_office_wa",num);_dbSet("office_wa",num);}window.open("https://wa.me/91"+num+"?text="+encodeURIComponent("NKD BAJAJ - BOOKING RECORD\nDate: "+cust.booking.date+"\nCustomer: "+cust.name+"\nPhone: "+cust.phone+"\nModel: "+(cust.model||"")+" ("+(cust.modelCode||"")+")\nSalesman: "+cust.salesman+"\nBooking Amount: "+fc(cust.booking.amt)+" ("+cust.booking.mode+")"+(cust.booking.note?"\nNote: "+cust.booking.note:"")),"_blank");}} style={{flex:1,background:"rgba(37,211,102,0.08)",border:"1px solid rgba(37,211,102,0.3)",borderRadius:10,padding:10,color:"#25D366",fontWeight:700,fontSize:11,cursor:"pointer"}}>📲 Booking → Office</button>
+      {!cust.billed&&cust.booking&&<div style={{display:"flex",flexDirection:"column",gap:8,marginBottom:12}}>
+        <button onClick={()=>{const doc=makeBookingPdf(cust);sharePdf(doc,"BookingReceipt_"+cust.name.replace(/ /g,"_")+"_"+td()+".pdf",cust.phone,"Please find your Booking Receipt from NKD Bajaj, Dhanbad.");}} style={{width:"100%",background:"rgba(37,211,102,0.1)",border:"1px solid rgba(37,211,102,0.35)",borderRadius:12,padding:13,color:"#22c55e",fontWeight:700,fontSize:13,cursor:"pointer"}}>📲 Send Booking Receipt PDF → Customer (WhatsApp)</button>
+        <button onClick={()=>{var num=ld("nkd_office_wa","");if(!num){num=prompt("Enter office WhatsApp number (10 digits):");if(!num)return;sv("nkd_office_wa",num);_dbSet("office_wa",num);}const doc=makeBookingPdf(cust);sharePdf(doc,"BookingRecord_"+cust.name.replace(/ /g,"_")+"_"+td()+".pdf",num,"Booking Record for "+cust.name+" — "+fc(cust.booking.amt)+" ("+cust.booking.mode+")");}} style={{width:"100%",background:"rgba(139,92,246,0.1)",border:"1px solid rgba(139,92,246,0.35)",borderRadius:12,padding:11,color:"#a78bfa",fontWeight:700,fontSize:12,cursor:"pointer"}}>🏢 Send Booking Record PDF → Office (WhatsApp)</button>
+        <div style={{fontSize:10,color:"#5a6478"}}>On mobile — tapping Send opens WhatsApp share sheet directly. On desktop — PDF downloads then WhatsApp opens.</div>
       </div>}
       {cust.managerApproval==="rejected"&&!cust.billed&&<div style={{background:"rgba(239,68,68,0.12)",border:"1px solid rgba(239,68,68,0.5)",borderRadius:12,padding:"11px 13px",marginBottom:12}}>
         <div style={{fontSize:12,color:"#ef4444",fontWeight:800,marginBottom:3}}>❌ BILLING REJECTED BY MANAGER</div>
@@ -1067,14 +1190,14 @@ function BillingView({billing:b,cust}){
   }
   return(
     <div>
-      {b.receiptHtml&&<div style={{marginBottom:12}}>
-        <button onClick={()=>setShowR(b.receiptHtml)} style={{width:"100%",background:"rgba(96,165,250,0.1)",border:"1px solid rgba(96,165,250,0.35)",borderRadius:12,padding:12,color:"#60a5fa",fontWeight:700,fontSize:13,cursor:"pointer",marginBottom:8}}>🧾 Money Receipt</button>
-        <button onClick={()=>b.calcHtml?setShowR(b.calcHtml):alert("No calc sheet saved (older billing)")} style={{width:"100%",background:"rgba(245,158,11,0.1)",border:"1px solid rgba(245,158,11,0.35)",borderRadius:12,padding:12,color:"#f59e0b",fontWeight:700,fontSize:13,cursor:"pointer",marginBottom:8}}>📊 Full Calculation Sheet (internal)</button>
+      {<div style={{marginBottom:12}}>
+        <button onClick={()=>{const doc=makeMRDoc(cust,b,c);sharePdf(doc,"MR_"+cust.name.replace(/ /g,"_")+"_"+td()+".pdf",cust.phone,"Please find your Money Receipt from NKD Bajaj, Dhanbad.");}} style={{width:"100%",background:"rgba(37,211,102,0.1)",border:"1px solid rgba(37,211,102,0.35)",borderRadius:12,padding:13,color:"#22c55e",fontWeight:700,fontSize:13,cursor:"pointer",marginBottom:8}}>📲 Send Money Receipt PDF → Customer (WhatsApp)</button>
+        <button onClick={()=>{const doc=makeCombinedDoc(cust,b,c);var num=ld("nkd_office_wa","");if(!num){num=prompt("Enter office WhatsApp number (10 digits):");if(!num)return;sv("nkd_office_wa",num);_dbSet("office_wa",num);}sharePdf(doc,"CalcSheet_MR_"+cust.name.replace(/ /g,"_")+"_"+td()+".pdf",num,"Calculation Sheet + Money Receipt for "+cust.name+" ("+cust.model+")");}} style={{width:"100%",background:"rgba(249,115,22,0.1)",border:"1px solid rgba(249,115,22,0.35)",borderRadius:12,padding:13,color:"#f97316",fontWeight:700,fontSize:13,cursor:"pointer",marginBottom:8}}>🏢 Send Calc Sheet + MR (2 pages) PDF → Office</button>
         <div style={{display:"flex",gap:8}}>
-          <a href={"https://wa.me/91"+cust.phone+"?text="+custText} target="_blank" rel="noreferrer" style={{flex:1,background:"rgba(37,211,102,0.08)",border:"1px solid rgba(37,211,102,0.3)",borderRadius:12,padding:11,color:"#25D366",fontWeight:700,fontSize:11,textAlign:"center",textDecoration:"none"}}>📲 MR → Customer</a>
-          <button onClick={sendOffice} style={{flex:1,background:"rgba(37,211,102,0.08)",border:"1px solid rgba(37,211,102,0.3)",borderRadius:12,padding:11,color:"#25D366",fontWeight:700,fontSize:11,cursor:"pointer"}}>🏢 Calc Sheet → Office No.</button>
+          <button onClick={()=>setShowR(b.receiptHtml)} style={{flex:1,background:"rgba(96,165,250,0.08)",border:"1px solid rgba(96,165,250,0.25)",borderRadius:10,padding:10,color:"#60a5fa",fontWeight:700,fontSize:11,cursor:"pointer"}}>🧾 Preview MR</button>
+          <button onClick={()=>b.calcHtml&&setShowR(b.calcHtml)} style={{flex:1,background:"rgba(245,158,11,0.08)",border:"1px solid rgba(245,158,11,0.25)",borderRadius:10,padding:10,color:"#f59e0b",fontWeight:700,fontSize:11,cursor:"pointer"}}>📊 Preview Calc</button>
         </div>
-        <div style={{fontSize:10,color:"#5a6478",marginTop:6,lineHeight:1.5}}>MR (Money Receipt) goes to customer, full calc sheet goes to office only. For PDF: tap ⬇️ Download, open the file, print → save as PDF, then attach it in the WhatsApp chat that opens. (WhatsApp does not allow apps to auto-attach files.)</div>
+        <div style={{fontSize:10,color:"#5a6478",marginTop:6}}>On mobile — tapping Send opens WhatsApp share sheet directly. On desktop — PDF downloads then WhatsApp opens.</div>
       </div>}
       {showR&&(
         <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.92)",zIndex:200,display:"flex",flexDirection:"column",padding:12}}>
@@ -1202,34 +1325,41 @@ function Revival({items,onRevive}){
 function Reports({custs,onImportCust}){
   const allC=custs;
   const [brF,setBrF]=useState("All");
+  const [repMonth,setRepMonth]=useState(new Date().toISOString().slice(0,7));
   custs=brF==="All"?custs:custs.filter(c=>(c.branch||SM_BRANCH[c.salesman])===brF);
   const billed=custs.filter(c=>c.billed);
+  const billedForMonth=allC.filter(c=>c.billed&&(c.billedDate||"").startsWith(repMonth));
   const conv=custs.length>0?((billed.length/custs.length)*100).toFixed(1):0;
   const cats={};custs.forEach(c=>{if(c.cat)cats[c.cat]=(cats[c.cat]||0)+1;});
   return(
     <div>
       <div style={{fontWeight:800,fontSize:19,color:"#fff",marginBottom:12}}>Owner Reports</div>
+      <div style={{background:"#12161f",border:"1px solid #1e2436",borderRadius:13,padding:"12px 14px",marginBottom:12}}>
+        <div style={{fontSize:11,color:"#f97316",fontWeight:700,marginBottom:6}}>📅 SELECT MONTH FOR REPORTS</div>
+        <input type="month" value={repMonth} onChange={e=>setRepMonth(e.target.value)} style={{...inp,fontSize:14,padding:"10px 12px"}}/>
+        <div style={{fontSize:11,color:"#5a6478",marginTop:6}}>{billedForMonth.length} billed customers in {repMonth}</div>
+      </div>
       <div style={{display:"flex",flexDirection:"column",gap:8,marginBottom:14}}>
         <button onClick={()=>{
-          const H=["Bill Date","Customer","Phone","Address","Father Name","Aadhar","PAN","Model","Code","Chassis","Engine","Colour","Delivery Date","MR No","Pay Mode","Financed By","Reg No","Salesman","Branch"];
-          const rows=allC.filter(c=>c.billed&&c.billing).map(c=>{const b=c.billing;
-            return[c.billedDate||"",c.name||"",c.phone||"",c.address||"",c.fatherName||"",c.aadhar||"",c.pan||"",c.model||"",c.modelCode||"",b.chassis||"",b.engine||"",b.color||"",b.deliveryDate||"",b.mrNo||"",b.payMode||"",b.financeBank||"Cash",b.registrationNo||"",c.salesman||"",c.branch||""];
+          const H=["Bill Date","Customer","Phone","Address","Father Name","Aadhar","PAN","Model","Code","Chassis","Engine","Colour","Delivery Date","MR No","Pay Mode","Financed By","Reg No","Salesman","Branch","Last Modified"];
+          const rows=billedForMonth.filter(c=>c.billing).map(c=>{const b=c.billing;
+            return[c.billedDate||"",c.name||"",c.phone||"",c.address||"",c.fatherName||"",c.aadhar||"",c.pan||"",c.model||"",c.modelCode||"",b.chassis||"",b.engine||"",b.color||"",b.deliveryDate||"",b.mrNo||"",b.payMode||"",b.financeBank||"Cash",b.registrationNo||"",c.salesman||"",c.branch||"",c.updatedAt||c.billedDate||""];
           });
-          if(rows.length===0){alert("No billed customers yet");return;}
+          if(rows.length===0){alert("No billed customers for "+repMonth);return;}
           const wb=XLSX.utils.book_new();const ws=XLSX.utils.aoa_to_sheet([H,...rows]);
           ws["!cols"]=H.map(()=>({wch:16}));XLSX.utils.book_append_sheet(wb,ws,"Billing Team");
-          XLSX.writeFile(wb,"NKD_BillingTeam_"+td()+".xlsx");
-        }} style={{width:"100%",background:"rgba(52,211,153,0.1)",border:"1px solid rgba(52,211,153,0.35)",borderRadius:11,padding:"13px",color:"#34d399",fontWeight:700,fontSize:13,cursor:"pointer"}}>🧾 Export Billing Team Report</button>
+          XLSX.writeFile(wb,"NKD_BillingTeam_"+repMonth+".xlsx");
+        }} style={{width:"100%",background:"rgba(52,211,153,0.1)",border:"1px solid rgba(52,211,153,0.35)",borderRadius:11,padding:"13px",color:"#34d399",fontWeight:700,fontSize:13,cursor:"pointer"}}>🧾 Export Billing Team Report — {repMonth}</button>
         <button onClick={()=>{
-          const H=["Bill Date","Customer","Phone","Address","Father Name","Model","Code","Chassis","Engine","Delivery Date","MR No","Pay Mode","Financed By","Reg No","Ex-Showroom","Comp Acc","Handling","Insurance","Registration","Accessories","Teflon","Hypo","AMC","TOTAL ON-ROAD","Consumer Offer","Special Disc","Corporate","DEAL PRICE","Booking Amt","Exchange Vehicle","Exchange Value","NET AMT","Loan","BALANCE","PAID","DIFF","Salesman","Branch","Approved By","Enquiry Date"];
-          const rows=allC.filter(c=>c.billed&&c.billing&&c.billing.calc).map(c=>{const b=c.billing,k=b.calc;
-            return[c.billedDate||"",c.name||"",c.phone||"",c.address||"",c.fatherName||"",c.model||"",c.modelCode||"",b.chassis||"",b.engine||"",b.deliveryDate||"",b.mrNo||"",b.payMode||"",b.financeBank||"Cash",b.registrationNo||"",k.ex,k.ca,k.hdl,k.ins,k.reg,k.acc,k.tef,k.hyp,k.amcV,k.C,k.cof,k.sdis,k.corp,k.E,k.bk,c.exchangeAsked||"",k.exv,k.G,k.loan,k.I,k.paid,k.K,c.salesman||"",c.branch||"",c.approvedBy||"",c.enquiryDate||""];
+          const H=["Bill Date","Customer","Phone","Address","Father Name","Model","Code","Chassis","Engine","Delivery Date","MR No","Pay Mode","Financed By","Reg No","Ex-Showroom","Comp Acc","Handling","Insurance","Registration","Accessories","Teflon","Hypo","AMC","TOTAL ON-ROAD","Consumer Offer","Special Disc","Corporate","DEAL PRICE","Booking Amt","Exchange Vehicle","Exchange Value","NET AMT","Loan","BALANCE","PAID","DIFF","Salesman","Branch","Approved By","Enquiry Date","Last Modified"];
+          const rows=billedForMonth.filter(c=>c.billing&&c.billing.calc).map(c=>{const b=c.billing,k=b.calc;
+            return[c.billedDate||"",c.name||"",c.phone||"",c.address||"",c.fatherName||"",c.model||"",c.modelCode||"",b.chassis||"",b.engine||"",b.deliveryDate||"",b.mrNo||"",b.payMode||"",b.financeBank||"Cash",b.registrationNo||"",k.ex,k.ca,k.hdl,k.ins,k.reg,k.acc,k.tef,k.hyp,k.amcV,k.C,k.cof,k.sdis,k.corp,k.E,k.bk,c.exchangeAsked||"",k.exv,k.G,k.loan,k.I,k.paid,k.K,c.salesman||"",c.branch||"",c.approvedBy||"",c.enquiryDate||"",c.updatedAt||c.billedDate||""];
           });
-          if(rows.length===0){alert("No billed customers yet");return;}
+          if(rows.length===0){alert("No billed customers for "+repMonth);return;}
           const wb=XLSX.utils.book_new();const ws=XLSX.utils.aoa_to_sheet([H,...rows]);
           ws["!cols"]=H.map(()=>({wch:16}));XLSX.utils.book_append_sheet(wb,ws,"Accounts Team");
-          XLSX.writeFile(wb,"NKD_AccountsTeam_"+td()+".xlsx");
-        }} style={{width:"100%",background:"rgba(96,165,250,0.1)",border:"1px solid rgba(96,165,250,0.35)",borderRadius:11,padding:"13px",color:"#60a5fa",fontWeight:700,fontSize:13,cursor:"pointer"}}>💰 Export Accounts Team Report</button>
+          XLSX.writeFile(wb,"NKD_AccountsTeam_"+repMonth+".xlsx");
+        }} style={{width:"100%",background:"rgba(96,165,250,0.1)",border:"1px solid rgba(96,165,250,0.35)",borderRadius:11,padding:"13px",color:"#60a5fa",fontWeight:700,fontSize:13,cursor:"pointer"}}>💰 Export Accounts Team Report — {repMonth}</button>
       </div>
       <div style={{display:"flex",gap:5,marginBottom:10,overflowX:"auto"}}>
         {["All",...BRANCHES].map(b=><button key={b} onClick={()=>setBrF(b)} style={{padding:"6px 12px",borderRadius:10,fontSize:11,fontWeight:700,cursor:"pointer",flexShrink:0,background:brF===b?"#1e3a5f":"#1e2436",color:brF===b?"#60a5fa":"#8892a4",border:"none"}}>{b}</button>)}
@@ -1319,6 +1449,8 @@ function Reports({custs,onImportCust}){
 function DocVault({custs,onImport}){
   const [open,setOpen]=useState(null);
   const [flt,setFlt]=useState("approved");
+  const [repMonth,setRepMonth]=useState(new Date().toISOString().slice(0,7));
+  const billedForMonth=custs.filter(c=>c.billed&&(c.billedDate||"").startsWith(repMonth));
   const withDocs=custs.filter(c=>{
     const hasDocs=c.photos&&Object.keys(c.photos).filter(k=>c.photos[k]).length>0;
     if(flt==="approved")return hasDocs&&c.billed&&c.managerApproval==="approved";
@@ -1343,27 +1475,32 @@ function DocVault({custs,onImport}){
       <div style={{display:"flex",gap:6,marginBottom:10}}>
         {[["approved","✅ Approved"],["billed","Billed"],["all","All"]].map(([k,l])=><button key={k} onClick={()=>setFlt(k)} style={{flex:1,padding:"7px",borderRadius:10,fontSize:11,fontWeight:700,cursor:"pointer",background:flt===k?"#1e3a5f":"#1e2436",color:flt===k?"#60a5fa":"#8892a4",border:"1px solid "+(flt===k?"#3b82f6":"#252d3d")}}>{l}</button>)}
       </div>
+      <div style={{background:"#12161f",border:"1px solid #1e2436",borderRadius:13,padding:"12px 14px",marginBottom:12}}>
+        <div style={{fontSize:11,color:"#f97316",fontWeight:700,marginBottom:6}}>📅 SELECT MONTH FOR REPORTS</div>
+        <input type="month" value={repMonth} onChange={e=>setRepMonth(e.target.value)} style={{...inp,fontSize:14,padding:"10px 12px"}}/>
+        <div style={{fontSize:11,color:"#5a6478",marginTop:6}}>{billedForMonth.length} billed customers in {repMonth}</div>
+      </div>
       <div style={{display:"flex",flexDirection:"column",gap:7,marginBottom:14}}>
         <button onClick={()=>{
-          const H=["Bill Date","Customer","Phone","Address","Father Name","Aadhar","PAN","Model","Code","Chassis","Engine","Colour","Delivery Date","MR No","Pay Mode","Financed By","Reg No","Salesman","Branch"];
-          const rows=custs.filter(c=>c.billed&&c.billing).map(c=>{const b=c.billing;
-            return[c.billedDate||"",c.name||"",c.phone||"",c.address||"",c.fatherName||"",c.aadhar||"",c.pan||"",c.model||"",c.modelCode||"",b.chassis||"",b.engine||"",b.color||"",b.deliveryDate||"",b.mrNo||"",b.payMode||"",b.financeBank||"Cash",b.registrationNo||"",c.salesman||"",c.branch||""];
+          const H=["Bill Date","Customer","Phone","Address","Father Name","Aadhar","PAN","Model","Code","Chassis","Engine","Colour","Delivery Date","MR No","Pay Mode","Financed By","Reg No","Salesman","Branch","Last Modified"];
+          const rows=billedForMonth.filter(c=>c.billing).map(c=>{const b=c.billing;
+            return[c.billedDate||"",c.name||"",c.phone||"",c.address||"",c.fatherName||"",c.aadhar||"",c.pan||"",c.model||"",c.modelCode||"",b.chassis||"",b.engine||"",b.color||"",b.deliveryDate||"",b.mrNo||"",b.payMode||"",b.financeBank||"Cash",b.registrationNo||"",c.salesman||"",c.branch||"",c.updatedAt||c.billedDate||""];
           });
-          if(rows.length===0){alert("No billed customers yet");return;}
+          if(rows.length===0){alert("No billed customers for "+repMonth);return;}
           const wb=XLSX.utils.book_new();const ws=XLSX.utils.aoa_to_sheet([H,...rows]);
           ws["!cols"]=H.map(()=>({wch:16}));XLSX.utils.book_append_sheet(wb,ws,"Billing Team");
-          XLSX.writeFile(wb,"NKD_BillingTeam_"+td()+".xlsx");
-        }} style={{width:"100%",background:"rgba(52,211,153,0.1)",border:"1px solid rgba(52,211,153,0.35)",borderRadius:11,padding:"11px",color:"#34d399",fontWeight:700,fontSize:12,cursor:"pointer"}}>🧾 Export Billing Team Report</button>
+          XLSX.writeFile(wb,"NKD_BillingTeam_"+repMonth+".xlsx");
+        }} style={{width:"100%",background:"rgba(52,211,153,0.1)",border:"1px solid rgba(52,211,153,0.35)",borderRadius:11,padding:"11px",color:"#34d399",fontWeight:700,fontSize:12,cursor:"pointer"}}>🧾 Billing Team — {repMonth}</button>
         <button onClick={()=>{
-          const H=["Bill Date","Customer","Phone","Address","Father Name","Model","Code","Chassis","Engine","Delivery Date","MR No","Pay Mode","Financed By","Reg No","Ex-Showroom","Comp Acc","Handling","Insurance","Registration","Accessories","Teflon","Hypo","AMC","TOTAL ON-ROAD","Consumer Offer","Special Disc","Corporate","DEAL PRICE","Booking Amt","Exchange Vehicle","Exchange Value","NET AMT","Loan","BALANCE","PAID","DIFF","Salesman","Branch","Approved By","Enquiry Date"];
-          const rows=custs.filter(c=>c.billed&&c.billing&&c.billing.calc).map(c=>{const b=c.billing,k=b.calc;
-            return[c.billedDate||"",c.name||"",c.phone||"",c.address||"",c.fatherName||"",c.model||"",c.modelCode||"",b.chassis||"",b.engine||"",b.deliveryDate||"",b.mrNo||"",b.payMode||"",b.financeBank||"Cash",b.registrationNo||"",k.ex,k.ca,k.hdl,k.ins,k.reg,k.acc,k.tef,k.hyp,k.amcV,k.C,k.cof,k.sdis,k.corp,k.E,k.bk,c.exchangeAsked||"",k.exv,k.G,k.loan,k.I,k.paid,k.K,c.salesman||"",c.branch||"",c.approvedBy||"",c.enquiryDate||""];
+          const H=["Bill Date","Customer","Phone","Address","Father Name","Model","Code","Chassis","Engine","Delivery Date","MR No","Pay Mode","Financed By","Reg No","Ex-Showroom","Comp Acc","Handling","Insurance","Registration","Accessories","Teflon","Hypo","AMC","TOTAL ON-ROAD","Consumer Offer","Special Disc","Corporate","DEAL PRICE","Booking Amt","Exchange Vehicle","Exchange Value","NET AMT","Loan","BALANCE","PAID","DIFF","Salesman","Branch","Approved By","Enquiry Date","Last Modified"];
+          const rows=billedForMonth.filter(c=>c.billing&&c.billing.calc).map(c=>{const b=c.billing,k=b.calc;
+            return[c.billedDate||"",c.name||"",c.phone||"",c.address||"",c.fatherName||"",c.model||"",c.modelCode||"",b.chassis||"",b.engine||"",b.deliveryDate||"",b.mrNo||"",b.payMode||"",b.financeBank||"Cash",b.registrationNo||"",k.ex,k.ca,k.hdl,k.ins,k.reg,k.acc,k.tef,k.hyp,k.amcV,k.C,k.cof,k.sdis,k.corp,k.E,k.bk,c.exchangeAsked||"",k.exv,k.G,k.loan,k.I,k.paid,k.K,c.salesman||"",c.branch||"",c.approvedBy||"",c.enquiryDate||"",c.updatedAt||c.billedDate||""];
           });
-          if(rows.length===0){alert("No billed customers yet");return;}
+          if(rows.length===0){alert("No billed customers for "+repMonth);return;}
           const wb=XLSX.utils.book_new();const ws=XLSX.utils.aoa_to_sheet([H,...rows]);
           ws["!cols"]=H.map(()=>({wch:16}));XLSX.utils.book_append_sheet(wb,ws,"Accounts Team");
-          XLSX.writeFile(wb,"NKD_AccountsTeam_"+td()+".xlsx");
-        }} style={{width:"100%",background:"rgba(96,165,250,0.1)",border:"1px solid rgba(96,165,250,0.35)",borderRadius:11,padding:"11px",color:"#60a5fa",fontWeight:700,fontSize:12,cursor:"pointer"}}>💰 Export Accounts Team Report</button>
+          XLSX.writeFile(wb,"NKD_AccountsTeam_"+repMonth+".xlsx");
+        }} style={{width:"100%",background:"rgba(96,165,250,0.1)",border:"1px solid rgba(96,165,250,0.35)",borderRadius:11,padding:"11px",color:"#60a5fa",fontWeight:700,fontSize:12,cursor:"pointer"}}>💰 Accounts Team — {repMonth}</button>
         <div style={{display:"flex",gap:7}}>
           <button onClick={exportDB} style={{flex:1,background:"rgba(52,211,153,0.1)",border:"1px solid rgba(52,211,153,0.35)",borderRadius:11,padding:"11px",color:"#34d399",fontWeight:700,fontSize:12,cursor:"pointer"}}>⬇️ Export Full Database</button>
           <label style={{flex:1,background:"rgba(139,92,246,0.1)",border:"1px solid rgba(139,92,246,0.35)",borderRadius:11,padding:"11px",color:"#a78bfa",fontWeight:700,fontSize:12,cursor:"pointer",textAlign:"center"}}>⬆️ Import Database<input type="file" accept=".json" style={{display:"none"}} onChange={e=>e.target.files[0]&&importDB(e.target.files[0])}/></label>
