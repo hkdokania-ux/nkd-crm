@@ -18,6 +18,15 @@ function td(){return new Date().toISOString().split("T")[0];}
 function aD(d,n){const x=new Date(d);x.setDate(x.getDate()+n);return x.toISOString().split("T")[0];}
 function fd(d){if(!d)return"—";return new Date(d).toLocaleDateString("en-IN",{day:"2-digit",month:"short",year:"numeric"});}
 function fc(n){return"₹"+(Number(n)||0).toLocaleString("en-IN");}
+const DRIVE_UPLOAD_URL="https://script.google.com/macros/s/AKfycbwGLd6gOTEvH7vuc-bXHlL9ywrDJXah7zUySquhg_JCv4NDwPzOuHKz9aaV4Ie8QhA/exec";
+function uploadToDrive(fileName,dataUrl,mimeType,customerName,docType,cb){
+  try{
+    fetch(DRIVE_UPLOAD_URL,{method:"POST",body:JSON.stringify({fileName,fileData:dataUrl,mimeType:mimeType||"image/jpeg",customerName,docType})})
+      .then(r=>r.json())
+      .then(d=>{if(d&&d.success&&d.id){cb("https://drive.google.com/uc?id="+d.id+"&export=view",d.url);}else{cb(dataUrl,null);}})
+      .catch(()=>cb(dataUrl,null));
+  }catch(e){cb(dataUrl,null);}
+}
 function compressImg(file,cb){
   try{
   var rd=new FileReader();
@@ -401,7 +410,12 @@ function Detail({cust,role,onBack,onUpd,onLog,onBill,onBook,notify,initTab,clear
 
   function saveEdit(){onUpd(f);setEdit(false);notify("Saved ✓");}
   function pickM(code){const m=RC[code];setF(p=>({...p,modelCode:code,model:m?m.n:"",cat:m?m.cat:""}));}
-  function uploadPhoto(key,file){compressImg(file,function(dataUrl){onUpd({photos:{...(cust.photos||{}),[key]:dataUrl}});notify("Photo saved ✓");});}
+  function uploadPhoto(key,file){compressImg(file,function(dataUrl){
+    onUpd({photos:{...(cust.photos||{}),[key]:dataUrl}});notify("Uploading to Drive…");
+    uploadToDrive(key+"_"+Date.now()+".jpg",dataUrl,file.type||"image/jpeg",cust.name,key,function(url){
+      onUpd({photos:{...(cust.photos||{}),[key]:url}});notify("✅ Saved to Google Drive");
+    });
+  });}
 
   const tabs=["info","history","followup","docs",...(cust.billed?["billing"]:[])];
 

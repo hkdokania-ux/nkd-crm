@@ -8,7 +8,7 @@ Write-Host "`n=== Pushing update ===" -ForegroundColor Cyan
 }
 
 git add -A
-git commit -m "Move Excel export button into Reports tab"
+git commit -m "Wire Google Drive upload for customer photos/docs"
 git push
 
 if ($LASTEXITCODE -eq 0) {
