@@ -1,15 +1,14 @@
 Set-Location $PSScriptRoot
 
-Write-Host "`n=== Pushing Supabase migration ===" -ForegroundColor Cyan
+Write-Host "`n=== Pushing update ===" -ForegroundColor Cyan
 
-# Remove stale git lock files
 @("index.lock","HEAD.lock") | ForEach-Object {
     $f = ".git\$_"
     if (Test-Path $f) { Remove-Item $f -Force; Write-Host "Removed $f" -ForegroundColor Yellow }
 }
 
 git add -A
-git commit -m "Migrate from Firebase to Supabase for cloud storage"
+git commit -m "Add chassis-wise Excel export (.xlsx)"
 git push
 
 if ($LASTEXITCODE -eq 0) {

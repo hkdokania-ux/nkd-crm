@@ -1,4 +1,5 @@
 import{useState,useEffect,useRef,useMemo}from"react";
+import*as XLSX from"xlsx";
 import{createClient}from"@supabase/supabase-js";
 const _sb=createClient("https://acwpqkywhxxnxylewtbo.supabase.co","eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFjd3Bxa3l3aHh4bnh5bGV3dGJvIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODQ2MjI0MDYsImV4cCI6MjEwMDE5ODQwNn0.0_d4LLJ1loNklPCVayHk8M2B0rn-r8ut66siLcRbLt8");
 function _dbGet(k){return _sb.from("store").select("value").eq("key",k).maybeSingle().then(({data})=>data?.value??null).catch(()=>null);}
@@ -1116,14 +1117,17 @@ function DocVault({custs,onImport}){
       </div>
       <div style={{display:"flex",gap:8,marginBottom:14}}>
         <button onClick={()=>{
-          const H=["Date","Customer","Phone","Model","Code","Chassis","Engine","MR No","Pay Mode","Financed By","Ex-Showroom (A)","Comp Acc","Handling","Insurance","Registration","Accessories","Teflon","Hypo","AMC","TOTAL C","Consumer Offer","Special Disc","Corporate","DEAL PRICE E","Booking","Booking Date","Exchange","NET G","Loan","BALANCE I","PAID J","DIFF K","Salesman","Branch","Approved By"];
-          const rows=[H];
-          custs.filter(c=>c.billed&&c.billing&&c.billing.calc).forEach(c=>{const b=c.billing,k=b.calc;
-            rows.push([c.billedDate,c.name,c.phone,c.model||"",c.modelCode||"",b.chassis||"",b.engine||"",b.mrNo||"",b.payMode||"",b.financeBank||"Cash",k.ex,k.ca,k.hdl,k.ins,k.reg,k.acc,k.tef,k.hyp,k.amcV,k.C,k.cof,k.sdis,k.corp,k.E,k.bk,b.bkDate||"",k.exv,k.G,k.loan,k.I,k.paid,k.K,c.salesman||"",c.branch||"",c.approvedBy||""].map(x=>String(x).replace(/,/g," ")));
+          const H=["Date","Customer","Phone","Father Name","Address","DOB","Aadhar","PAN","Model","Code","Chassis","Engine","Colour","Delivery Date","MR No","Pay Mode","Financed By","Reg No","Insurance No","Ex-Showroom","Comp Acc","Handling","Insurance","Registration","Accessories","Teflon","Hypo","AMC","TOTAL ON-ROAD","Consumer Offer","Special Disc","Corporate","DEAL PRICE","Booking Amt","Booking Date","Exchange Vehicle","Exchange Value","NET AMT","Loan","BALANCE","PAID","DIFF","Salesman","Branch","Approved By","Enquiry Date","Bill Date","Status"];
+          const rows=custs.filter(c=>c.billed&&c.billing&&c.billing.calc).map(c=>{const b=c.billing,k=b.calc;
+            return[c.billedDate||"",c.name||"",c.phone||"",c.fatherName||"",c.address||"",c.dob||"",c.aadhar||"",c.pan||"",c.model||"",c.modelCode||"",b.chassis||"",b.engine||"",b.color||"",b.deliveryDate||"",b.mrNo||"",b.payMode||"",b.financeBank||"Cash",b.registrationNo||"",b.insuranceNo||"",k.ex,k.ca,k.hdl,k.ins,k.reg,k.acc,k.tef,k.hyp,k.amcV,k.C,k.cof,k.sdis,k.corp,k.E,k.bk,b.bkDate||"",c.exchangeAsked||"",k.exv,k.G,k.loan,k.I,k.paid,k.K,c.salesman||"",c.branch||"",c.approvedBy||"",c.enquiryDate||"",c.billedDate||"","Billed"];
           });
-          if(rows.length===1){alert("No approved billings yet");return;}
-          dlFile(rows.map(r=>r.join(",")).join("\n"),"NKD_Calculations_"+td()+".csv","text/csv");
-        }} style={{width:"100%",background:"rgba(96,165,250,0.1)",border:"1px solid rgba(96,165,250,0.35)",borderRadius:11,padding:"11px",color:"#60a5fa",fontWeight:700,fontSize:12,cursor:"pointer",marginBottom:8}}>📊 Export All Calculations — Excel (line by line, A to K)</button>
+          if(rows.length===0){alert("No billed customers yet");return;}
+          const wb=XLSX.utils.book_new();
+          const ws=XLSX.utils.aoa_to_sheet([H,...rows]);
+          ws["!cols"]=H.map(()=>({wch:18}));
+          XLSX.utils.book_append_sheet(wb,ws,"Chassis Report");
+          XLSX.writeFile(wb,"NKD_Chassis_Report_"+td()+".xlsx");
+        }} style={{width:"100%",background:"rgba(96,165,250,0.1)",border:"1px solid rgba(96,165,250,0.35)",borderRadius:11,padding:"11px",color:"#60a5fa",fontWeight:700,fontSize:12,cursor:"pointer",marginBottom:8}}>📊 Export Chassis-wise Excel Report (.xlsx)</button>
         <button onClick={exportDB} style={{flex:1,background:"rgba(52,211,153,0.1)",border:"1px solid rgba(52,211,153,0.35)",borderRadius:11,padding:"11px",color:"#34d399",fontWeight:700,fontSize:12,cursor:"pointer"}}>⬇️ Export Full Database (for server)</button>
         <label style={{flex:1,background:"rgba(139,92,246,0.1)",border:"1px solid rgba(139,92,246,0.35)",borderRadius:11,padding:"11px",color:"#a78bfa",fontWeight:700,fontSize:12,cursor:"pointer",textAlign:"center"}}>⬆️ Import Database<input type="file" accept=".json" style={{display:"none"}} onChange={e=>e.target.files[0]&&importDB(e.target.files[0])}/></label>
       </div>
