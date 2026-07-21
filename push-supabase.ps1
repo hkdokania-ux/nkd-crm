@@ -8,7 +8,7 @@ Write-Host "`n=== Pushing update ===" -ForegroundColor Cyan
 }
 
 git add -A
-git commit -m "Wire Google Drive upload for customer photos/docs"
+git commit -m "Add After-Sale tracker: HSRP, RC, Insurance, Finance NOC per customer"
 git push
 
 if ($LASTEXITCODE -eq 0) {
