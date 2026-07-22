@@ -1806,19 +1806,38 @@ function OwnerPortal({custs,stockData,billedChassis,statusData,role,user,mBr,sav
 
         {/* ── UPLOADS ── */}
         {view==="uploads"&&(role==="admin"?(
-          <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:24,alignItems:"start"}}>
-            {/* Left: upload controls */}
-            <div><UploadsHub stockData={stockData} statusData={statusData} onStockUpload={saveStockData} onStatusUpload={saveStatusData} notify={notify}/></div>
-            {/* Right: live data views */}
-            <div style={{display:"flex",flexDirection:"column",gap:24}}>
-              <div style={{background:"#fff",border:"2px solid #6b8fb5",borderRadius:14,padding:"18px 20px"}}>
-                <div style={{fontWeight:800,fontSize:14,color:"#1e293b",marginBottom:12}}>🏍️ Stock & Ageing</div>
-                <StockView stockData={stockData} billedChassis={billedChassis} role={role} userBranch={null} notify={notify}/>
+          <div style={{display:"flex",flexDirection:"column",gap:24,maxWidth:900}}>
+            {/* ── STOCK SECTION ── */}
+            <div style={{background:"#fff",border:"2px solid #6b8fb5",borderRadius:16,padding:"20px 22px"}}>
+              <div style={{fontWeight:800,fontSize:16,color:"#1e293b",marginBottom:4}}>🏍️ Stock Statement</div>
+              <div style={{fontSize:11,color:"#94a3b8",marginBottom:12}}>Branch-wise vehicle stock from dealership</div>
+              {/* Upload row */}
+              <div style={{display:"flex",alignItems:"center",gap:12,marginBottom:16,flexWrap:"wrap"}}>
+                {stockData.length>0&&<span style={{fontSize:12,color:"#22c55e",fontWeight:600,background:"rgba(34,197,94,0.08)",border:"1px solid rgba(34,197,94,0.25)",borderRadius:8,padding:"4px 10px"}}>✅ {stockData.length} vehicles loaded</span>}
+                <label style={{background:"rgba(52,211,153,0.08)",border:"1px dashed rgba(52,211,153,0.5)",borderRadius:10,padding:"8px 16px",cursor:"pointer",fontSize:12,color:"#34d399",fontWeight:700,whiteSpace:"nowrap"}}>
+                  {stockData.length>0?"🔄 Replace Excel":"📂 Choose Excel File"}
+                  <input type="file" accept=".xlsx,.xls,.csv" style={{display:"none"}} onChange={e=>{if(e.target.files&&e.target.files[0]){parseExcel(e.target.files[0],d=>{saveStockData(d);notify("✅ Stock uploaded — "+d.length+" vehicles");},err=>notify("❌ "+err));e.target.value="";}}}/>
+                </label>
+                <span style={{fontSize:10,color:"#94a3b8"}}>.xlsx · .xls · .csv</span>
               </div>
-              <div style={{background:"#fff",border:"2px solid #6b8fb5",borderRadius:14,padding:"18px 20px"}}>
-                <div style={{fontWeight:800,fontSize:14,color:"#1e293b",marginBottom:12}}>📋 RC / HSRP Status</div>
-                <RCHSRPSearch statusData={statusData} role={role} onUpload={saveStatusData} notify={notify}/>
+              {/* Data view */}
+              <StockView stockData={stockData} billedChassis={billedChassis} role={role} userBranch={null} notify={notify}/>
+            </div>
+            {/* ── RC/HSRP SECTION ── */}
+            <div style={{background:"#fff",border:"2px solid #6b8fb5",borderRadius:16,padding:"20px 22px"}}>
+              <div style={{fontWeight:800,fontSize:16,color:"#1e293b",marginBottom:4}}>📋 RC / HSRP Status</div>
+              <div style={{fontSize:11,color:"#94a3b8",marginBottom:12}}>RC and HSRP status report from RTO</div>
+              {/* Upload row */}
+              <div style={{display:"flex",alignItems:"center",gap:12,marginBottom:16,flexWrap:"wrap"}}>
+                {statusData.length>0&&<span style={{fontSize:12,color:"#22c55e",fontWeight:600,background:"rgba(34,197,94,0.08)",border:"1px solid rgba(34,197,94,0.25)",borderRadius:8,padding:"4px 10px"}}>✅ {statusData.length} records loaded</span>}
+                <label style={{background:"rgba(96,165,250,0.08)",border:"1px dashed rgba(96,165,250,0.5)",borderRadius:10,padding:"8px 16px",cursor:"pointer",fontSize:12,color:"#60a5fa",fontWeight:700,whiteSpace:"nowrap"}}>
+                  {statusData.length>0?"🔄 Replace Excel":"📂 Choose Excel File"}
+                  <input type="file" accept=".xlsx,.xls,.csv" style={{display:"none"}} onChange={e=>{if(e.target.files&&e.target.files[0]){parseExcel(e.target.files[0],d=>{saveStatusData(d);notify("✅ RC/HSRP uploaded — "+d.length+" records");},err=>notify("❌ "+err));e.target.value="";}}}/>
+                </label>
+                <span style={{fontSize:10,color:"#94a3b8"}}>.xlsx · .xls · .csv</span>
               </div>
+              {/* Data view */}
+              <RCHSRPSearch statusData={statusData} role={role} onUpload={saveStatusData} notify={notify}/>
             </div>
           </div>
         ):<div style={{maxWidth:700}}><UploadsHub stockData={stockData} statusData={statusData} onStockUpload={saveStockData} onStatusUpload={saveStatusData} notify={notify}/></div>)}

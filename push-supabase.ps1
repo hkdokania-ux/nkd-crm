@@ -11,7 +11,7 @@ Write-Host "Installing packages..." -ForegroundColor Cyan
 npm install
 
 git add -A
-git commit -m "Admin portal: 2-tab nav (force redeploy)"
+git commit -m "Admin uploads: merged upload+view into one card per type"
 git push
 
 if ($LASTEXITCODE -eq 0) {
