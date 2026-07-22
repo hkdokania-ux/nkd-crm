@@ -586,7 +586,7 @@ function UploadsHub({stockData,statusData,onStockUpload,onStatusUpload,notify}){
   );
 }
 function findStockCol(keys,words){return keys.find(k=>words.some(w=>k.toLowerCase().includes(w)))||null;}
-function StockView({stockData,billedChassis,role,onUpload,notify}){
+function StockView({stockData,billedChassis,role,userBranch,onUpload,notify}){
   const [q,setQ]=useState("");
   const [tab,setTab]=useState("stock"); // "stock" | "ageing"
   const rows=stockData||[];
@@ -598,6 +598,8 @@ function StockView({stockData,billedChassis,role,onUpload,notify}){
   const branchKey=findStockCol(keys,["branch","location","godown","store"]);
   const dateKey=findStockCol(keys,["date","invoice","inward","receipt","received","entry","purchase","billing"]);
   const available=rows.filter(r=>!billedChassis.includes(String(r[chassisKey]||"").trim().toUpperCase()));
+  function isMyBranch(row){if(!userBranch||!branchKey)return false;return String(row[branchKey]||"").toLowerCase().includes(userBranch.toLowerCase());}
+  function branchSort(a,b){if(isMyBranch(a)&&!isMyBranch(b))return -1;if(!isMyBranch(a)&&isMyBranch(b))return 1;return 0;}
 
   function getAge(row){
     if(!dateKey||!row[dateKey])return null;
@@ -619,7 +621,10 @@ function StockView({stockData,billedChassis,role,onUpload,notify}){
     return{bg:"rgba(239,68,68,0.1)",border:"rgba(239,68,68,0.6)",col:"#dc2626",label:"OLD STOCK",tag:days+"d ⚠️"};
   }
 
-  const filtered=q.trim().length<2?available:available.filter(r=>keys.some(k=>String(r[k]||"").toLowerCase().includes(q.toLowerCase())));
+  const filtered=useMemo(()=>{
+    const base=q.trim().length<2?available:available.filter(r=>keys.some(k=>String(r[k]||"").toLowerCase().includes(q.toLowerCase())));
+    return [...base].sort(branchSort);
+  },[available,q,keys,userBranch,branchKey]);
   const byModel=useMemo(()=>{
     if(!modelKey)return[];
     const map={};
@@ -627,18 +632,19 @@ function StockView({stockData,billedChassis,role,onUpload,notify}){
     return Object.entries(map).sort((a,b)=>b[1]-a[1]);
   },[filtered,modelKey]);
 
-  // Ageing: sort oldest first, with age attached
+  // Ageing: own branch first, then oldest first
   const ageingRows=useMemo(()=>{
     const withAge=available.map(r=>({...r,__age:getAge(r)}));
     const qL=q.toLowerCase().trim();
     const filt=qL.length<2?withAge:withAge.filter(r=>keys.some(k=>String(r[k]||"").toLowerCase().includes(qL)));
     return filt.sort((a,b)=>{
+      const bs=branchSort(a,b);if(bs!==0)return bs;
       if(a.__age===null&&b.__age===null)return 0;
       if(a.__age===null)return 1;
       if(b.__age===null)return -1;
-      return b.__age-a.__age; // oldest first
+      return b.__age-a.__age;
     });
-  },[available,q,keys]);
+  },[available,q,keys,userBranch,branchKey]);
 
   // Ageing summary
   const ageSummary=useMemo(()=>{
@@ -650,17 +656,23 @@ function StockView({stockData,billedChassis,role,onUpload,notify}){
   const StockCard=({row,i})=>{
     const age=row.__age!==undefined?row.__age:getAge(row);
     const ab=ageBadge(age);
+    const mine=isMyBranch(row);
+    const branchName=branchKey?String(row[branchKey]||""):"";
     return(
-      <div key={i} style={{background:age>90?"rgba(239,68,68,0.04)":age>60?"rgba(249,115,22,0.04)":"#ffffff",border:"1px solid "+ab.border,borderRadius:12,padding:"10px 14px",marginBottom:8}}>
-        <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:5}}>
-          {modelKey&&<div style={{fontWeight:700,fontSize:13,color:"#1e293b",flex:1}}>{row[modelKey]}</div>}
-          {age!==null&&<span style={{fontSize:10,fontWeight:800,background:ab.bg,color:ab.col,padding:"2px 8px",borderRadius:10,border:"1px solid "+ab.border,flexShrink:0,marginLeft:8}}>{ab.tag}</span>}
+      <div key={i} style={{background:mine?"rgba(59,130,246,0.04)":age>90?"rgba(239,68,68,0.04)":age>60?"rgba(249,115,22,0.04)":"#ffffff",border:"2px solid "+(mine?"#3b82f6":ab.border),borderRadius:12,padding:"10px 14px",marginBottom:8,position:"relative"}}>
+        {/* Branch row */}
+        <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:5}}>
+          <div style={{display:"flex",alignItems:"center",gap:6}}>
+            {branchName&&<span style={{fontSize:11,fontWeight:700,background:mine?"#dbeafe":"#f1f5f9",color:mine?"#1d4ed8":"#475569",padding:"2px 9px",borderRadius:8,border:"1px solid "+(mine?"#93c5fd":"#6b8fb5")}}>{mine?"📍 "+branchName+" ★":"📍 "+branchName}</span>}
+            {mine&&<span style={{fontSize:9,fontWeight:800,color:"#1d4ed8",background:"#dbeafe",padding:"1px 6px",borderRadius:6}}>YOUR BRANCH</span>}
+          </div>
+          {age!==null&&<span style={{fontSize:10,fontWeight:800,background:ab.bg,color:ab.col,padding:"2px 8px",borderRadius:10,border:"1px solid "+ab.border,flexShrink:0}}>{ab.tag}</span>}
         </div>
+        {modelKey&&<div style={{fontWeight:700,fontSize:13,color:"#1e293b",marginBottom:5}}>{row[modelKey]}</div>}
         <div style={{display:"flex",flexWrap:"wrap",gap:6}}>
           {chassisKey&&<span style={{fontSize:11,color:"#60a5fa"}}>🔩 {row[chassisKey]}</span>}
           {engineKey&&<span style={{fontSize:11,color:"#64748b"}}>⚙️ {row[engineKey]}</span>}
           {colorKey&&<span style={{fontSize:11,color:"#a78bfa"}}>🎨 {row[colorKey]}</span>}
-          {branchKey&&<span style={{fontSize:11,color:"#34d399"}}>📍 {row[branchKey]}</span>}
           {dateKey&&row[dateKey]&&<span style={{fontSize:11,color:"#94a3b8"}}>📅 {String(row[dateKey]).slice(0,12)}</span>}
         </div>
         {age>90&&<div style={{fontSize:10,color:"#dc2626",fontWeight:700,marginTop:5}}>⚠️ Push for sale — in stock {age} days</div>}
@@ -670,7 +682,8 @@ function StockView({stockData,billedChassis,role,onUpload,notify}){
 
   return(
     <div>
-      <div style={{fontWeight:800,fontSize:19,color:"#1e293b",marginBottom:4}}>🏍️ Stock</div>
+      <div style={{fontWeight:800,fontSize:19,color:"#1e293b",marginBottom:2}}>🏍️ Stock</div>
+      {userBranch&&<div style={{fontSize:11,color:"#1d4ed8",fontWeight:700,marginBottom:4}}>📍 Your branch: {userBranch}</div>}
       <div style={{fontSize:11,color:"#94a3b8",marginBottom:10}}>{rows.length>0?available.length+" available · "+billedChassis.length+" billed":"No stock uploaded yet"}</div>
 
       {/* Tab toggle */}
@@ -697,8 +710,16 @@ function StockView({stockData,billedChassis,role,onUpload,notify}){
           </div>
         )}
         {q.trim().length>=2&&filtered.length===0&&<div style={{textAlign:"center",padding:20,color:"#94a3b8",fontSize:13}}>No stock found for "{q}"</div>}
-        {filtered.slice(0,50).map((row,i)=><StockCard key={i} row={row} i={i}/>)}
-        {filtered.length>50&&<div style={{textAlign:"center",color:"#94a3b8",fontSize:12,padding:8}}>Showing 50 of {filtered.length} — search to narrow down</div>}
+        {filtered.slice(0,60).map((row,i)=>{
+          const isMine=isMyBranch(row);
+          const prevMine=i>0?isMyBranch(filtered[i-1]):true;
+          const showDivider=userBranch&&branchKey&&!isMine&&prevMine&&i>0;
+          return(<React.Fragment key={i}>
+            {showDivider&&<div style={{textAlign:"center",fontSize:11,color:"#94a3b8",margin:"10px 0 8px",display:"flex",alignItems:"center",gap:8}}><div style={{flex:1,height:1,background:"#6b8fb5"}}/><span>Other Branches</span><div style={{flex:1,height:1,background:"#6b8fb5"}}/></div>}
+            <StockCard row={row} i={i}/>
+          </React.Fragment>);
+        })}
+        {filtered.length>60&&<div style={{textAlign:"center",color:"#94a3b8",fontSize:12,padding:8}}>Showing 60 of {filtered.length} — search to narrow down</div>}
       </>}
 
       {/* ── AGEING REPORT TAB ── */}
@@ -715,7 +736,15 @@ function StockView({stockData,billedChassis,role,onUpload,notify}){
         </div>}
         {!dateKey&&<div style={{background:"rgba(249,115,22,0.08)",border:"1px solid rgba(249,115,22,0.35)",borderRadius:10,padding:"10px 14px",marginBottom:12,fontSize:12,color:"#ea580c"}}>⚠️ No date column found in stock Excel. Add a column like "Invoice Date" or "Inward Date" to see ageing.</div>}
         {ageingRows.length===0&&<div style={{textAlign:"center",padding:20,color:"#94a3b8",fontSize:13}}>No stock to show</div>}
-        {ageingRows.slice(0,80).map((row,i)=><StockCard key={i} row={row} i={i}/>)}
+        {ageingRows.slice(0,80).map((row,i)=>{
+          const isMine=isMyBranch(row);
+          const prevMine=i>0?isMyBranch(ageingRows[i-1]):true;
+          const showDivider=userBranch&&branchKey&&!isMine&&prevMine&&i>0;
+          return(<React.Fragment key={i}>
+            {showDivider&&<div style={{textAlign:"center",fontSize:11,color:"#94a3b8",margin:"10px 0 8px",display:"flex",alignItems:"center",gap:8}}><div style={{flex:1,height:1,background:"#6b8fb5"}}/><span>Other Branches</span><div style={{flex:1,height:1,background:"#6b8fb5"}}/></div>}
+            <StockCard row={row} i={i}/>
+          </React.Fragment>);
+        })}
         {ageingRows.length>80&&<div style={{textAlign:"center",color:"#94a3b8",fontSize:12,padding:8}}>Showing 80 of {ageingRows.length}</div>}
       </>}
     </div>
@@ -1641,6 +1670,155 @@ function DocVault({custs,onImport}){
   );
 }
 
+function OwnerPortal({custs,stockData,billedChassis,statusData,role,user,mBr,saveStockData,saveStatusData,notify,onLogout,onMobile}){
+  const [view,setView]=useState(role==="admin"?"uploads":"dashboard");
+  const billed=custs.filter(c=>c.billed);
+  const thisM=td().slice(0,7);
+  const billedThisM=billed.filter(c=>(c.billedDate||"").startsWith(thisM));
+  const revThisM=billedThisM.reduce((s,c)=>s+((c.billing&&c.billing.calc&&c.billing.calc.E)||0),0);
+  const branches=BRANCHES.map(b=>({name:b,enq:custs.filter(c=>(c.branch||SM_BRANCH[c.salesman])===b).length,book:custs.filter(c=>(c.branch||SM_BRANCH[c.salesman])===b&&c.booking).length,bill:billed.filter(c=>(c.branch||SM_BRANCH[c.salesman])===b).length,rev:billed.filter(c=>(c.branch||SM_BRANCH[c.salesman])===b).reduce((s,c)=>s+((c.billing&&c.billing.calc&&c.billing.calc.E)||0),0)}));
+  const modelMap={};billed.forEach(c=>{const m=c.model||"Unknown";modelMap[m]=(modelMap[m]||0)+1;});
+  const modelWise=Object.entries(modelMap).sort((a,b)=>b[1]-a[1]);
+  const smMap={};custs.forEach(c=>{if(!smMap[c.salesman])smMap[c.salesman]={enq:0,book:0,bill:0,rev:0,branch:SM_BRANCH[c.salesman]||""};smMap[c.salesman].enq++;if(c.booking)smMap[c.salesman].book++;if(c.billed){smMap[c.salesman].bill++;smMap[c.salesman].rev+=((c.billing&&c.billing.calc&&c.billing.calc.E)||0);}});
+  const smPerf=Object.entries(smMap).sort((a,b)=>b[1].bill-a[1].bill);
+  const navItems=role==="admin"
+    ?[{id:"uploads",l:"Uploads",ic:"📤"},{id:"stock",l:"Stock & Ageing",ic:"🏍️"},{id:"rcstatus",l:"RC / HSRP",ic:"📋"},{id:"vault",l:"Document Vault",ic:"📁"}]
+    :[{id:"dashboard",l:"Dashboard",ic:"📊"},{id:"customers",l:"All Customers",ic:"👥"},{id:"team",l:"Team Performance",ic:"👔"},{id:"stock",l:"Stock & Ageing",ic:"🏍️"},{id:"uploads",l:"Uploads",ic:"📤"},{id:"rcstatus",l:"RC / HSRP",ic:"📋"},{id:"reports",l:"Reports",ic:"📄"},{id:"vault",l:"Document Vault",ic:"📁"}];
+  const SB=({label})=>(<th style={{fontSize:11,color:"#64748b",fontWeight:700,textAlign:"left",padding:"7px 12px",borderBottom:"2px solid #6b8fb5",background:"#f8fafc"}}>{label}</th>);
+  const TD=({v,col,bold})=>(<td style={{padding:"8px 12px",fontSize:13,color:col||"#1e293b",fontWeight:bold?700:400,borderBottom:"1px solid #e8eef8"}}>{v}</td>);
+  return(
+    <div style={{display:"flex",minHeight:"100vh",background:"linear-gradient(160deg,#f0f7ff,#f8fafc)",fontFamily:"'Sora','Inter',sans-serif",color:"#1e293b"}}>
+      <style>{`@import url('https://fonts.googleapis.com/css2?family=Sora:wght@400;600;700;800&display=swap');*{font-family:'Sora','Inter',sans-serif!important}body{background:#f0f7ff}::-webkit-scrollbar{width:6px;height:6px}::-webkit-scrollbar-track{background:#f1f5f9}::-webkit-scrollbar-thumb{background:#6b8fb5;border-radius:3px}`}</style>
+      {/* ─── SIDEBAR ─── */}
+      <div style={{width:220,background:"#ffffff",borderRight:"2px solid #6b8fb5",display:"flex",flexDirection:"column",position:"fixed",top:0,bottom:0,left:0,zIndex:50,boxShadow:"2px 0 12px rgba(15,23,42,.08)"}}>
+        <div style={{padding:"18px 16px 14px",borderBottom:"2px solid #6b8fb5"}}>
+          <div style={{display:"flex",alignItems:"center",gap:10,marginBottom:8}}>
+            <div style={{width:40,height:40,borderRadius:12,background:"linear-gradient(135deg,#f97316,#ef4444)",display:"flex",alignItems:"center",justifyContent:"center",fontWeight:900,fontSize:18,color:"#fff"}}>B</div>
+            <div><div style={{fontWeight:800,fontSize:14,color:"#1e293b"}}>NKD BAJAJ</div><div style={{fontSize:10,color:"#64748b",marginTop:1}}>{role==="owner"?"Owner Portal":"Admin Portal"}</div></div>
+          </div>
+          <div style={{fontSize:11,color:"#94a3b8",background:"#f1f5f9",borderRadius:7,padding:"4px 8px"}}>{user} · {role}</div>
+        </div>
+        <div style={{flex:1,padding:"12px 10px",overflowY:"auto"}}>
+          {navItems.map(n=>(
+            <button key={n.id} onClick={()=>setView(n.id)} style={{width:"100%",display:"flex",alignItems:"center",gap:10,padding:"10px 12px",borderRadius:10,border:"none",cursor:"pointer",marginBottom:3,background:view===n.id?"#dbeafe":"transparent",color:view===n.id?"#1d4ed8":"#475569",fontWeight:view===n.id?700:500,fontSize:13,textAlign:"left",transition:"background .15s"}}>
+              <span style={{fontSize:18,minWidth:22}}>{n.ic}</span>{n.l}
+            </button>
+          ))}
+        </div>
+        <div style={{padding:"12px 10px",borderTop:"2px solid #6b8fb5",display:"flex",flexDirection:"column",gap:7}}>
+          <button onClick={onMobile} style={{padding:"8px 12px",borderRadius:8,border:"1px solid #6b8fb5",background:"transparent",color:"#475569",fontSize:12,cursor:"pointer",fontWeight:600}}>📱 Mobile View</button>
+          <button onClick={onLogout} style={{padding:"8px 12px",borderRadius:8,border:"1px solid #ef4444",background:"transparent",color:"#ef4444",fontSize:12,cursor:"pointer",fontWeight:700}}>🚪 Logout</button>
+        </div>
+      </div>
+      {/* ─── MAIN CONTENT ─── */}
+      <div style={{marginLeft:220,flex:1,padding:"28px 32px",overflowY:"auto",minHeight:"100vh"}}>
+        <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:24}}>
+          <div style={{fontWeight:800,fontSize:24,color:"#1e293b"}}>{navItems.find(n=>n.id===view)?.ic} {navItems.find(n=>n.id===view)?.l}</div>
+          <div style={{fontSize:12,color:"#94a3b8",background:"#fff",border:"1px solid #6b8fb5",borderRadius:8,padding:"5px 12px"}}>{new Date().toLocaleDateString("en-IN",{weekday:"long",day:"2-digit",month:"long",year:"numeric"})}</div>
+        </div>
+
+        {/* ── DASHBOARD ── */}
+        {view==="dashboard"&&<>
+          <div style={{display:"grid",gridTemplateColumns:"repeat(4,1fr)",gap:16,marginBottom:24}}>
+            {[[" Total Enquiries",custs.length,"#3b82f6","👥"],[" Bookings",custs.filter(c=>c.booking).length,"#8b5cf6","📝"],[" Total Billed",billed.length,"#22c55e","✅"],[" Total Revenue",fc(billed.reduce((s,c)=>s+((c.billing&&c.billing.calc&&c.billing.calc.E)||0),0)),"#f97316","💰"]].map(([l,v,col,ic])=>(
+              <div key={l} style={{background:"#fff",border:"2px solid #6b8fb5",borderRadius:16,padding:"20px 22px",boxShadow:"0 2px 14px rgba(15,23,42,.06)"}}>
+                <div style={{fontSize:28,marginBottom:8}}>{ic}</div>
+                <div style={{fontSize:28,fontWeight:900,color:col,lineHeight:1}}>{v}</div>
+                <div style={{fontSize:12,color:"#64748b",marginTop:6,fontWeight:600}}>{l}</div>
+              </div>
+            ))}
+          </div>
+          <div style={{display:"grid",gridTemplateColumns:"repeat(3,1fr)",gap:16,marginBottom:24}}>
+            {[["Billed This Month",billedThisM.length,"#22c55e"],["Revenue This Month",fc(revThisM),"#f97316"],["Hot + Warm Leads",custs.filter(c=>!c.billed&&!c.stopped&&["Hot","Warm"].includes(c.status)).length,"#8b5cf6"]].map(([l,v,col])=>(
+              <div key={l} style={{background:"#fff",border:"2px solid "+col+"50",borderRadius:14,padding:"16px 20px"}}>
+                <div style={{fontSize:22,fontWeight:900,color:col}}>{v}</div>
+                <div style={{fontSize:12,color:"#64748b",marginTop:4,fontWeight:600}}>{l}</div>
+              </div>
+            ))}
+          </div>
+          <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:20,marginBottom:24}}>
+            <div style={{background:"#fff",border:"2px solid #6b8fb5",borderRadius:14,padding:"18px 20px"}}>
+              <div style={{fontWeight:800,fontSize:15,color:"#1e293b",marginBottom:14}}>🏪 Branch Performance</div>
+              <table style={{width:"100%",borderCollapse:"collapse"}}>
+                <thead><tr><SB label="Branch"/><SB label="Enquiries"/><SB label="Bookings"/><SB label="Billed"/><SB label="Revenue"/></tr></thead>
+                <tbody>{branches.map(b=><tr key={b.name}><TD v={b.name} bold/><TD v={b.enq} col="#3b82f6"/><TD v={b.book} col="#8b5cf6"/><TD v={b.bill} col="#22c55e" bold/><TD v={fc(b.rev)} col="#f97316" bold/></tr>)}</tbody>
+              </table>
+            </div>
+            <div style={{background:"#fff",border:"2px solid #6b8fb5",borderRadius:14,padding:"18px 20px"}}>
+              <div style={{fontWeight:800,fontSize:15,color:"#1e293b",marginBottom:14}}>🏍️ Top Models Billed</div>
+              {modelWise.slice(0,10).map(([m,cnt])=>(
+                <div key={m} style={{display:"flex",alignItems:"center",gap:10,marginBottom:9}}>
+                  <div style={{flex:1,fontSize:12,color:"#1e293b",fontWeight:600,minWidth:0,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{m}</div>
+                  <div style={{width:120,height:8,background:"#f1f5f9",borderRadius:4,flexShrink:0}}><div style={{height:8,background:"linear-gradient(90deg,#f97316,#ef4444)",borderRadius:4,width:(cnt/(modelWise[0]?.[1]||1)*100)+"%"}}/></div>
+                  <div style={{fontSize:12,fontWeight:800,color:"#f97316",minWidth:20,textAlign:"right"}}>{cnt}</div>
+                </div>
+              ))}
+            </div>
+          </div>
+          <div style={{background:"#fff",border:"2px solid #6b8fb5",borderRadius:14,padding:"18px 20px"}}>
+            <div style={{fontWeight:800,fontSize:15,color:"#1e293b",marginBottom:14}}>👔 Team Performance</div>
+            <table style={{width:"100%",borderCollapse:"collapse"}}>
+              <thead><tr><SB label="Salesman"/><SB label="Branch"/><SB label="Enquiries"/><SB label="Bookings"/><SB label="Billed"/><SB label="Revenue"/></tr></thead>
+              <tbody>{smPerf.map(([s,d])=><tr key={s}><TD v={s} bold/><TD v={d.branch} col="#64748b"/><TD v={d.enq} col="#3b82f6"/><TD v={d.book} col="#8b5cf6"/><TD v={d.bill} col="#22c55e" bold/><TD v={fc(d.rev)} col="#f97316" bold/></tr>)}</tbody>
+            </table>
+          </div>
+        </>}
+
+        {/* ── ALL CUSTOMERS TABLE ── */}
+        {view==="customers"&&(()=>{
+          const [cq,setCq]=useState("");
+          const filt=cq.trim().length<2?custs:custs.filter(c=>(c.name+" "+c.phone+" "+(c.model||"")+" "+(c.salesman||"")).toLowerCase().includes(cq.toLowerCase()));
+          return(<>
+            <input placeholder="🔍 Search name, phone, model, salesman…" value={cq} onChange={e=>setCq(e.target.value)} style={{width:"100%",padding:"11px 16px",border:"2px solid #6b8fb5",borderRadius:10,fontSize:14,marginBottom:16,boxSizing:"border-box",outline:"none"}}/>
+            <div style={{background:"#fff",border:"2px solid #6b8fb5",borderRadius:14,overflow:"auto"}}>
+              <table style={{width:"100%",borderCollapse:"collapse",minWidth:900}}>
+                <thead><tr><SB label="Name"/><SB label="Phone"/><SB label="Model"/><SB label="Status"/><SB label="Salesman"/><SB label="Branch"/><SB label="Enquiry"/><SB label="Billed"/><SB label="Revenue"/></tr></thead>
+                <tbody>{filt.slice(0,200).map(c=>{const b=c.billing;const cl=b&&b.calc?b.calc:null;return(<tr key={c.id} style={{cursor:"pointer"}} onClick={()=>{}}><TD v={c.name} bold/><TD v={c.phone} col="#64748b"/><TD v={c.model||"—"}/><TD v={<span style={{fontSize:10,fontWeight:800,background:({"Hot":"#ef4444","Warm":"#f97316","Billed":"#22c55e","Booked":"#8b5cf6","Cold":"#3b82f6","Lost":"#64748b"}[c.status]||"#374151")+"20",color:({"Hot":"#ef4444","Warm":"#f97316","Billed":"#22c55e","Booked":"#8b5cf6","Cold":"#3b82f6","Lost":"#64748b"}[c.status]||"#374151"),padding:"2px 8px",borderRadius:8}}>{c.status}</span>}/><TD v={c.salesman||"—"} col="#64748b"/><TD v={(c.branch||SM_BRANCH[c.salesman]||"—")} col="#64748b"/><TD v={fd(c.enquiryDate)} col="#94a3b8"/><TD v={c.billed?fd(c.billedDate):"—"} col={c.billed?"#22c55e":"#94a3b8"}/><TD v={cl?fc(cl.E):"—"} col="#f97316" bold/></tr>);})}</tbody>
+              </table>
+              {filt.length>200&&<div style={{padding:"10px 16px",fontSize:12,color:"#94a3b8"}}>Showing 200 of {filt.length} — refine search</div>}
+            </div>
+          </>);
+        })()}
+
+        {/* ── TEAM VIEW ── */}
+        {view==="team"&&<div style={{display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(300px,1fr))",gap:16}}>
+          {smPerf.map(([s,d])=>(
+            <div key={s} style={{background:"#fff",border:"2px solid #6b8fb5",borderRadius:14,padding:"18px 20px"}}>
+              <div style={{fontWeight:800,fontSize:16,color:"#1e293b",marginBottom:2}}>{s}</div>
+              <div style={{fontSize:12,color:"#64748b",marginBottom:14}}>📍 {d.branch}</div>
+              <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10}}>
+                {[["Enquiries",d.enq,"#3b82f6"],["Bookings",d.book,"#8b5cf6"],["Billed",d.bill,"#22c55e"],["Revenue",fc(d.rev),"#f97316"]].map(([l,v,col])=>(
+                  <div key={l} style={{background:"#f8fafc",border:"1px solid #6b8fb5",borderRadius:10,padding:"10px 12px"}}>
+                    <div style={{fontSize:18,fontWeight:900,color:col}}>{v}</div>
+                    <div style={{fontSize:10,color:"#64748b",marginTop:2}}>{l}</div>
+                  </div>
+                ))}
+              </div>
+              <div style={{marginTop:12,background:"#f8fafc",borderRadius:8,height:8}}><div style={{height:8,background:"linear-gradient(90deg,#22c55e,#3b82f6)",borderRadius:8,width:(d.bill?Math.min((d.bill/Math.max(...smPerf.map(([,x])=>x.bill)))*100,100):0)+"%"}}/></div>
+              <div style={{fontSize:10,color:"#94a3b8",marginTop:4}}>Billing progress vs team</div>
+            </div>
+          ))}
+        </div>}
+
+        {/* ── STOCK ── */}
+        {view==="stock"&&<div style={{maxWidth:900}}><StockView stockData={stockData} billedChassis={billedChassis} role={role} userBranch={null} notify={notify}/></div>}
+
+        {/* ── UPLOADS ── */}
+        {view==="uploads"&&<div style={{maxWidth:700}}><UploadsHub stockData={stockData} statusData={statusData} onStockUpload={saveStockData} onStatusUpload={saveStatusData} notify={notify}/></div>}
+
+        {/* ── RC/HSRP ── */}
+        {view==="rcstatus"&&<div style={{maxWidth:900}}><RCHSRPSearch statusData={statusData} role={role} onUpload={saveStatusData} notify={notify}/></div>}
+
+        {/* ── REPORTS ── */}
+        {view==="reports"&&<div style={{maxWidth:800}}><Reports custs={custs} onImportCust={()=>{}}/></div>}
+
+        {/* ── VAULT ── */}
+        {view==="vault"&&<DocVault custs={custs} onImport={()=>{}}/>}
+      </div>
+    </div>
+  );
+}
+
 export default function App(){
   const [role,setRole]=useState(ld("nkd_r","salesman"));
   const [user,setUser]=useState(ld("nkd_u",SM[0]));
@@ -1733,8 +1911,23 @@ export default function App(){
 
   function openD(c,tab){setSel(c);if(tab)setDtab(tab);nav("detail");}
 
+  const [portalMode,setPortalMode]=useState(()=>ld("nkd_portal",false));
+  function togglePortal(v){setPortalMode(v);sv("nkd_portal",v);}
+
   if(!fbReady)return(<div style={{minHeight:"100vh",background:"linear-gradient(160deg,#f0f7ff 0%,#f8fafc 100%)",display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",gap:14}}><div style={{width:110,background:"#fff",borderRadius:16,padding:"8px 12px"}}><img src="/logo.png" alt="NKD Bajaj" style={{width:"100%"}}/></div><div style={{color:"#f97316",fontWeight:700,fontSize:15}}>NKD Bajaj CRM</div><div style={{color:"#94a3b8",fontSize:12}}>Connecting to database…</div></div>);
-  if(!li)return <Login onLogin={(r,u,b)=>{setRole(r);setUser(u);if(b)sv("nkd_br",b);sv("nkd_r",r);sv("nkd_u",u);sv("nkd_li",true);setLi(true);}}/>;
+  if(!li)return <Login onLogin={(r,u,b)=>{setRole(r);setUser(u);if(b)sv("nkd_br",b);sv("nkd_r",r);sv("nkd_u",u);sv("nkd_li",true);setLi(true);if(r==="owner"||r==="admin")togglePortal(true);}}/>;
+
+  // Owner / Admin → Web Portal (unless they switched to mobile)
+  if((role==="owner"||role==="admin")&&portalMode){
+    return <OwnerPortal
+      custs={custs} stockData={stockData} billedChassis={billedChassis} statusData={statusData}
+      role={role} user={user} mBr={mBr}
+      saveStockData={saveStockData} saveStatusData={saveStatusData}
+      notify={notify}
+      onLogout={()=>{sv("nkd_li",false);sv("nkd_portal",false);setPortalMode(false);setLi(false);}}
+      onMobile={()=>togglePortal(false)}
+    />;
+  }
 
   const navItems=role==="admin"?[{id:"vault",l:"Document Vault",ic:"📁"},{id:"uploads",l:"Uploads",ic:"📤"},{id:"stock",l:"Stock",ic:"🏍️"},{id:"rcstatus",l:"RC/HSRP",ic:"🔍"}]:[{id:"dashboard",l:"Home",ic:"🏠"},{id:"followups",l:"Followup",ic:"📞",badge:due.length},{id:"customers",l:"Customers",ic:"👥"},{id:"stock",l:"Stock",ic:"🏍️"},{id:"rcstatus",l:"RC/HSRP",ic:"🔍"},...(role!=="salesman"?[{id:"approvals",l:"Approve",ic:"✅",badge:pending.length}]:[]),...(role!=="salesman"?[{id:"revival",l:"Revival",ic:"🔄"}]:[]),...(role==="owner"?[{id:"reports",l:"Reports",ic:"📊"}]:[]),...(role==="owner"?[{id:"vault",l:"Vault",ic:"📁"}]:[]),...(role==="owner"?[{id:"uploads",l:"Uploads",ic:"📤"}]:[]),...(role!=="salesman"&&alerts.length>0?[{id:"alerts",l:"Alerts",ic:"⚠️",badge:alerts.length}]:[])];
 
@@ -1765,6 +1958,7 @@ export default function App(){
           {due.length>0&&<div style={{background:"rgba(249,115,22,0.2)",color:"#f97316",borderRadius:20,padding:"2px 7px",fontSize:10,fontWeight:800}}>📞 {due.length}</div>}
           {role!=="salesman"&&pending.length>0&&<div onClick={()=>nav("approvals")} style={{background:"rgba(139,92,246,0.2)",color:"#a78bfa",borderRadius:20,padding:"2px 7px",fontSize:10,fontWeight:800,cursor:"pointer"}}>✓ {pending.length}</div>}
           {role!=="salesman"&&alerts.length>0&&<div onClick={()=>nav("alerts")} style={{background:"rgba(239,68,68,0.2)",color:"#ef4444",borderRadius:20,padding:"2px 7px",fontSize:10,fontWeight:800,cursor:"pointer"}}>⚠️ {alerts.length}</div>}
+          {(role==="owner"||role==="admin")&&<button onClick={()=>togglePortal(true)} style={{background:"#dbeafe",border:"1px solid #3b82f6",color:"#1d4ed8",borderRadius:8,padding:"3px 8px",fontSize:10,cursor:"pointer",fontWeight:700}}>🖥️ Portal</button>}
           <button onClick={()=>{sv("nkd_li",false);setLi(false);}} style={{background:"transparent",border:"1px solid #6b8fb5",color:"#94a3b8",borderRadius:8,padding:"3px 8px",fontSize:10,cursor:"pointer"}}>Out</button>
         </div>
       </div>
@@ -1786,7 +1980,7 @@ export default function App(){
         {view==="customers"&&<CustList custs={myC} onOpen={openD} initF={custF} showSM={role!=="salesman"}/>}
         {view==="detail"&&sel&&<Detail cust={custs.find(c=>c.id===sel.id)||sel} role={role} onBack={goBack} onUpd={p=>upd(sel.id,p)} onLog={logF} onBill={()=>setBillOpen(true)} onBook={()=>setBookOpen(true)} notify={notify} initTab={dtab} clearInit={()=>setDtab(null)}/>}
         {view==="uploads"&&<div style={{padding:"0 16px 80px"}}><UploadsHub stockData={stockData} statusData={statusData} onStockUpload={saveStockData} onStatusUpload={saveStatusData} notify={notify}/></div>}
-        {view==="stock"&&<div style={{padding:"0 16px 80px"}}><StockView stockData={stockData} billedChassis={billedChassis} role={role} onUpload={saveStockData} notify={notify}/></div>}
+        {view==="stock"&&<div style={{padding:"0 16px 80px"}}><StockView stockData={stockData} billedChassis={billedChassis} role={role} userBranch={role==="salesman"?(SM_BRANCH[user]||BRANCHES[0]):role==="manager"?mBr:null} onUpload={saveStockData} notify={notify}/></div>}
         {view==="rcstatus"&&<div style={{padding:"0 16px 80px"}}><RCHSRPSearch statusData={statusData} role={role} onUpload={saveStatusData} notify={notify}/></div>}
         {view==="approvals"&&<Approvals custs={pending} onApprove={approveBill} onOpen={openD} onEditCalc={c=>{setSel(c);setBillOpen(true);}} allC={myC}/>}
         {view==="revival"&&<Revival items={revivable} onRevive={ids=>{let si=0;const perDay={};setCusts(p=>p.map(c=>{

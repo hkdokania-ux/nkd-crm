@@ -11,7 +11,7 @@ Write-Host "Installing packages..." -ForegroundColor Cyan
 npm install
 
 git add -A
-git commit -m "Ageing report: oldest stock first, age badges, summary by bracket"
+git commit -m "Owner/Admin web portal: sidebar, dashboard, team, customers table, all views"
 git push
 
 if ($LASTEXITCODE -eq 0) {
