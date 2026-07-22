@@ -1,3 +1,4 @@
+// v2.1
 import{useState,useEffect,useRef,useMemo}from"react";
 import*as XLSX from"xlsx";
 import{jsPDF}from"jspdf";

@@ -11,7 +11,7 @@ Write-Host "Installing packages..." -ForegroundColor Cyan
 npm install
 
 git add -A
-git commit -m "Admin portal: merge Stock and RC/HSRP into Uploads tab, 2-column layout"
+git commit -m "Admin portal: 2-tab nav (force redeploy)"
 git push
 
 if ($LASTEXITCODE -eq 0) {
