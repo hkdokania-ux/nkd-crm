@@ -1682,7 +1682,7 @@ function OwnerPortal({custs,stockData,billedChassis,statusData,role,user,mBr,sav
   const smMap={};custs.forEach(c=>{if(!smMap[c.salesman])smMap[c.salesman]={enq:0,book:0,bill:0,rev:0,branch:SM_BRANCH[c.salesman]||""};smMap[c.salesman].enq++;if(c.booking)smMap[c.salesman].book++;if(c.billed){smMap[c.salesman].bill++;smMap[c.salesman].rev+=((c.billing&&c.billing.calc&&c.billing.calc.E)||0);}});
   const smPerf=Object.entries(smMap).sort((a,b)=>b[1].bill-a[1].bill);
   const navItems=role==="admin"
-    ?[{id:"uploads",l:"Uploads",ic:"📤"},{id:"stock",l:"Stock & Ageing",ic:"🏍️"},{id:"rcstatus",l:"RC / HSRP",ic:"📋"},{id:"vault",l:"Document Vault",ic:"📁"}]
+    ?[{id:"uploads",l:"Uploads & Data",ic:"📤"},{id:"vault",l:"Document Vault",ic:"📁"}]
     :[{id:"dashboard",l:"Dashboard",ic:"📊"},{id:"customers",l:"All Customers",ic:"👥"},{id:"team",l:"Team Performance",ic:"👔"},{id:"stock",l:"Stock & Ageing",ic:"🏍️"},{id:"uploads",l:"Uploads",ic:"📤"},{id:"rcstatus",l:"RC / HSRP",ic:"📋"},{id:"reports",l:"Reports",ic:"📄"},{id:"vault",l:"Document Vault",ic:"📁"}];
   const SB=({label})=>(<th style={{fontSize:11,color:"#64748b",fontWeight:700,textAlign:"left",padding:"7px 12px",borderBottom:"2px solid #6b8fb5",background:"#f8fafc"}}>{label}</th>);
   const TD=({v,col,bold})=>(<td style={{padding:"8px 12px",fontSize:13,color:col||"#1e293b",fontWeight:bold?700:400,borderBottom:"1px solid #e8eef8"}}>{v}</td>);
@@ -1804,7 +1804,23 @@ function OwnerPortal({custs,stockData,billedChassis,statusData,role,user,mBr,sav
         {view==="stock"&&<div style={{maxWidth:900}}><StockView stockData={stockData} billedChassis={billedChassis} role={role} userBranch={null} notify={notify}/></div>}
 
         {/* ── UPLOADS ── */}
-        {view==="uploads"&&<div style={{maxWidth:700}}><UploadsHub stockData={stockData} statusData={statusData} onStockUpload={saveStockData} onStatusUpload={saveStatusData} notify={notify}/></div>}
+        {view==="uploads"&&(role==="admin"?(
+          <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:24,alignItems:"start"}}>
+            {/* Left: upload controls */}
+            <div><UploadsHub stockData={stockData} statusData={statusData} onStockUpload={saveStockData} onStatusUpload={saveStatusData} notify={notify}/></div>
+            {/* Right: live data views */}
+            <div style={{display:"flex",flexDirection:"column",gap:24}}>
+              <div style={{background:"#fff",border:"2px solid #6b8fb5",borderRadius:14,padding:"18px 20px"}}>
+                <div style={{fontWeight:800,fontSize:14,color:"#1e293b",marginBottom:12}}>🏍️ Stock & Ageing</div>
+                <StockView stockData={stockData} billedChassis={billedChassis} role={role} userBranch={null} notify={notify}/>
+              </div>
+              <div style={{background:"#fff",border:"2px solid #6b8fb5",borderRadius:14,padding:"18px 20px"}}>
+                <div style={{fontWeight:800,fontSize:14,color:"#1e293b",marginBottom:12}}>📋 RC / HSRP Status</div>
+                <RCHSRPSearch statusData={statusData} role={role} onUpload={saveStatusData} notify={notify}/>
+              </div>
+            </div>
+          </div>
+        ):<div style={{maxWidth:700}}><UploadsHub stockData={stockData} statusData={statusData} onStockUpload={saveStockData} onStatusUpload={saveStatusData} notify={notify}/></div>)}
 
         {/* ── RC/HSRP ── */}
         {view==="rcstatus"&&<div style={{maxWidth:900}}><RCHSRPSearch statusData={statusData} role={role} onUpload={saveStatusData} notify={notify}/></div>}
