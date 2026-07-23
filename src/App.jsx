@@ -1119,7 +1119,7 @@ function AddModal({onClose,onSave,curUser,role,existing}){
   const [f,setF]=useState({name:"",phone:"",fatherName:"",address:"",dob:"",aadhar:"",pan:"",modelCode:"",model:"",cat:"",enquiryDate:td(),status:"Hot",salesman:curUser,finance:"Cash",exchangeAsked:"",exchangeOffered:"",remarks:"",followupDate:"",nominee:"",nomineeRel:""});
   const [mSearch,setMSearch]=useState("");
   function cap(v){return String(v||"").toUpperCase();}
-  function capBlur(k){return{onBlur:e=>setF(p=>({...p,[k]:cap(e.target.value)}));};}
+  function capBlur(k){return{onBlur:e=>setF(p=>({...p,[k]:cap(e.target.value)}))};}
   function pickM(code){const m=RC[code];setF(p=>({...p,modelCode:code,model:m?m.n:"",cat:m?m.cat:""}));setMSearch(code?(code+" — "+(RC[code]?RC[code].n:"")):"");}
   function submit(){
     if(!f.name||!f.phone){alert("Name & phone required");return;}
