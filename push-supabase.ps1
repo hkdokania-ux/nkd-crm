@@ -11,7 +11,7 @@ Write-Host "Installing packages..." -ForegroundColor Cyan
 npm install
 
 git add -A
-git commit -m "Balance due: banner in billing tab + shown on customer card"
+git commit -m "Home opens on login; dashboard shows billed customers with due balance"
 git push
 
 if ($LASTEXITCODE -eq 0) {
