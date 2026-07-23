@@ -11,7 +11,7 @@ Write-Host "Installing packages..." -ForegroundColor Cyan
 npm install
 
 git add -A
-git commit -m "Auto-send MR PDF to customer on payment + popup notification for manager/owner"
+git commit -m "8 features: enquiry date cap, model search, DOB warning, auto-caps, chassis stock+OTHERS, exchange value fix, hide finance bank, salesman pending tab + canApprove"
 git push
 
 if ($LASTEXITCODE -eq 0) {

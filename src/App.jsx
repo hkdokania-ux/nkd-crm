@@ -1117,15 +1117,23 @@ function BookingModal({cust,onClose,onSave}){
 
 function AddModal({onClose,onSave,curUser,role,existing}){
   const [f,setF]=useState({name:"",phone:"",fatherName:"",address:"",dob:"",aadhar:"",pan:"",modelCode:"",model:"",cat:"",enquiryDate:td(),status:"Hot",salesman:curUser,finance:"Cash",exchangeAsked:"",exchangeOffered:"",remarks:"",followupDate:"",nominee:"",nomineeRel:""});
-  function pickM(code){const m=RC[code];setF(p=>({...p,modelCode:code,model:m?m.n:"",cat:m?m.cat:""}));}
+  const [mSearch,setMSearch]=useState("");
+  function cap(v){return String(v||"").toUpperCase();}
+  function capBlur(k){return{onBlur:e=>setF(p=>({...p,[k]:cap(e.target.value)}));};}
+  function pickM(code){const m=RC[code];setF(p=>({...p,modelCode:code,model:m?m.n:"",cat:m?m.cat:""}));setMSearch(code?(code+" — "+(RC[code]?RC[code].n:"")):"");}
   function submit(){
     if(!f.name||!f.phone){alert("Name & phone required");return;}
     if(!/^\d{10}$/.test(f.phone)){alert("Phone must be exactly 10 digits");return;}
+    if(f.enquiryDate>td()){alert("Enquiry date cannot be in the future");return;}
     const dup=(existing||[]).find(c=>c.phone===f.phone);
     if(dup){alert("⚠️ Duplicate! "+dup.name+" already exists with this number (handled by "+dup.salesman+")");return;}
     const st=f.status||"Hot";
     onSave({...f,followupDate:f.followupDate||aD(f.enquiryDate||td(),FU[st]||3),callLog:[]});
   }
+  // DOB age check
+  const dobAge=f.dob?(Math.floor((new Date()-new Date(f.dob))/31557600000)):null;
+  const allModels=Object.entries(RC);
+  const filteredModels=mSearch?allModels.filter(([code,m])=>code.toLowerCase().includes(mSearch.toLowerCase())||m.n.toLowerCase().includes(mSearch.toLowerCase())):allModels;
   const r=RC[f.modelCode];
   return(
     <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.88)",zIndex:150,display:"flex",alignItems:"flex-end"}}>
@@ -1133,21 +1141,29 @@ function AddModal({onClose,onSave,curUser,role,existing}){
         <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:16}}><div style={{fontWeight:800,fontSize:17,color:"#1e293b"}}>New Enquiry</div><button onClick={onClose} style={{background:"#c2d6ec",border:"none",borderRadius:8,width:32,height:32,cursor:"pointer",color:"#64748b",fontSize:18}}>✕</button></div>
         <div style={{display:"flex",flexDirection:"column",gap:10}}>
           {[{k:"name",l:"Customer Name *"},{k:"phone",l:"Phone *",t:"tel"},{k:"address",l:"Address"}].map(({k,l,t})=>(
-            <div key={k}><label style={lbl}>{l}</label><input type={t||"text"} style={inp} value={f[k]||""} onChange={e=>setF(p=>({...p,[k]:e.target.value}))}/></div>
+            <div key={k}><label style={lbl}>{l}</label><input type={t||"text"} style={inp} value={f[k]||""} onChange={e=>setF(p=>({...p,[k]:e.target.value}))} {...(t!=="tel"?capBlur(k):{})}/></div>
           ))}
-          <div><label style={lbl}>Model</label>
-            <select style={inp} value={f.modelCode} onChange={e=>pickM(e.target.value)}><option value="">Select…</option>{CATS.map(cat=><optgroup key={cat} label={cat}>{Object.entries(RC).filter(([,m])=>m.cat===cat).map(([code,m])=><option key={code} value={code}>{code} — {m.n}</option>)}</optgroup>)}</select>
-            {r&&<div style={{background:"rgba(96,165,250,0.07)",border:"1px solid rgba(96,165,250,0.2)",borderRadius:8,padding:"8px 10px",marginTop:5,fontSize:11}}><span style={{color:"#60a5fa",fontWeight:700}}>{r.n}</span><br/><span style={{color:"#64748b"}}>Ex-Showroom: </span><b style={{color:"#1e293b"}}>{fc(r.ex)}</b><span style={{color:"#64748b"}}> | On-Road: </span><b style={{color:"#34d399"}}>{fc(r.onRoad)}</b></div>}
+          <div><label style={lbl}>Model — search by code or name</label>
+            <input style={inp} value={mSearch} onChange={e=>{setMSearch(e.target.value);if(!e.target.value){pickM("");}}} placeholder="Type model code or name…" list="model-list"/>
+            <datalist id="model-list">{filteredModels.map(([code,m])=><option key={code} value={code+" — "+m.n}/>)}</datalist>
+            {mSearch&&filteredModels.length===1&&filteredModels[0][0]!==f.modelCode&&(()=>{const [code]=filteredModels[0];setTimeout(()=>pickM(code),0);return null;})()}
+            {/* also support selecting from the datalist */}
+            {mSearch&&(()=>{const match=allModels.find(([c,m])=>mSearch===c+" — "+m.n||mSearch===c);if(match&&match[0]!==f.modelCode)pickM(match[0]);return null;})()}
+            {r&&<div style={{background:"rgba(96,165,250,0.07)",border:"1px solid rgba(96,165,250,0.2)",borderRadius:8,padding:"8px 10px",marginTop:5,fontSize:11}}><span style={{color:"#60a5fa",fontWeight:700}}>{f.modelCode} — {r.n}</span><br/><span style={{color:"#64748b"}}>Ex-Showroom: </span><b style={{color:"#1e293b"}}>{fc(r.ex)}</b><span style={{color:"#64748b"}}> | On-Road: </span><b style={{color:"#34d399"}}>{fc(r.onRoad)}</b></div>}
+          </div>
+          <div><label style={lbl}>DOB</label>
+            <input type="date" style={inp} value={f.dob||""} onChange={e=>setF(p=>({...p,dob:e.target.value}))} max={td()}/>
+            {dobAge!==null&&dobAge<18&&<div style={{background:"rgba(239,68,68,0.1)",border:"1px solid #ef4444",borderRadius:7,padding:"5px 10px",marginTop:4,fontSize:11,color:"#ef4444",fontWeight:700}}>⚠️ Under 18 years — customer is a minor ({dobAge} yrs)</div>}
           </div>
           <div><label style={lbl}>Lead Source</label><select style={inp} value={f.source||""} onChange={e=>setF(p=>({...p,source:e.target.value}))}><option value="">Select…</option><option>Walk-in</option><option>Via Phone Call</option><option>Reference</option><option>Old Customer</option><option>JustDial</option><option>Instagram/Facebook</option><option>Hoarding/Newspaper</option><option>Other</option></select></div>
-          {f.source==="Reference"&&<div><label style={lbl}>Referred By (name / phone)</label><input style={inp} value={f.refBy||""} onChange={e=>setF(p=>({...p,refBy:e.target.value}))}/></div>}
-          <div><label style={lbl}>Enquiry Date</label><input type="date" style={inp} value={f.enquiryDate} onChange={e=>setF(p=>({...p,enquiryDate:e.target.value}))}/></div>
+          {f.source==="Reference"&&<div><label style={lbl}>Referred By (name / phone)</label><input style={inp} value={f.refBy||""} onChange={e=>setF(p=>({...p,refBy:e.target.value}))} {...capBlur("refBy")}/></div>}
+          <div><label style={lbl}>Enquiry Date</label><input type="date" style={inp} value={f.enquiryDate} max={td()} onChange={e=>setF(p=>({...p,enquiryDate:e.target.value}))}/></div>
           <div><label style={lbl}>Temperature</label><div style={{display:"flex",gap:7}}>{["Hot","Warm","Cold"].map(s=><button key={s} onClick={()=>setF(p=>({...p,status:s}))} style={{flex:1,background:f.status===s?ST_C[s]:"#6b8fb5",border:"none",borderRadius:10,padding:10,color:f.status===s?"#fff":"#5a6478",fontWeight:700,cursor:"pointer",fontSize:12}}>{s}</button>)}</div></div>
           <div><label style={lbl}>Mode</label><div style={{display:"flex",gap:7}}>{["Cash","Finance"].map(s=><button key={s} onClick={()=>setF(p=>({...p,finance:s}))} style={{flex:1,background:f.finance===s?"#dbeafe":"#6b8fb5",border:"1px solid "+(f.finance===s?"#3b82f6":"#6b8fb5"),borderRadius:10,padding:10,color:f.finance===s?"#60a5fa":"#5a6478",fontWeight:700,cursor:"pointer",fontSize:12}}>{s}</button>)}</div></div>
           <div><label style={lbl}>Expected Date of Purchase</label><input type="date" style={inp} value={f.expectedPurchaseDate||""} onChange={e=>setF(p=>({...p,expectedPurchaseDate:e.target.value}))}/></div>
           <div style={{background:"rgba(107,114,128,0.08)",border:"1px dashed #374151",borderRadius:10,padding:"9px 12px",fontSize:11,color:"#94a3b8"}}>🔒 Nominee &amp; Exchange details are entered at billing time</div>
           {role!=="salesman"&&<div><label style={lbl}>Assign to</label><select style={inp} value={f.salesman} onChange={e=>setF(p=>({...p,salesman:e.target.value}))}>{SM.map(s=><option key={s}>{s}</option>)}</select></div>}
-          <div><label style={lbl}>Remarks</label><textarea rows={2} style={{...inp,resize:"none"}} value={f.remarks} onChange={e=>setF(p=>({...p,remarks:e.target.value}))}/></div>
+          <div><label style={lbl}>Remarks</label><textarea rows={2} style={{...inp,resize:"none"}} value={f.remarks} onChange={e=>setF(p=>({...p,remarks:e.target.value}))} onBlur={e=>setF(p=>({...p,remarks:cap(e.target.value)}))}/></div>
           <div><label style={lbl}>Followup Date (blank=auto)</label><input type="date" style={inp} value={f.followupDate} onChange={e=>setF(p=>({...p,followupDate:e.target.value}))}/></div>
           <button onClick={submit} style={{...btn("linear-gradient(135deg,#f97316,#ef4444)"),padding:15,fontSize:15,borderRadius:14,marginTop:4}}>Add Customer</button>
         </div>
@@ -1184,7 +1200,7 @@ function BillingModal({cust,onClose,onSave,notify,role,stockData,billedChassis})
   const r=RC[cust.modelCode]||{};
   const isFin=cust.finance==="Finance";
   const eb=cust.billing||{};
-  const [f,setF]=useState({...eb,billName:eb.billName||cust.name,exchName:cust.exchangeName||"",exchModel:cust.exchangeAsked||"",exchRegNo:cust.exchangeRegNo||"",bkDate:(cust.booking&&cust.booking.date)||td(),fatherName:cust.fatherName||"",dob:cust.dob||"",aadhar:cust.aadhar||"",pan:cust.pan||"",nominee:cust.nominee||"",nomineeRel:cust.nomineeRel||"",hdl:eb.hdl!==undefined?eb.hdl:(r.hdl||600),ins:eb.ins!==undefined?eb.ins:(r.ins||0),reg:eb.reg!==undefined?eb.reg:(r.reg||0),acc:0,tef:isFin?500:0,hyp:isFin?500:0,addAmc:false,cof:0,sdis:0,corp:0,bk:(cust.booking&&cust.booking.amt)||0,exv:Number(cust.exchangeOffered)||0,loan:0,payments:eb.payments&&eb.payments.length?eb.payments:(eb.paid||eb.payMode?[{mode:eb.payMode||"Cash",amt:Number(eb.paid||0),ref:""}]:[{mode:"Cash",amt:0,ref:""}]),chassis:"",engine:"",color:"",deliveryDate:td(),financeBank:"",registrationNo:"",insuranceNo:""});
+  const [f,setF]=useState({...eb,billName:eb.billName||cust.name,exchName:cust.exchangeName||"",exchModel:cust.exchangeAsked||"",exchRegNo:cust.exchangeRegNo||"",bkDate:(cust.booking&&cust.booking.date)||td(),fatherName:cust.fatherName||"",dob:cust.dob||"",aadhar:cust.aadhar||"",pan:cust.pan||"",nominee:cust.nominee||"",nomineeRel:cust.nomineeRel||"",hdl:eb.hdl!==undefined?eb.hdl:(r.hdl||600),ins:eb.ins!==undefined?eb.ins:(r.ins||0),reg:eb.reg!==undefined?eb.reg:(r.reg||0),acc:0,tef:isFin?500:0,hyp:isFin?500:0,addAmc:false,cof:0,sdis:0,corp:0,bk:(cust.booking&&cust.booking.amt)||0,exv:eb.exv!==undefined?eb.exv:0,loan:0,payments:eb.payments&&eb.payments.length?eb.payments:(eb.paid||eb.payMode?[{mode:eb.payMode||"Cash",amt:Number(eb.paid||0),ref:""}]:[{mode:"Cash",amt:0,ref:""}]),chassis:"",engine:"",color:"",deliveryDate:td(),financeBank:"",registrationNo:"",insuranceNo:""});
   const c=calcB(f,r);
   const [chk,setChk]=useState(eb.checklist||{pdi:false,helmet:false,docs:false,service:false});
   const VER_ALL=[["nameV","Customer name verified"],["fatherV","Father name verified"],["aadharV","Aadhar number verified"],["nomineeV","Nominee & relation added"],["chassisV","Chassis number verified"],["engineV","Engine number verified"],["colorV","Colour verified"]];
@@ -1313,11 +1329,12 @@ function BillingModal({cust,onClose,onSave,notify,role,stockData,billedChassis})
             <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:8}}>
               <div style={{gridColumn:"1/-1"}}>
                 <label style={{...lbl,fontSize:10}}>Chassis No * {availableForModel.length>0&&<span style={{color:"#34d399",fontWeight:700}}>({availableForModel.length} in stock)</span>}{availableForModel.length===0&&sRows.length>0&&<span style={{color:"#f97316",fontWeight:700}}>(no stock for this model)</span>}</label>
-                <input list="chassis-list" value={f.chassis||""} onChange={e=>pickChassis(e.target.value)} placeholder="Type or search chassis no…" style={{...inp,fontSize:12,padding:"8px 10px"}}/>
-                {availableForModel.length>0&&<datalist id="chassis-list">{availableForModel.map((row,i)=>{const ch=String(row[sChassisKey]||"");return(<option key={i} value={ch}>{sColorKey&&row[sColorKey]?row[sColorKey]:""}</option>);})}</datalist>}
+                <input list="chassis-list" value={f.chassis||""} onChange={e=>pickChassis(e.target.value)} placeholder="Type or search chassis no…" style={{...inp,fontSize:12,padding:"8px 10px",textTransform:"uppercase"}} onBlur={e=>setF(p=>({...p,chassis:String(e.target.value).toUpperCase()}))}/>
+                <datalist id="chassis-list">{availableForModel.map((row,i)=>{const ch=String(row[sChassisKey]||"");return(<option key={i} value={ch}>{sColorKey&&row[sColorKey]?row[sColorKey]:""}</option>);})}<option value="OTHERS">OTHERS — Vehicle not in current stock list</option></datalist>
+                {f.chassis==="OTHERS"&&<div style={{fontSize:11,color:"#f97316",marginTop:3}}>⚠️ Chassis not from stock — please type the actual chassis number</div>}
               </div>
-              {[{k:"engine",l:"Engine No"},{k:"color",l:"Colour"},{k:"deliveryDate",l:"Delivery Date",t:"date"},{k:"financeBank",l:"Finance Bank"},{k:"registrationNo",l:"Reg No"},{k:"insuranceNo",l:"Insurance No"},{k:"mrNo",l:"MR No."}].map(({k,l,t})=>(
-                <div key={k}><label style={{...lbl,fontSize:10}}>{l}</label><input type={t||"text"} value={f[k]||""} onChange={e=>setF(p=>({...p,[k]:e.target.value}))} style={{...inp,fontSize:12,padding:"8px 10px"}}/></div>
+              {[{k:"engine",l:"Engine No"},{k:"color",l:"Colour"},{k:"deliveryDate",l:"Delivery Date",t:"date"},...(isFin?[{k:"financeBank",l:"Finance Bank"}]:[]),{k:"registrationNo",l:"Reg No"},{k:"insuranceNo",l:"Insurance No"},{k:"mrNo",l:"MR No."}].map(({k,l,t})=>(
+                <div key={k}><label style={{...lbl,fontSize:10}}>{l}</label><input type={t||"text"} value={f[k]||""} onChange={e=>setF(p=>({...p,[k]:e.target.value}))} onBlur={t!=="date"?e=>setF(p=>({...p,[k]:String(e.target.value).toUpperCase()})):undefined} style={{...inp,fontSize:12,padding:"8px 10px",textTransform:t==="date"?"none":"uppercase"}}/></div>
               ))}
             </div>
           </div>
@@ -1488,7 +1505,7 @@ function BillingView({billing:b,cust,onAddPayment}){
   );
 }
 
-function Approvals({custs,onApprove,onOpen,onEditCalc,allC}){
+function Approvals({custs,onApprove,onOpen,onEditCalc,allC,canApprove}){
   const [rem,setRem]=useState({});
   const rejected=(allC||[]).filter(c=>c.managerApproval==="rejected"&&!c.billed);
   return(
@@ -1533,11 +1550,11 @@ function Approvals({custs,onApprove,onOpen,onEditCalc,allC}){
             {cl.K!==0&&<div style={{margin:"0 14px 10px",background:"rgba(239,68,68,0.1)",border:"1px solid rgba(239,68,68,0.35)",borderRadius:9,padding:"8px 11px",fontSize:11,color:"#ef4444",fontWeight:700}}>⛔ Difference K = {fc(cl.K)} — approval blocked until fully settled (K must be ₹0)</div>}
             <div style={{padding:"0 14px 8px"}}><input placeholder="Manager remark (optional — saved to history)" value={rem[c.id]||""} onChange={e=>setRem(p=>({...p,[c.id]:e.target.value}))} style={{background:"#f8fafc",border:"1px solid #6b8fb5",borderRadius:10,padding:"9px 12px",fontSize:12,color:"#1e293b",width:"100%",boxSizing:"border-box",outline:"none"}}/></div>
             {cl.K!==0&&<div style={{margin:"0 14px 8px",fontSize:11,color:"#f59e0b",fontWeight:700}}>👉 Tap EDIT to correct the sheet yourself, then it auto-approves</div>}
-            <div style={{display:"flex",gap:6,padding:"10px 14px",borderTop:"1px solid #6b8fb5"}}>
+            {canApprove&&(<div style={{display:"flex",gap:6,padding:"10px 14px",borderTop:"1px solid #6b8fb5"}}>
               <button onClick={()=>cl.K===0&&onApprove(c.id,true,rem[c.id]||"")} disabled={cl.K!==0} style={{...btn(cl.K===0?"rgba(34,197,94,0.12)":"rgba(107,114,128,0.1)",cl.K===0?"#22c55e":"#374151"),flex:1,border:"1px solid "+(cl.K===0?"rgba(34,197,94,0.4)":"#6b8fb5"),cursor:cl.K===0?"pointer":"not-allowed",fontSize:12,padding:"11px 4px"}}>✅ Approve</button>
               <button onClick={()=>onEditCalc(c)} style={{...btn("rgba(245,158,11,0.15)","#f59e0b"),flex:1,border:"1px solid rgba(245,158,11,0.5)",fontSize:12,padding:"11px 4px"}}>✏️ EDIT</button>
               <button onClick={()=>onApprove(c.id,false,rem[c.id]||"")} style={{...btn("rgba(239,68,68,0.1)","#ef4444"),flex:1,border:"1px solid rgba(239,68,68,0.3)",fontSize:12,padding:"11px 4px"}}>❌ Reject</button>
-            </div>
+            </div>)}
           </div>
         );
       })}
@@ -2212,6 +2229,7 @@ export default function App(){
   const myC=role==="salesman"?custs.filter(c=>c.salesman===user):role==="manager"?custs.filter(c=>(c.branch||SM_BRANCH[c.salesman])===mBr):custs; // owner/tech/admin see all
   const due=[...myC.filter(c=>!c.billed&&!c.stopped&&c.followupDate<=td())].sort((a,b)=>{const o={Hot:0,Warm:1,Cold:2,Booked:3};return(o[a.status]??9)-(o[b.status]??9);});
   const pending=custs.filter(c=>c.billing&&c.managerApproval===null);
+  const myPending=role==="salesman"?pending.filter(c=>c.salesman===user):pending;
   const revivable=custs.filter(c=>{if(c.billed)return false;const base=c.reactivatedAt||c.enquiryDate;return((new Date()-new Date(base))/(864e5*30))>=6;});
 
   function openD(c,tab){setSel(c);if(tab)setDtab(tab);nav("detail");}
@@ -2223,7 +2241,7 @@ export default function App(){
   if(!li)return <Login nkdUsers={nkdUsers} onLogin={(r,u,b)=>{setRole(r);setUser(u);if(b)sv("nkd_br",b);sv("nkd_r",r);sv("nkd_u",u);sv("nkd_li",true);setLi(true);if(isPortalRole(r))togglePortal(true);}}/>;
 
   // Payment notification popup for manager / owner / tech
-  const notifPopup=(role==="manager"||role==="owner"||role==="tech")&&(
+  const notifPopup=(role==="manager"||role==="owner"||role==="tech"||role==="admin")&&(
     <PaymentNotifPopup notifs={payNotifs} onDismiss={()=>{
       const marked=payNotifs.map(n=>({...n,read:true}));
       setPayNotifs(marked);
@@ -2245,7 +2263,7 @@ export default function App(){
     /></>;
   }
 
-  const navItems=role==="admin"?[{id:"vault",l:"Document Vault",ic:"📁"},{id:"uploads",l:"Uploads",ic:"📤"},{id:"stock",l:"Stock",ic:"🏍️"},{id:"rcstatus",l:"RC/HSRP",ic:"🔍"}]:[{id:"dashboard",l:"Home",ic:"🏠"},{id:"followups",l:"Followup",ic:"📞",badge:due.length},{id:"customers",l:"Customers",ic:"👥"},{id:"stock",l:"Stock",ic:"🏍️"},{id:"rcstatus",l:"RC/HSRP",ic:"🔍"},...(role!=="salesman"?[{id:"approvals",l:"Approve",ic:"✅",badge:pending.length}]:[]),...(role!=="salesman"?[{id:"revival",l:"Revival",ic:"🔄"}]:[]),...(isOwner(role)?[{id:"reports",l:"Reports",ic:"📊"}]:[]),...(isOwner(role)?[{id:"vault",l:"Vault",ic:"📁"}]:[]),...(isOwner(role)?[{id:"uploads",l:"Uploads",ic:"📤"}]:[]),...(role!=="salesman"&&alerts.length>0?[{id:"alerts",l:"Alerts",ic:"⚠️",badge:alerts.length}]:[])];
+  const navItems=role==="admin"?[{id:"vault",l:"Document Vault",ic:"📁"},{id:"uploads",l:"Uploads",ic:"📤"},{id:"stock",l:"Stock",ic:"🏍️"},{id:"rcstatus",l:"RC/HSRP",ic:"🔍"}]:[{id:"dashboard",l:"Home",ic:"🏠"},{id:"followups",l:"Followup",ic:"📞",badge:due.length},{id:"customers",l:"Customers",ic:"👥"},{id:"stock",l:"Stock",ic:"🏍️"},{id:"rcstatus",l:"RC/HSRP",ic:"🔍"},{id:"approvals",l:role==="salesman"?"My Pending":"Approve",ic:"✅",badge:myPending.length},...(role!=="salesman"?[{id:"revival",l:"Revival",ic:"🔄"}]:[]),...(isOwner(role)?[{id:"reports",l:"Reports",ic:"📊"}]:[]),...(isOwner(role)?[{id:"vault",l:"Vault",ic:"📁"}]:[]),...(isOwner(role)?[{id:"uploads",l:"Uploads",ic:"📤"}]:[]),...(role!=="salesman"&&alerts.length>0?[{id:"alerts",l:"Alerts",ic:"⚠️",badge:alerts.length}]:[])];
 
   return(
     <div style={{minHeight:"100vh",background:"linear-gradient(160deg,#f0f7ff 0%,#e8f4ff 40%,#f8fafc 100%)",color:"#1e293b",fontFamily:"'Inter',-apple-system,sans-serif",maxWidth:480,margin:"0 auto"}}>
@@ -2273,7 +2291,7 @@ export default function App(){
         </div>
         <div style={{display:"flex",alignItems:"center",gap:6}}>
           {due.length>0&&<div style={{background:"rgba(249,115,22,0.2)",color:"#f97316",borderRadius:20,padding:"2px 7px",fontSize:10,fontWeight:800}}>📞 {due.length}</div>}
-          {role!=="salesman"&&pending.length>0&&<div onClick={()=>nav("approvals")} style={{background:"rgba(139,92,246,0.2)",color:"#a78bfa",borderRadius:20,padding:"2px 7px",fontSize:10,fontWeight:800,cursor:"pointer"}}>✓ {pending.length}</div>}
+          {myPending.length>0&&<div onClick={()=>nav("approvals")} style={{background:"rgba(139,92,246,0.2)",color:"#a78bfa",borderRadius:20,padding:"2px 7px",fontSize:10,fontWeight:800,cursor:"pointer"}}>✓ {myPending.length}</div>}
           {role!=="salesman"&&alerts.length>0&&<div onClick={()=>nav("alerts")} style={{background:"rgba(239,68,68,0.2)",color:"#ef4444",borderRadius:20,padding:"2px 7px",fontSize:10,fontWeight:800,cursor:"pointer"}}>⚠️ {alerts.length}</div>}
           {isPortalRole(role)&&<button onClick={()=>togglePortal(true)} style={{background:"#dbeafe",border:"1px solid #3b82f6",color:"#1d4ed8",borderRadius:8,padding:"3px 8px",fontSize:10,cursor:"pointer",fontWeight:700}}>🖥️ Portal</button>}
           <button onClick={()=>{sv("nkd_li",false);setLi(false);}} style={{background:"transparent",border:"1px solid #6b8fb5",color:"#94a3b8",borderRadius:8,padding:"3px 8px",fontSize:10,cursor:"pointer"}}>Out</button>
@@ -2299,7 +2317,7 @@ export default function App(){
         {view==="uploads"&&<div style={{padding:"0 16px 80px"}}><UploadsHub stockData={stockData} statusData={statusData} onStockUpload={saveStockData} onStatusUpload={saveStatusData} notify={notify}/></div>}
         {view==="stock"&&<div style={{padding:"0 16px 80px"}}><StockView stockData={stockData} billedChassis={billedChassis} role={role} userBranch={role==="salesman"?(SM_BRANCH[user]||BRANCHES[0]):role==="manager"?mBr:null} onUpload={saveStockData} notify={notify}/></div>}
         {view==="rcstatus"&&<div style={{padding:"0 16px 80px"}}><RCHSRPSearch statusData={statusData} role={role} onUpload={saveStatusData} notify={notify}/></div>}
-        {view==="approvals"&&<Approvals custs={pending} onApprove={approveBill} onOpen={openD} onEditCalc={c=>{setSel(c);setBillOpen(true);}} allC={myC}/>}
+        {view==="approvals"&&<Approvals custs={myPending} onApprove={approveBill} onOpen={openD} onEditCalc={c=>{setSel(c);setBillOpen(true);}} allC={myC} canApprove={role!=="salesman"}/>}
         {view==="revival"&&<Revival items={revivable} onRevive={ids=>{let si=0;const perDay={};setCusts(p=>p.map(c=>{
           if(!ids.includes(c.id))return c;
           const sm2=SM[si++%SM.length];
