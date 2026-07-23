@@ -11,7 +11,7 @@ Write-Host "Installing packages..." -ForegroundColor Cyan
 npm install
 
 git add -A
-git commit -m "Home opens on login; dashboard shows billed customers with due balance"
+git commit -m "Dashboard due list: use calcB fallback so all billed customers show"
 git push
 
 if ($LASTEXITCODE -eq 0) {

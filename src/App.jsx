@@ -364,24 +364,31 @@ function Dashboard({custs,role,onOpen,onNav,onNavF,onSvcDone,onTeamTap}){
           </div>
         ))}
       </div>
-      {(()=>{const dueC=custs.filter(c=>c.billed&&c.billing&&c.billing.calc&&c.billing.calc.K>0).sort((a,b)=>b.billing.calc.K-a.billing.calc.K);return dueC.length>0?(
-        <div style={{marginBottom:18}}>
-          <div style={{fontSize:12,fontWeight:800,color:"#ef4444",marginBottom:8}}>⚠️ BALANCE DUE — BILLED CUSTOMERS ({dueC.length})</div>
-          {dueC.map(c=>(
-            <div key={c.id} onClick={()=>onOpen(c,"billing")} style={{background:"rgba(239,68,68,0.05)",border:"1px solid rgba(239,68,68,0.4)",borderRadius:12,padding:"11px 13px",marginBottom:7,cursor:"pointer",display:"flex",justifyContent:"space-between",alignItems:"center"}}>
-              <div style={{flex:1,minWidth:0}}>
-                <div style={{fontWeight:700,fontSize:13,color:"#1e293b"}}>{c.name}</div>
-                <div style={{fontSize:11,color:"#64748b"}}>{c.model} · Billed {fd(c.billedDate)}{role!=="salesman"?" · "+c.salesman:""}</div>
+      {(()=>{
+        const withK=custs.filter(c=>c.billed&&c.billing).map(c=>{
+          const r=RC[c.modelCode]||{};
+          const K=(c.billing.calc&&typeof c.billing.calc.K==="number")?c.billing.calc.K:calcB(c.billing,r).K;
+          return{...c,_K:K};
+        }).filter(c=>c._K>0).sort((a,b)=>b._K-a._K);
+        return withK.length>0?(
+          <div style={{marginBottom:18}}>
+            <div style={{fontSize:12,fontWeight:800,color:"#ef4444",marginBottom:8}}>⚠️ BALANCE DUE — BILLED CUSTOMERS ({withK.length})</div>
+            {withK.map(c=>(
+              <div key={c.id} onClick={()=>onOpen(c,"billing")} style={{background:"rgba(239,68,68,0.05)",border:"1px solid rgba(239,68,68,0.4)",borderRadius:12,padding:"11px 13px",marginBottom:7,cursor:"pointer",display:"flex",justifyContent:"space-between",alignItems:"center"}}>
+                <div style={{flex:1,minWidth:0}}>
+                  <div style={{fontWeight:700,fontSize:13,color:"#1e293b"}}>{c.name}</div>
+                  <div style={{fontSize:11,color:"#64748b"}}>{c.model} · Billed {fd(c.billedDate)}{role!=="salesman"?" · "+c.salesman:""}</div>
+                </div>
+                <div style={{textAlign:"right",flexShrink:0,marginLeft:10}}>
+                  <div style={{fontWeight:900,fontSize:15,color:"#ef4444"}}>{fc(c._K)}</div>
+                  <div style={{fontSize:9,color:"#94a3b8"}}>DUE</div>
+                </div>
               </div>
-              <div style={{textAlign:"right",flexShrink:0,marginLeft:10}}>
-                <div style={{fontWeight:900,fontSize:15,color:"#ef4444"}}>{fc(c.billing.calc.K)}</div>
-                <div style={{fontSize:9,color:"#94a3b8"}}>DUE</div>
-              </div>
-            </div>
-          ))}
-          <div style={{fontSize:10,color:"#94a3b8",textAlign:"right",marginTop:4}}>Total pending: {fc(dueC.reduce((s,c)=>s+c.billing.calc.K,0))}</div>
-        </div>
-      ):null;})()}
+            ))}
+            <div style={{fontSize:10,color:"#94a3b8",textAlign:"right",marginTop:4}}>Total pending: {fc(withK.reduce((s,c)=>s+c._K,0))}</div>
+          </div>
+        ):null;
+      })()}
       {(()=>{const svc=custs.filter(c=>{if(!c.billed||c.serviceDone)return false;const d=(new Date(aD(c.billedDate,45))-new Date())/864e5;return d<=7&&d>=-30;});return svc.length>0?(
         <div style={{marginBottom:16}}>
           <div style={{fontSize:12,fontWeight:800,color:"#60a5fa",marginBottom:8}}>🔧 1st FREE SERVICE DUE ({svc.length})</div>
