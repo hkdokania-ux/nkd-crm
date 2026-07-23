@@ -341,7 +341,51 @@ function Login({onLogin,nkdUsers}){
   );
 }
 
-function Dashboard({custs,role,onOpen,onNav,onNavF,onSvcDone,onTeamTap}){
+function DuePayRow({c,K,role,onOpen,onAddPayment}){
+  const [open,setOpen]=useState(false);
+  const [mode,setMode]=useState("Cash");
+  const [amt,setAmt]=useState("");
+  const [ref,setRef]=useState("");
+  function save(){
+    const a=Number(amt);
+    if(!a||a<=0){alert("Enter a valid amount");return;}
+    if(a>K){alert("Amount ₹"+a+" exceeds balance due ₹"+K);return;}
+    onAddPayment(c.id,{mode,amt:a,ref,date:td()});
+    setOpen(false);setAmt("");setRef("");
+  }
+  return(
+    <div style={{background:"rgba(239,68,68,0.05)",border:"1px solid rgba(239,68,68,0.4)",borderRadius:12,padding:"11px 13px",marginBottom:7}}>
+      <div style={{display:"flex",justifyContent:"space-between",alignItems:"center"}}>
+        <div onClick={()=>onOpen(c,"billing")} style={{flex:1,minWidth:0,cursor:"pointer"}}>
+          <div style={{fontWeight:700,fontSize:13,color:"#1e293b"}}>{c.name}</div>
+          <div style={{fontSize:11,color:"#64748b"}}>{c.model} · Billed {fd(c.billedDate)}{role!=="salesman"?" · "+c.salesman:""}</div>
+        </div>
+        <div style={{textAlign:"right",flexShrink:0,marginLeft:10}}>
+          <div style={{fontWeight:900,fontSize:15,color:"#ef4444"}}>{fc(K)}</div>
+          <div style={{fontSize:9,color:"#94a3b8"}}>DUE</div>
+        </div>
+      </div>
+      {!open&&<button onClick={()=>setOpen(true)} style={{marginTop:8,width:"100%",background:"linear-gradient(135deg,#22c55e,#16a34a)",border:"none",borderRadius:9,padding:"9px",fontSize:12,color:"#fff",fontWeight:700,cursor:"pointer",boxShadow:"0 2px 8px rgba(34,197,94,0.3)"}}>💳 Receive Payment</button>}
+      {open&&(
+        <div style={{marginTop:8,background:"#f8fafc",border:"1px solid #6b8fb5",borderRadius:10,padding:"10px 12px"}}>
+          <div style={{fontSize:11,fontWeight:700,color:"#1e293b",marginBottom:8}}>Record Payment — Balance: {fc(K)}</div>
+          <div style={{display:"flex",gap:6,marginBottom:7}}>
+            <select value={mode} onChange={e=>setMode(e.target.value)} style={{...inp,flex:"0 0 110px",padding:"7px 8px",fontSize:12}}>
+              {["Cash","Cheque","UPI","RTGS","Finance"].map(m=><option key={m}>{m}</option>)}
+            </select>
+            <input type="number" value={amt} onChange={e=>setAmt(e.target.value)} placeholder={"Amount (max "+fc(K)+")"} style={{...inp,flex:1,padding:"7px 8px",fontSize:12}}/>
+          </div>
+          <input value={ref} onChange={e=>setRef(e.target.value)} placeholder="Cheque no / Ref (optional)" style={{...inp,marginBottom:8,padding:"7px 8px",fontSize:12}}/>
+          <div style={{display:"flex",gap:6}}>
+            <button onClick={save} style={{...btn("linear-gradient(135deg,#22c55e,#16a34a)"),flex:1,padding:"8px",borderRadius:9,fontSize:12}}>✅ Save Receipt</button>
+            <button onClick={()=>{setOpen(false);setAmt("");setRef("");}} style={{flex:"0 0 70px",background:"transparent",border:"1px solid #6b8fb5",borderRadius:9,padding:"8px",fontSize:12,color:"#64748b",cursor:"pointer"}}>Cancel</button>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+function Dashboard({custs,role,onOpen,onNav,onNavF,onSvcDone,onTeamTap,onAddPayment}){
   const hot=custs.filter(c=>c.status==="Hot"&&!c.billed);
   const stats=[
     {l:"Hot",st:"Hot",v:custs.filter(c=>c.status==="Hot"&&!c.billed).length,c:"#ef4444"},
@@ -367,24 +411,14 @@ function Dashboard({custs,role,onOpen,onNav,onNavF,onSvcDone,onTeamTap}){
       {(()=>{
         const withK=custs.filter(c=>c.billed&&c.billing).map(c=>{
           const r=RC[c.modelCode]||{};
-          const K=(c.billing.calc&&typeof c.billing.calc.K==="number")?c.billing.calc.K:calcB(c.billing,r).K;
+          const stored=c.billing.calc?Number(c.billing.calc.K):NaN;
+          const K=(!isNaN(stored)&&stored>0)?stored:Number(calcB(c.billing,r).K)||0;
           return{...c,_K:K};
         }).filter(c=>c._K>0).sort((a,b)=>b._K-a._K);
         return withK.length>0?(
           <div style={{marginBottom:18}}>
             <div style={{fontSize:12,fontWeight:800,color:"#ef4444",marginBottom:8}}>⚠️ BALANCE DUE — BILLED CUSTOMERS ({withK.length})</div>
-            {withK.map(c=>(
-              <div key={c.id} onClick={()=>onOpen(c,"billing")} style={{background:"rgba(239,68,68,0.05)",border:"1px solid rgba(239,68,68,0.4)",borderRadius:12,padding:"11px 13px",marginBottom:7,cursor:"pointer",display:"flex",justifyContent:"space-between",alignItems:"center"}}>
-                <div style={{flex:1,minWidth:0}}>
-                  <div style={{fontWeight:700,fontSize:13,color:"#1e293b"}}>{c.name}</div>
-                  <div style={{fontSize:11,color:"#64748b"}}>{c.model} · Billed {fd(c.billedDate)}{role!=="salesman"?" · "+c.salesman:""}</div>
-                </div>
-                <div style={{textAlign:"right",flexShrink:0,marginLeft:10}}>
-                  <div style={{fontWeight:900,fontSize:15,color:"#ef4444"}}>{fc(c._K)}</div>
-                  <div style={{fontSize:9,color:"#94a3b8"}}>DUE</div>
-                </div>
-              </div>
-            ))}
+            {withK.map(c=><DuePayRow key={c.id} c={c} K={c._K} role={role} onOpen={onOpen} onAddPayment={onAddPayment}/>)}
             <div style={{fontSize:10,color:"#94a3b8",textAlign:"right",marginTop:4}}>Total pending: {fc(withK.reduce((s,c)=>s+c._K,0))}</div>
           </div>
         ):null;
@@ -862,7 +896,7 @@ function RCHSRPSearch({statusData,role,onUpload,notify}){
     </div>
   );
 }
-function Detail({cust,role,onBack,onUpd,onLog,onBill,onBook,notify,initTab,clearInit}){
+function Detail({cust,role,onBack,onUpd,onLog,onBill,onBook,notify,initTab,clearInit,onAddPayment}){
   const [tab,setTab]=useState(initTab||"info");
   useEffect(()=>{if(initTab){setTab(initTab);clearInit&&clearInit();}},[initTab]);
   const [edit,setEdit]=useState(false);
@@ -1002,7 +1036,7 @@ function Detail({cust,role,onBack,onUpd,onLog,onBill,onBook,notify,initTab,clear
         </div>
       )}
 
-      {tab==="billing"&&cust.billing&&<BillingView billing={cust.billing} cust={cust}/>}
+      {tab==="billing"&&cust.billing&&<BillingView billing={cust.billing} cust={cust} onAddPayment={onAddPayment}/>}
 
 
       {tab==="docs"&&(
@@ -1368,7 +1402,32 @@ function BillingModal({cust,onClose,onSave,notify,role,stockData,billedChassis})
   );
 }
 
-function BillingView({billing:b,cust}){
+function BillingPayBox({K,custId,onAddPayment}){
+  const [mode,setMode]=useState("Cash");
+  const [amt,setAmt]=useState("");
+  const [ref,setRef]=useState("");
+  function save(){
+    const a=Number(amt);
+    if(!a||a<=0){alert("Enter a valid amount");return;}
+    if(a>K){alert("Amount ₹"+a+" exceeds balance due ₹"+K);return;}
+    onAddPayment(custId,{mode,amt:a,ref,date:td()});
+    setAmt("");setRef("");
+  }
+  return(
+    <div style={{background:"rgba(34,197,94,0.07)",border:"2px solid rgba(34,197,94,0.4)",borderRadius:14,padding:"14px 16px",marginBottom:14}}>
+      <div style={{fontSize:12,fontWeight:800,color:"#22c55e",marginBottom:10}}>💳 Receive Payment — Balance: {fc(K)}</div>
+      <div style={{display:"flex",gap:8,marginBottom:8}}>
+        <select value={mode} onChange={e=>setMode(e.target.value)} style={{...inp,flex:"0 0 110px",padding:"9px 10px",fontSize:13,borderRadius:10}}>
+          {["Cash","Cheque","UPI","RTGS","Finance"].map(m=><option key={m}>{m}</option>)}
+        </select>
+        <input type="number" value={amt} onChange={e=>setAmt(e.target.value)} placeholder={"Amount (max "+fc(K)+")"} style={{...inp,flex:1,padding:"9px 10px",fontSize:13,borderRadius:10}}/>
+      </div>
+      <input value={ref} onChange={e=>setRef(e.target.value)} placeholder="Cheque no / UPI ref (optional)" style={{...inp,width:"100%",marginBottom:10,padding:"9px 10px",fontSize:13,borderRadius:10,boxSizing:"border-box"}}/>
+      <button onClick={save} style={{...btn("linear-gradient(135deg,#22c55e,#16a34a)"),width:"100%",padding:"11px",borderRadius:10,fontSize:14}}>✅ Save Receipt</button>
+    </div>
+  );
+}
+function BillingView({billing:b,cust,onAddPayment}){
   const r=RC[cust.modelCode]||{};
   const c=b.calc||calcB(b,r);
   const [showR,setShowR]=useState(null);
@@ -1391,6 +1450,7 @@ function BillingView({billing:b,cust}){
         </div>
         <div style={{fontSize:26,fontWeight:900,color:c.K===0?"#22c55e":"#ef4444"}}>{fc(Math.max(c.K,0))}</div>
       </div>
+      {c.K>0&&onAddPayment&&<BillingPayBox K={c.K} custId={cust.id} onAddPayment={onAddPayment}/>}
       {<div style={{marginBottom:12}}>
         <button onClick={()=>{const doc=makeMRDoc(cust,b,c);sharePdf(doc,"MR_"+cust.name.replace(/ /g,"_")+"_"+td()+".pdf",cust.phone,"Please find your Money Receipt from NKD Bajaj, Dhanbad.");}} style={{width:"100%",background:"rgba(37,211,102,0.1)",border:"1px solid rgba(37,211,102,0.35)",borderRadius:12,padding:13,color:"#22c55e",fontWeight:700,fontSize:13,cursor:"pointer",marginBottom:8}}>📲 Send Money Receipt PDF → Customer (WhatsApp)</button>
         <button onClick={()=>{const doc=makeCombinedDoc(cust,b,c);var num=ld("nkd_office_wa","");if(!num){num=prompt("Enter office WhatsApp number (10 digits):");if(!num)return;sv("nkd_office_wa",num);_dbSet("office_wa",num);}sharePdf(doc,"CalcSheet_MR_"+cust.name.replace(/ /g,"_")+"_"+td()+".pdf",num,"Calculation Sheet + Money Receipt for "+cust.name+" ("+cust.model+")");}} style={{width:"100%",background:"rgba(249,115,22,0.1)",border:"1px solid rgba(249,115,22,0.35)",borderRadius:12,padding:13,color:"#f97316",fontWeight:700,fontSize:13,cursor:"pointer",marginBottom:8}}>🏢 Send Calc Sheet + MR (2 pages) PDF → Office</button>
@@ -2081,6 +2141,17 @@ export default function App(){
   }
 
   function logCall(cust,dur){upd(cust.id,{callLog:[...(cust.callLog||[]),{date:td(),time:new Date().toLocaleTimeString("en-IN"),duration:dur,type:"call"}]});}
+  function addPayment(custId,payment){
+    setCusts(p=>p.map(c=>{
+      if(c.id!==custId||!c.billing)return c;
+      const payments=[...(c.billing.payments||[]),payment];
+      const r=RC[c.modelCode]||{};
+      const newBilling={...c.billing,payments};
+      const newCalc=calcB(newBilling,r);
+      return{...c,billing:{...newBilling,calc:newCalc,paid:newCalc.paid},updatedAt:td()};
+    }));
+    notify("✅ Payment recorded");
+  }
 
   function billC(cust,data){
     const editLog=cust.billing?("\n["+td()+"] CALC SHEET EDITED by "+user):"";
@@ -2168,10 +2239,10 @@ export default function App(){
 
       <div style={{padding:16,paddingBottom:110}}>
         {role==="admin"&&view!=="vault"&&view!=="rcstatus"&&view!=="stock"&&view!=="uploads"&&setView("vault")}
-        {view==="dashboard"&&<Dashboard custs={myC} role={role} onOpen={openD} onNav={nav} onNavF={st=>{setCustF(st);nav("customers");}} onSvcDone={id=>{upd(id,{serviceDone:true});notify("Service marked done ✓");}} onTeamTap={s=>{setFSM(s);nav("followups");}}/>}
+        {view==="dashboard"&&<Dashboard custs={myC} role={role} onOpen={openD} onNav={nav} onNavF={st=>{setCustF(st);nav("customers");}} onSvcDone={id=>{upd(id,{serviceDone:true});notify("Service marked done ✓");}} onTeamTap={s=>{setFSM(s);nav("followups");}} onAddPayment={addPayment}/>}
         {view==="followups"&&<Followups items={due} onOpen={openD} onLog={logF} onCallLog={logCall} showSMFilter={role!=="salesman"} initSM={fSM}/>}
         {view==="customers"&&<CustList custs={myC} onOpen={openD} initF={custF} showSM={role!=="salesman"}/>}
-        {view==="detail"&&sel&&<Detail cust={custs.find(c=>c.id===sel.id)||sel} role={role} onBack={goBack} onUpd={p=>upd(sel.id,p)} onLog={logF} onBill={()=>setBillOpen(true)} onBook={()=>setBookOpen(true)} notify={notify} initTab={dtab} clearInit={()=>setDtab(null)}/>}
+        {view==="detail"&&sel&&<Detail cust={custs.find(c=>c.id===sel.id)||sel} role={role} onBack={goBack} onUpd={p=>upd(sel.id,p)} onLog={logF} onBill={()=>setBillOpen(true)} onBook={()=>setBookOpen(true)} notify={notify} initTab={dtab} clearInit={()=>setDtab(null)} onAddPayment={addPayment}/>}
         {view==="uploads"&&<div style={{padding:"0 16px 80px"}}><UploadsHub stockData={stockData} statusData={statusData} onStockUpload={saveStockData} onStatusUpload={saveStatusData} notify={notify}/></div>}
         {view==="stock"&&<div style={{padding:"0 16px 80px"}}><StockView stockData={stockData} billedChassis={billedChassis} role={role} userBranch={role==="salesman"?(SM_BRANCH[user]||BRANCHES[0]):role==="manager"?mBr:null} onUpload={saveStockData} notify={notify}/></div>}
         {view==="rcstatus"&&<div style={{padding:"0 16px 80px"}}><RCHSRPSearch statusData={statusData} role={role} onUpload={saveStatusData} notify={notify}/></div>}

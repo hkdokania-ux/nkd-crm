@@ -11,7 +11,7 @@ Write-Host "Installing packages..." -ForegroundColor Cyan
 npm install
 
 git add -A
-git commit -m "Dashboard due list: use calcB fallback so all billed customers show"
+git commit -m "Add Receive Payment in Billing tab + make dashboard payment button visible"
 git push
 
 if ($LASTEXITCODE -eq 0) {
