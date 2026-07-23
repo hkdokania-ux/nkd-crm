@@ -11,7 +11,7 @@ Write-Host "Installing packages..." -ForegroundColor Cyan
 npm install
 
 git add -A
-git commit -m "Admin uploads: merged upload+view into one card per type"
+git commit -m "Add TECH role: full owner-level access, portal, user management"
 git push
 
 if ($LASTEXITCODE -eq 0) {

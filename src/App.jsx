@@ -15,6 +15,10 @@ const SM_BRANCH={"Amit Kumar":"Hirak Road","Ravi Singh":"Hirak Road","Suresh Yad
 const ST_C={Hot:"#ef4444",Warm:"#f97316",Cold:"#3b82f6",Booked:"#8b5cf6",Billed:"#10b981",Lost:"#6b7280"};
 const FU={Hot:1,Warm:3,Cold:7};
 const CATS=[...new Set(Object.values(RC).map(r=>r.cat))];
+const DEFAULT_USERS={manager:[{name:"Manager",pin:"1234"}],owner:[{name:"Owner",pin:"0000"}],admin:[{name:"Admin",pin:"9999"}],tech:[{name:"Tech",pin:"1111"}]};
+// role helpers
+function isOwner(r){return r==="owner"||r==="tech";}
+function isPortalRole(r){return r==="owner"||r==="admin"||r==="tech";}
 
 function td(){return new Date().toISOString().split("T")[0];}
 function aD(d,n){const x=new Date(d);x.setDate(x.getDate()+n);return x.toISOString().split("T")[0];}
@@ -251,9 +255,11 @@ function Card({c,onClick,showSM}){
   );
 }
 
-function Login({onLogin}){
+function Login({onLogin,nkdUsers}){
+  const users=nkdUsers||DEFAULT_USERS;
   const [role,setRole]=useState("salesman");
   const [user,setUser]=useState(SM[0]);
+  const [uname,setUname]=useState("");
   const [pin,setPin]=useState("");
   const [br,setBr]=useState(BRANCHES[0]);
   const [spw,setSpw]=useState("");
@@ -275,9 +281,13 @@ function Login({onLogin}){
         rec.pw=npw1;rec.must=false;
       }
       pws[user]=rec;sv("nkd_pw",pws);_dbSet("passwords",pws);
+      onLogin(role,user,null);return;
     }
-    if(role!=="salesman"&&pin!==({manager:"1234",owner:"0000",admin:"9999"}[role])){alert("Wrong PIN");return;}
-    onLogin(role,role==="salesman"?user:role==="manager"?"Manager":role==="admin"?"Admin":"Owner",role==="manager"?br:null);
+    // manager / owner / admin — check against nkdUsers
+    const roleList=users[role]||[];
+    const match=roleList.find(u=>u.name.trim().toLowerCase()===uname.trim().toLowerCase()&&u.pin===pin);
+    if(!match){alert("Wrong username or PIN");return;}
+    onLogin(role,match.name,(role==="manager")?br:null);
   }
   return(
     <div style={{minHeight:"100vh",background:"linear-gradient(160deg,#f0f7ff 0%,#f8fafc 100%)",display:"flex",alignItems:"center",justifyContent:"center",padding:16}}>
@@ -288,7 +298,14 @@ function Login({onLogin}){
           <div style={{color:"#94a3b8",fontSize:12,marginTop:3}}>Dhanbad · 3 Showrooms</div>
         </div>
         <div style={{display:"flex",flexDirection:"column",gap:12}}>
-          <div><label style={lbl}>Role</label><select style={inp} value={role} onChange={e=>setRole(e.target.value)}><option value="salesman">Sales Executive</option><option value="manager">Manager</option><option value="owner">Owner</option><option value="admin">Admin (Documents)</option></select></div>
+          <div><label style={lbl}>Role</label><select style={inp} value={role} onChange={e=>{setRole(e.target.value);setUname("");setPin("");}}>
+            <option value="salesman">Sales Executive</option>
+            <option value="manager">Manager</option>
+            <option value="owner">Owner</option>
+            <option value="admin">Admin (Documents)</option>
+            <option value="tech">Tech</option>
+          </select></div>
+          {/* ── SALESMAN ── */}
           {role==="salesman"&&<div><label style={lbl}>Your Name</label><select style={inp} value={user} onChange={e=>setUser(e.target.value)}>{SM.map(s=><option key={s}>{s}</option>)}</select></div>}
           {role==="salesman"&&<div><label style={lbl}>Password <span style={{color:"#94a3b8",fontWeight:400}}>(first time: 1111)</span></label>
             <div style={{position:"relative"}}>
@@ -301,8 +318,10 @@ function Login({onLogin}){
             <input type="password" placeholder="New password (min 4 chars)" style={{...inp,marginBottom:8}} value={npw1} onChange={e=>setNpw1(e.target.value)}/>
             <input type="password" placeholder="Re-enter new password" style={inp} value={npw2} onChange={e=>setNpw2(e.target.value)} onKeyDown={e=>e.key==="Enter"&&go()}/>
           </div>}
+          {/* ── MANAGER / OWNER / ADMIN ── */}
+          {role!=="salesman"&&<div><label style={lbl}>Username</label><input style={inp} value={uname} onChange={e=>setUname(e.target.value)} placeholder={"Your "+role+" username"} autoComplete="off"/></div>}
           {role==="manager"&&<div><label style={lbl}>Your Branch</label><select style={inp} value={br} onChange={e=>setBr(e.target.value)}>{BRANCHES.map(b=><option key={b}>{b}</option>)}</select></div>}
-          {role!=="salesman"&&<div><label style={lbl}>PIN ({role==="manager"?"1234":role==="admin"?"9999":"0000"})</label><input type="password" style={inp} value={pin} onChange={e=>setPin(e.target.value)} onKeyDown={e=>e.key==="Enter"&&go()}/></div>}
+          {role!=="salesman"&&<div><label style={lbl}>PIN</label><input type="password" style={inp} value={pin} onChange={e=>setPin(e.target.value)} onKeyDown={e=>e.key==="Enter"&&go()} placeholder="Enter PIN"/></div>}
           <button onClick={go} style={{...btn("linear-gradient(135deg,#f97316,#ef4444)"),padding:14,fontSize:15,borderRadius:13,marginTop:4}}>Login →</button>
         </div>
       </div>
@@ -694,7 +713,7 @@ function StockView({stockData,billedChassis,role,userBranch,onUpload,notify}){
         ))}
       </div>}
 
-      {rows.length===0&&<div style={{background:"rgba(52,211,153,0.07)",border:"1px solid rgba(52,211,153,0.3)",borderRadius:12,padding:16,textAlign:"center",marginBottom:14}}><div style={{fontSize:28,marginBottom:6}}>📦</div><div style={{fontSize:13,color:"#34d399",fontWeight:700}}>No stock data yet</div><div style={{fontSize:11,color:"#94a3b8",marginTop:4}}>{role==="owner"||role==="admin"?"Go to 📤 Uploads tab to upload stock Excel":"Ask Owner/Admin to upload stock Excel"}</div></div>}
+      {rows.length===0&&<div style={{background:"rgba(52,211,153,0.07)",border:"1px solid rgba(52,211,153,0.3)",borderRadius:12,padding:16,textAlign:"center",marginBottom:14}}><div style={{fontSize:28,marginBottom:6}}>📦</div><div style={{fontSize:13,color:"#34d399",fontWeight:700}}>No stock data yet</div><div style={{fontSize:11,color:"#94a3b8",marginTop:4}}>{isPortalRole(role)?"Go to 📤 Uploads tab to upload stock Excel":"Ask Owner/Admin to upload stock Excel"}</div></div>}
 
       {rows.length>0&&<input placeholder="🔍 Search model, chassis, colour, branch…" style={{...inp,marginBottom:10,padding:"11px 14px",fontSize:13,borderRadius:12}} value={q} onChange={e=>setQ(e.target.value)}/>}
 
@@ -783,7 +802,7 @@ function RCHSRPSearch({statusData,role,onUpload,notify}){
     <div>
       <div style={{fontWeight:800,fontSize:19,color:"#1e293b",marginBottom:4}}>🔍 RC / HSRP Status</div>
       <div style={{fontSize:11,color:"#94a3b8",marginBottom:14}}>{rows.length>0?rows.length+" records loaded":"No data yet — upload Excel below"}</div>
-      {rows.length===0&&<div style={{background:"rgba(249,115,22,0.07)",border:"1px solid rgba(249,115,22,0.2)",borderRadius:12,padding:16,textAlign:"center",marginBottom:14}}><div style={{fontSize:28,marginBottom:6}}>📋</div><div style={{fontSize:13,color:"#f97316",fontWeight:700}}>No status data uploaded yet</div><div style={{fontSize:11,color:"#94a3b8",marginTop:4}}>{role==="owner"||role==="admin"?"Go to 📤 Uploads tab to upload RC/HSRP Excel":"Ask Owner/Admin to upload the RC/HSRP status Excel"}</div></div>}
+      {rows.length===0&&<div style={{background:"rgba(249,115,22,0.07)",border:"1px solid rgba(249,115,22,0.2)",borderRadius:12,padding:16,textAlign:"center",marginBottom:14}}><div style={{fontSize:28,marginBottom:6}}>📋</div><div style={{fontSize:13,color:"#f97316",fontWeight:700}}>No status data uploaded yet</div><div style={{fontSize:11,color:"#94a3b8",marginTop:4}}>{isPortalRole(role)?"Go to 📤 Uploads tab to upload RC/HSRP Excel":"Ask Owner/Admin to upload the RC/HSRP status Excel"}</div></div>}
       {rows.length>0&&(
         <input placeholder="🔍 Search by name, chassis, reg no, engine, phone…" style={{...inp,marginBottom:12,padding:"13px 14px",fontSize:14,borderRadius:13}} value={q} onChange={e=>setQ(e.target.value)} autoFocus/>
       )}
@@ -1671,7 +1690,87 @@ function DocVault({custs,onImport}){
   );
 }
 
-function OwnerPortal({custs,stockData,billedChassis,statusData,role,user,mBr,saveStockData,saveStatusData,notify,onLogout,onMobile}){
+function UserMgmt({nkdUsers,onSave,notify}){
+  const [users,setUsers]=useState(()=>({manager:[...(nkdUsers.manager||[])],owner:[...(nkdUsers.owner||[])],admin:[...(nkdUsers.admin||[])]}));
+  const [newRole,setNewRole]=useState("manager");
+  const [newName,setNewName]=useState("");
+  const [newPin,setNewPin]=useState("");
+  const ROLE_COLOR={manager:"#3b82f6",owner:"#f97316",admin:"#8b5cf6",tech:"#0ea5e9"};
+  const ROLE_LABEL={manager:"Manager",owner:"Owner",admin:"Admin",tech:"Tech"};
+  function addUser(){
+    if(!newName.trim()){notify("❌ Enter a name");return;}
+    if(newPin.length<4){notify("❌ PIN must be at least 4 digits");return;}
+    const already=(users[newRole]||[]).find(u=>u.name.toLowerCase()===newName.trim().toLowerCase());
+    if(already){notify("❌ Name already exists for this role");return;}
+    const updated={...users,[newRole]:[...(users[newRole]||[]),{name:newName.trim(),pin:newPin}]};
+    setUsers(updated);onSave(updated);setNewName("");setNewPin("");notify("✅ "+ROLE_LABEL[newRole]+" account added");
+  }
+  function removeUser(role,name){
+    if((users[role]||[]).length<=1){notify("❌ Must keep at least one account per role");return;}
+    const updated={...users,[role]:(users[role]||[]).filter(u=>u.name!==name)};
+    setUsers(updated);onSave(updated);notify("Removed "+name);
+  }
+  function changePin(role,name,pin){
+    if(pin.length<4){notify("❌ PIN min 4 digits");return;}
+    const updated={...users,[role]:(users[role]||[]).map(u=>u.name===name?{...u,pin}:u)};
+    setUsers(updated);onSave(updated);notify("✅ PIN updated for "+name);
+  }
+  return(
+    <div style={{maxWidth:700}}>
+      <div style={{fontWeight:800,fontSize:20,color:"#1e293b",marginBottom:4}}>👤 User Accounts</div>
+      <div style={{fontSize:12,color:"#94a3b8",marginBottom:20}}>Manage login credentials for Manager, Owner, and Admin roles.</div>
+      {/* Existing users by role */}
+      {["manager","owner","admin","tech"].map(r=>(
+        <div key={r} style={{background:"#fff",border:"2px solid #6b8fb5",borderRadius:14,padding:"16px 18px",marginBottom:16}}>
+          <div style={{fontWeight:800,fontSize:13,color:ROLE_COLOR[r],marginBottom:10,textTransform:"uppercase",letterSpacing:1}}>{ROLE_LABEL[r]} Accounts</div>
+          {(users[r]||[]).map((u,i)=>(
+            <UserPinRow key={i} u={u} color={ROLE_COLOR[r]} onRemove={()=>removeUser(r,u.name)} onPin={(p)=>changePin(r,u.name,p)}/>
+          ))}
+        </div>
+      ))}
+      {/* Add new user */}
+      <div style={{background:"rgba(249,115,22,0.05)",border:"2px dashed #f97316",borderRadius:14,padding:"16px 18px"}}>
+        <div style={{fontWeight:700,fontSize:13,color:"#f97316",marginBottom:12}}>➕ Add New Account</div>
+        <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr auto",gap:10,alignItems:"end"}}>
+          <div><div style={{fontSize:11,color:"#64748b",fontWeight:600,marginBottom:4}}>Role</div>
+            <select style={{...inp,margin:0}} value={newRole} onChange={e=>setNewRole(e.target.value)}>
+              <option value="manager">Manager</option><option value="owner">Owner</option><option value="admin">Admin</option><option value="tech">Tech</option>
+            </select>
+          </div>
+          <div><div style={{fontSize:11,color:"#64748b",fontWeight:600,marginBottom:4}}>Username</div>
+            <input style={{...inp,margin:0}} value={newName} onChange={e=>setNewName(e.target.value)} placeholder="Full name"/>
+          </div>
+          <div><div style={{fontSize:11,color:"#64748b",fontWeight:600,marginBottom:4}}>PIN (min 4 digits)</div>
+            <input type="password" style={{...inp,margin:0}} value={newPin} onChange={e=>setNewPin(e.target.value)} placeholder="••••"/>
+          </div>
+          <button onClick={addUser} style={{...btn("linear-gradient(135deg,#f97316,#ef4444)"),padding:"10px 18px",borderRadius:10,whiteSpace:"nowrap"}}>Add</button>
+        </div>
+      </div>
+    </div>
+  );
+}
+function UserPinRow({u,color,onRemove,onPin}){
+  const [editing,setEditing]=useState(false);
+  const [p,setP]=useState("");
+  return(
+    <div style={{display:"flex",alignItems:"center",gap:10,padding:"8px 0",borderBottom:"1px solid #e8eef8"}}>
+      <div style={{flex:1,fontWeight:600,fontSize:13,color:"#1e293b"}}>{u.name}</div>
+      <div style={{fontSize:11,color:"#94a3b8",background:"#f1f5f9",borderRadius:6,padding:"2px 8px"}}>PIN: {"•".repeat(u.pin.length)}</div>
+      {editing?(
+        <div style={{display:"flex",gap:6,alignItems:"center"}}>
+          <input type="password" placeholder="New PIN" value={p} onChange={e=>setP(e.target.value)} style={{...inp,margin:0,width:90,padding:"5px 8px",fontSize:12}}/>
+          <button onClick={()=>{onPin(p);setEditing(false);setP("");}} style={{...btn(color),padding:"5px 10px",borderRadius:7,fontSize:11}}>Save</button>
+          <button onClick={()=>{setEditing(false);setP("");}} style={{padding:"5px 8px",borderRadius:7,border:"1px solid #6b8fb5",background:"transparent",cursor:"pointer",fontSize:11,color:"#475569"}}>✕</button>
+        </div>
+      ):(
+        <button onClick={()=>setEditing(true)} style={{padding:"5px 10px",borderRadius:7,border:"1px solid #6b8fb5",background:"transparent",cursor:"pointer",fontSize:11,color:"#475569",fontWeight:600}}>Change PIN</button>
+      )}
+      <button onClick={onRemove} style={{padding:"5px 8px",borderRadius:7,border:"1px solid #ef444455",background:"rgba(239,68,68,0.07)",cursor:"pointer",fontSize:11,color:"#ef4444",fontWeight:700}}>Remove</button>
+    </div>
+  );
+}
+
+function OwnerPortal({custs,stockData,billedChassis,statusData,role,user,mBr,saveStockData,saveStatusData,nkdUsers,onSaveUsers,notify,onLogout,onMobile}){
   const [view,setView]=useState(role==="admin"?"uploads":"dashboard");
   const billed=custs.filter(c=>c.billed);
   const thisM=td().slice(0,7);
@@ -1684,7 +1783,8 @@ function OwnerPortal({custs,stockData,billedChassis,statusData,role,user,mBr,sav
   const smPerf=Object.entries(smMap).sort((a,b)=>b[1].bill-a[1].bill);
   const navItems=role==="admin"
     ?[{id:"uploads",l:"Uploads & Data",ic:"📤"},{id:"vault",l:"Document Vault",ic:"📁"}]
-    :[{id:"dashboard",l:"Dashboard",ic:"📊"},{id:"customers",l:"All Customers",ic:"👥"},{id:"team",l:"Team Performance",ic:"👔"},{id:"stock",l:"Stock & Ageing",ic:"🏍️"},{id:"uploads",l:"Uploads",ic:"📤"},{id:"rcstatus",l:"RC / HSRP",ic:"📋"},{id:"reports",l:"Reports",ic:"📄"},{id:"vault",l:"Document Vault",ic:"📁"}];
+    :[{id:"dashboard",l:"Dashboard",ic:"📊"},{id:"customers",l:"All Customers",ic:"👥"},{id:"team",l:"Team Performance",ic:"👔"},{id:"stock",l:"Stock & Ageing",ic:"🏍️"},{id:"uploads",l:"Uploads",ic:"📤"},{id:"rcstatus",l:"RC / HSRP",ic:"📋"},{id:"reports",l:"Reports",ic:"📄"},{id:"users",l:"User Accounts",ic:"👤"},{id:"vault",l:"Document Vault",ic:"📁"}];
+  // tech = full owner powers
   const SB=({label})=>(<th style={{fontSize:11,color:"#64748b",fontWeight:700,textAlign:"left",padding:"7px 12px",borderBottom:"2px solid #6b8fb5",background:"#f8fafc"}}>{label}</th>);
   const TD=({v,col,bold})=>(<td style={{padding:"8px 12px",fontSize:13,color:col||"#1e293b",fontWeight:bold?700:400,borderBottom:"1px solid #e8eef8"}}>{v}</td>);
   return(
@@ -1695,7 +1795,7 @@ function OwnerPortal({custs,stockData,billedChassis,statusData,role,user,mBr,sav
         <div style={{padding:"18px 16px 14px",borderBottom:"2px solid #6b8fb5"}}>
           <div style={{display:"flex",alignItems:"center",gap:10,marginBottom:8}}>
             <div style={{width:40,height:40,borderRadius:12,background:"linear-gradient(135deg,#f97316,#ef4444)",display:"flex",alignItems:"center",justifyContent:"center",fontWeight:900,fontSize:18,color:"#fff"}}>B</div>
-            <div><div style={{fontWeight:800,fontSize:14,color:"#1e293b"}}>NKD BAJAJ</div><div style={{fontSize:10,color:"#64748b",marginTop:1}}>{role==="owner"?"Owner Portal":"Admin Portal"}</div></div>
+            <div><div style={{fontWeight:800,fontSize:14,color:"#1e293b"}}>NKD BAJAJ</div><div style={{fontSize:10,color:"#64748b",marginTop:1}}>{role==="owner"?"Owner Portal":role==="tech"?"Tech Portal":"Admin Portal"}</div></div>
           </div>
           <div style={{fontSize:11,color:"#94a3b8",background:"#f1f5f9",borderRadius:7,padding:"4px 8px"}}>{user} · {role}</div>
         </div>
@@ -1848,6 +1948,9 @@ function OwnerPortal({custs,stockData,billedChassis,statusData,role,user,mBr,sav
         {/* ── REPORTS ── */}
         {view==="reports"&&<div style={{maxWidth:800}}><Reports custs={custs} onImportCust={()=>{}}/></div>}
 
+        {/* ── USERS ── */}
+        {view==="users"&&isOwner(role)&&<UserMgmt nkdUsers={nkdUsers||DEFAULT_USERS} onSave={onSaveUsers} notify={notify}/>}
+
         {/* ── VAULT ── */}
         {view==="vault"&&<DocVault custs={custs} onImport={()=>{}}/>}
       </div>
@@ -1874,6 +1977,8 @@ export default function App(){
   function saveStatusData(data){setStatusData(data);sv("nkd_rcstatus",data);_dbSet("nkd_rcstatus",data);}
   const [stockData,setStockData]=useState(()=>ld("nkd_stock",[]));
   function saveStockData(data){setStockData(data);sv("nkd_stock",data);_dbSet("nkd_stock",data);}
+  const [nkdUsers,setNkdUsers]=useState(()=>ld("nkd_users",DEFAULT_USERS));
+  function saveUsers(data){setNkdUsers(data);sv("nkd_users",data);_dbSet("nkd_users",data);}
   const billedChassis=useMemo(()=>custs.filter(c=>c.billed&&c.billing&&c.billing.chassis).map(c=>String(c.billing.chassis).trim().toUpperCase()),[custs]);
   const stack=useRef([]);
   function nav(v){if(v!==view){stack.current.push(view);setView(v);}}
@@ -1894,6 +1999,7 @@ export default function App(){
       _dbGet("passwords").then(d=>{if(d)sv("nkd_pw",d);}),
       _dbGet("rate_chart").then(d=>{if(d){sv("nkd_rc",d);try{Object.assign(RC,d);}catch(e){}}}),
       _dbGet("office_wa").then(d=>{if(d)sv("nkd_office_wa",d);}),
+      _dbGet("nkd_users").then(d=>{if(d){sv("nkd_users",d);setNkdUsers(d);}}),
     ]).catch(()=>{}).finally(()=>setFbReady(true));
   },[]);
 
@@ -1940,7 +2046,7 @@ export default function App(){
   }
 
   const mBr=ld("nkd_br",BRANCHES[0]);
-  const myC=role==="salesman"?custs.filter(c=>c.salesman===user):role==="manager"?custs.filter(c=>(c.branch||SM_BRANCH[c.salesman])===mBr):custs;
+  const myC=role==="salesman"?custs.filter(c=>c.salesman===user):role==="manager"?custs.filter(c=>(c.branch||SM_BRANCH[c.salesman])===mBr):custs; // owner/tech/admin see all
   const due=[...myC.filter(c=>!c.billed&&!c.stopped&&c.followupDate<=td())].sort((a,b)=>{const o={Hot:0,Warm:1,Cold:2,Booked:3};return(o[a.status]??9)-(o[b.status]??9);});
   const pending=custs.filter(c=>c.billing&&c.managerApproval===null);
   const revivable=custs.filter(c=>{if(c.billed)return false;const base=c.reactivatedAt||c.enquiryDate;return((new Date()-new Date(base))/(864e5*30))>=6;});
@@ -1951,21 +2057,22 @@ export default function App(){
   function togglePortal(v){setPortalMode(v);sv("nkd_portal",v);}
 
   if(!fbReady)return(<div style={{minHeight:"100vh",background:"linear-gradient(160deg,#f0f7ff 0%,#f8fafc 100%)",display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",gap:14}}><div style={{width:110,background:"#fff",borderRadius:16,padding:"8px 12px"}}><img src="/logo.png" alt="NKD Bajaj" style={{width:"100%"}}/></div><div style={{color:"#f97316",fontWeight:700,fontSize:15}}>NKD Bajaj CRM</div><div style={{color:"#94a3b8",fontSize:12}}>Connecting to database…</div></div>);
-  if(!li)return <Login onLogin={(r,u,b)=>{setRole(r);setUser(u);if(b)sv("nkd_br",b);sv("nkd_r",r);sv("nkd_u",u);sv("nkd_li",true);setLi(true);if(r==="owner"||r==="admin")togglePortal(true);}}/>;
+  if(!li)return <Login nkdUsers={nkdUsers} onLogin={(r,u,b)=>{setRole(r);setUser(u);if(b)sv("nkd_br",b);sv("nkd_r",r);sv("nkd_u",u);sv("nkd_li",true);setLi(true);if(isPortalRole(r))togglePortal(true);}}/>;
 
   // Owner / Admin → Web Portal (unless they switched to mobile)
-  if((role==="owner"||role==="admin")&&portalMode){
+  if(isPortalRole(role)&&portalMode){
     return <OwnerPortal
       custs={custs} stockData={stockData} billedChassis={billedChassis} statusData={statusData}
       role={role} user={user} mBr={mBr}
       saveStockData={saveStockData} saveStatusData={saveStatusData}
+      nkdUsers={nkdUsers} onSaveUsers={saveUsers}
       notify={notify}
       onLogout={()=>{sv("nkd_li",false);sv("nkd_portal",false);setPortalMode(false);setLi(false);}}
       onMobile={()=>togglePortal(false)}
     />;
   }
 
-  const navItems=role==="admin"?[{id:"vault",l:"Document Vault",ic:"📁"},{id:"uploads",l:"Uploads",ic:"📤"},{id:"stock",l:"Stock",ic:"🏍️"},{id:"rcstatus",l:"RC/HSRP",ic:"🔍"}]:[{id:"dashboard",l:"Home",ic:"🏠"},{id:"followups",l:"Followup",ic:"📞",badge:due.length},{id:"customers",l:"Customers",ic:"👥"},{id:"stock",l:"Stock",ic:"🏍️"},{id:"rcstatus",l:"RC/HSRP",ic:"🔍"},...(role!=="salesman"?[{id:"approvals",l:"Approve",ic:"✅",badge:pending.length}]:[]),...(role!=="salesman"?[{id:"revival",l:"Revival",ic:"🔄"}]:[]),...(role==="owner"?[{id:"reports",l:"Reports",ic:"📊"}]:[]),...(role==="owner"?[{id:"vault",l:"Vault",ic:"📁"}]:[]),...(role==="owner"?[{id:"uploads",l:"Uploads",ic:"📤"}]:[]),...(role!=="salesman"&&alerts.length>0?[{id:"alerts",l:"Alerts",ic:"⚠️",badge:alerts.length}]:[])];
+  const navItems=role==="admin"?[{id:"vault",l:"Document Vault",ic:"📁"},{id:"uploads",l:"Uploads",ic:"📤"},{id:"stock",l:"Stock",ic:"🏍️"},{id:"rcstatus",l:"RC/HSRP",ic:"🔍"}]:[{id:"dashboard",l:"Home",ic:"🏠"},{id:"followups",l:"Followup",ic:"📞",badge:due.length},{id:"customers",l:"Customers",ic:"👥"},{id:"stock",l:"Stock",ic:"🏍️"},{id:"rcstatus",l:"RC/HSRP",ic:"🔍"},...(role!=="salesman"?[{id:"approvals",l:"Approve",ic:"✅",badge:pending.length}]:[]),...(role!=="salesman"?[{id:"revival",l:"Revival",ic:"🔄"}]:[]),...(isOwner(role)?[{id:"reports",l:"Reports",ic:"📊"}]:[]),...(isOwner(role)?[{id:"vault",l:"Vault",ic:"📁"}]:[]),...(isOwner(role)?[{id:"uploads",l:"Uploads",ic:"📤"}]:[]),...(role!=="salesman"&&alerts.length>0?[{id:"alerts",l:"Alerts",ic:"⚠️",badge:alerts.length}]:[])];
 
   return(
     <div style={{minHeight:"100vh",background:"linear-gradient(160deg,#f0f7ff 0%,#e8f4ff 40%,#f8fafc 100%)",color:"#1e293b",fontFamily:"'Inter',-apple-system,sans-serif",maxWidth:480,margin:"0 auto"}}>
@@ -1994,7 +2101,7 @@ export default function App(){
           {due.length>0&&<div style={{background:"rgba(249,115,22,0.2)",color:"#f97316",borderRadius:20,padding:"2px 7px",fontSize:10,fontWeight:800}}>📞 {due.length}</div>}
           {role!=="salesman"&&pending.length>0&&<div onClick={()=>nav("approvals")} style={{background:"rgba(139,92,246,0.2)",color:"#a78bfa",borderRadius:20,padding:"2px 7px",fontSize:10,fontWeight:800,cursor:"pointer"}}>✓ {pending.length}</div>}
           {role!=="salesman"&&alerts.length>0&&<div onClick={()=>nav("alerts")} style={{background:"rgba(239,68,68,0.2)",color:"#ef4444",borderRadius:20,padding:"2px 7px",fontSize:10,fontWeight:800,cursor:"pointer"}}>⚠️ {alerts.length}</div>}
-          {(role==="owner"||role==="admin")&&<button onClick={()=>togglePortal(true)} style={{background:"#dbeafe",border:"1px solid #3b82f6",color:"#1d4ed8",borderRadius:8,padding:"3px 8px",fontSize:10,cursor:"pointer",fontWeight:700}}>🖥️ Portal</button>}
+          {isPortalRole(role)&&<button onClick={()=>togglePortal(true)} style={{background:"#dbeafe",border:"1px solid #3b82f6",color:"#1d4ed8",borderRadius:8,padding:"3px 8px",fontSize:10,cursor:"pointer",fontWeight:700}}>🖥️ Portal</button>}
           <button onClick={()=>{sv("nkd_li",false);setLi(false);}} style={{background:"transparent",border:"1px solid #6b8fb5",color:"#94a3b8",borderRadius:8,padding:"3px 8px",fontSize:10,cursor:"pointer"}}>Out</button>
         </div>
       </div>
