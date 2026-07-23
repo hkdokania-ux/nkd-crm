@@ -11,7 +11,7 @@ Write-Host "Installing packages..." -ForegroundColor Cyan
 npm install
 
 git add -A
-git commit -m "Lead source: Via Phone Call; Expected Date of Purchase field"
+git commit -m "Balance due: banner in billing tab + shown on customer card"
 git push
 
 if ($LASTEXITCODE -eq 0) {

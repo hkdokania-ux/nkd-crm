@@ -247,7 +247,7 @@ function Card({c,onClick,showSM}){
         </div>
         <div style={{textAlign:"right",marginLeft:10,flexShrink:0}}>
           {!c.billed&&!c.stopped&&<div style={{fontSize:10,color:ovd?"#ef4444":"#5a6478",fontWeight:ovd?700:400}}>{ovd?"OVERDUE":"DUE"}<br/><span style={{fontSize:11}}>{fd(c.followupDate)}</span></div>}
-          {c.billed&&<div style={{fontSize:11,color:"#34d399",fontWeight:700}}>✓ BILLED<br/><span style={{fontSize:10,color:"#94a3b8",fontWeight:400}}>{fd(c.billedDate)}</span></div>}
+          {c.billed&&(()=>{const K=c.billing&&c.billing.calc?c.billing.calc.K:null;return(<div style={{textAlign:"right"}}><div style={{fontSize:11,color:"#34d399",fontWeight:700}}>✓ BILLED · {fd(c.billedDate)}</div>{K!==null&&K!==0&&<div style={{fontSize:12,fontWeight:800,color:"#ef4444",marginTop:2}}>⚠️ Due: {fc(K)}</div>}{K===0&&<div style={{fontSize:11,fontWeight:700,color:"#22c55e",marginTop:2}}>✅ Fully Paid</div>}</div>);})()}
         </div>
       </div>
       {r&&<div style={{marginTop:6,fontSize:11,color:"#64748b"}}>On-Road: <span style={{color:"#475569",fontWeight:600}}>{fc(r.onRoad)}</span></div>}
@@ -322,6 +322,18 @@ function Login({onLogin,nkdUsers}){
           {role!=="salesman"&&<div><label style={lbl}>Username</label><input style={inp} value={uname} onChange={e=>setUname(e.target.value)} placeholder={"Your "+role+" username"} autoComplete="off"/></div>}
           {role==="manager"&&<div><label style={lbl}>Your Branch</label><select style={inp} value={br} onChange={e=>setBr(e.target.value)}>{BRANCHES.map(b=><option key={b}>{b}</option>)}</select></div>}
           {role!=="salesman"&&<div><label style={lbl}>PIN</label><input type="password" style={inp} value={pin} onChange={e=>setPin(e.target.value)} onKeyDown={e=>e.key==="Enter"&&go()} placeholder="Enter PIN"/></div>}
+          {role!=="salesman"&&(
+            <div style={{background:"rgba(249,115,22,0.07)",border:"1px solid rgba(249,115,22,0.25)",borderRadius:10,padding:"9px 12px",fontSize:11,color:"#94a3b8"}}>
+              <div style={{fontWeight:700,color:"#f97316",marginBottom:5}}>🔑 Default credentials (first time)</div>
+              {[["Manager","Manager","1234"],["Owner","Owner","0000"],["Admin","Admin","9999"],["Tech","Tech","1111"]].map(([r,u,p])=>(
+                <div key={r} style={{display:"flex",gap:6,marginBottom:2}}>
+                  <span style={{color:"#64748b",minWidth:60}}>{r}:</span>
+                  <span style={{color:"#1e293b",fontWeight:600}}>Username: <b>{u}</b> · PIN: <b>{p}</b></span>
+                </div>
+              ))}
+              <div style={{marginTop:6,color:"#f97316",fontWeight:600}}>Change these from Owner / Tech portal → 👤 User Accounts</div>
+            </div>
+          )}
           <button onClick={go} style={{...btn("linear-gradient(135deg,#f97316,#ef4444)"),padding:14,fontSize:15,borderRadius:13,marginTop:4}}>Login →</button>
         </div>
       </div>
@@ -1346,6 +1358,14 @@ function BillingView({billing:b,cust}){
   }
   return(
     <div>
+      {/* ── BALANCE BANNER ── */}
+      <div style={{background:c.K===0?"rgba(34,197,94,0.12)":"rgba(239,68,68,0.12)",border:"2px solid "+(c.K===0?"#22c55e":"#ef4444"),borderRadius:14,padding:"14px 16px",marginBottom:14,display:"flex",justifyContent:"space-between",alignItems:"center"}}>
+        <div>
+          <div style={{fontSize:11,fontWeight:700,color:c.K===0?"#22c55e":"#ef4444"}}>{c.K===0?"✅ FULLY PAID":"⚠️ BALANCE DUE"}</div>
+          <div style={{fontSize:11,color:"#64748b",marginTop:2}}>Paid: {fc(c.paid||0)} · Total: {fc(c.I)}</div>
+        </div>
+        <div style={{fontSize:26,fontWeight:900,color:c.K===0?"#22c55e":"#ef4444"}}>{fc(Math.max(c.K,0))}</div>
+      </div>
       {<div style={{marginBottom:12}}>
         <button onClick={()=>{const doc=makeMRDoc(cust,b,c);sharePdf(doc,"MR_"+cust.name.replace(/ /g,"_")+"_"+td()+".pdf",cust.phone,"Please find your Money Receipt from NKD Bajaj, Dhanbad.");}} style={{width:"100%",background:"rgba(37,211,102,0.1)",border:"1px solid rgba(37,211,102,0.35)",borderRadius:12,padding:13,color:"#22c55e",fontWeight:700,fontSize:13,cursor:"pointer",marginBottom:8}}>📲 Send Money Receipt PDF → Customer (WhatsApp)</button>
         <button onClick={()=>{const doc=makeCombinedDoc(cust,b,c);var num=ld("nkd_office_wa","");if(!num){num=prompt("Enter office WhatsApp number (10 digits):");if(!num)return;sv("nkd_office_wa",num);_dbSet("office_wa",num);}sharePdf(doc,"CalcSheet_MR_"+cust.name.replace(/ /g,"_")+"_"+td()+".pdf",num,"Calculation Sheet + Money Receipt for "+cust.name+" ("+cust.model+")");}} style={{width:"100%",background:"rgba(249,115,22,0.1)",border:"1px solid rgba(249,115,22,0.35)",borderRadius:12,padding:13,color:"#f97316",fontWeight:700,fontSize:13,cursor:"pointer",marginBottom:8}}>🏢 Send Calc Sheet + MR (2 pages) PDF → Office</button>
@@ -2004,7 +2024,7 @@ export default function App(){
       _dbGet("passwords").then(d=>{if(d)sv("nkd_pw",d);}),
       _dbGet("rate_chart").then(d=>{if(d){sv("nkd_rc",d);try{Object.assign(RC,d);}catch(e){}}}),
       _dbGet("office_wa").then(d=>{if(d)sv("nkd_office_wa",d);}),
-      _dbGet("nkd_users").then(d=>{if(d){sv("nkd_users",d);setNkdUsers(d);}}),
+      _dbGet("nkd_users").then(d=>{if(d){sv("nkd_users",d);setNkdUsers(d);}else{_dbSet("nkd_users",DEFAULT_USERS);sv("nkd_users",DEFAULT_USERS);}}),
     ]).catch(()=>{}).finally(()=>setFbReady(true));
   },[]);
 
