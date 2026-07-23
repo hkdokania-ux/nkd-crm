@@ -1880,6 +1880,35 @@ function UserPinRow({u,color,onRemove,onPin}){
   );
 }
 
+function PaymentNotifPopup({notifs,onDismiss}){
+  const unread=(notifs||[]).filter(n=>!n.read);
+  if(!unread.length)return null;
+  return(
+    <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.55)",zIndex:2000,display:"flex",alignItems:"center",justifyContent:"center",padding:20}}>
+      <div style={{background:"#fff",borderRadius:20,padding:24,maxWidth:420,width:"100%",boxShadow:"0 24px 80px rgba(0,0,0,0.35)",fontFamily:"'Sora','Inter',sans-serif"}}>
+        <div style={{display:"flex",alignItems:"center",gap:10,marginBottom:4}}>
+          <div style={{fontSize:28}}>💳</div>
+          <div>
+            <div style={{fontSize:17,fontWeight:800,color:"#1e293b"}}>Payment Received</div>
+            <div style={{fontSize:11,color:"#64748b"}}>{unread.length} new payment{unread.length>1?"s":""} recorded</div>
+          </div>
+        </div>
+        <div style={{maxHeight:320,overflowY:"auto",margin:"14px 0"}}>
+          {unread.map(n=>(
+            <div key={n.id} style={{background:"rgba(34,197,94,0.07)",border:"1px solid rgba(34,197,94,0.35)",borderRadius:12,padding:"12px 14px",marginBottom:8}}>
+              <div style={{fontWeight:700,fontSize:13,color:"#1e293b"}}>{n.custName} <span style={{color:"#64748b",fontWeight:400}}>· {n.model}</span></div>
+              <div style={{fontSize:13,color:"#22c55e",fontWeight:800,margin:"3px 0"}}>₹{Number(n.amt).toLocaleString("en-IN")} <span style={{fontWeight:500,color:"#475569"}}>via {n.mode}</span></div>
+              {n.balance>0&&<div style={{fontSize:11,color:"#ef4444",fontWeight:600}}>⚠️ Balance still due: ₹{Number(n.balance).toLocaleString("en-IN")}</div>}
+              {n.balance===0&&<div style={{fontSize:11,color:"#22c55e",fontWeight:600}}>✅ Fully settled</div>}
+              <div style={{fontSize:10,color:"#94a3b8",marginTop:4}}>By {n.salesman} · {n.date} {n.time}</div>
+            </div>
+          ))}
+        </div>
+        <button onClick={onDismiss} style={{width:"100%",padding:"12px",background:"linear-gradient(135deg,#1d4ed8,#3b82f6)",border:"none",borderRadius:11,color:"#fff",fontWeight:700,fontSize:14,cursor:"pointer"}}>✓ Mark All as Read</button>
+      </div>
+    </div>
+  );
+}
 function OwnerPortal({custs,stockData,billedChassis,statusData,role,user,mBr,saveStockData,saveStatusData,nkdUsers,onSaveUsers,notify,onLogout,onMobile}){
   const [view,setView]=useState(role==="admin"?"uploads":"dashboard");
   const billed=custs.filter(c=>c.billed);
@@ -2089,6 +2118,7 @@ export default function App(){
   function saveStockData(data){setStockData(data);sv("nkd_stock",data);_dbSet("nkd_stock",data);}
   const [nkdUsers,setNkdUsers]=useState(()=>ld("nkd_users",DEFAULT_USERS));
   function saveUsers(data){setNkdUsers(data);sv("nkd_users",data);_dbSet("nkd_users",data);}
+  const [payNotifs,setPayNotifs]=useState(()=>ld("nkd_pnotifs",[]));
   const billedChassis=useMemo(()=>custs.filter(c=>c.billed&&c.billing&&c.billing.chassis).map(c=>String(c.billing.chassis).trim().toUpperCase()),[custs]);
   const stack=useRef([]);
   function nav(v){if(v!==view){stack.current.push(view);setView(v);}}
@@ -2110,6 +2140,7 @@ export default function App(){
       _dbGet("rate_chart").then(d=>{if(d){sv("nkd_rc",d);try{Object.assign(RC,d);}catch(e){}}}),
       _dbGet("office_wa").then(d=>{if(d)sv("nkd_office_wa",d);}),
       _dbGet("nkd_users").then(d=>{if(d){sv("nkd_users",d);setNkdUsers(d);}else{_dbSet("nkd_users",DEFAULT_USERS);sv("nkd_users",DEFAULT_USERS);}}),
+      _dbGet("payment_notifs").then(d=>{if(d){sv("nkd_pnotifs",d);setPayNotifs(d);}}),
     ]).catch(()=>{}).finally(()=>setFbReady(true));
   },[]);
 
@@ -2142,15 +2173,26 @@ export default function App(){
 
   function logCall(cust,dur){upd(cust.id,{callLog:[...(cust.callLog||[]),{date:td(),time:new Date().toLocaleTimeString("en-IN"),duration:dur,type:"call"}]});}
   function addPayment(custId,payment){
-    setCusts(p=>p.map(c=>{
-      if(c.id!==custId||!c.billing)return c;
-      const payments=[...(c.billing.payments||[]),payment];
-      const r=RC[c.modelCode]||{};
-      const newBilling={...c.billing,payments};
-      const newCalc=calcB(newBilling,r);
-      return{...c,billing:{...newBilling,calc:newCalc,paid:newCalc.paid},updatedAt:td()};
-    }));
-    notify("✅ Payment recorded");
+    const cust=custs.find(c=>c.id===custId);
+    if(!cust||!cust.billing)return;
+    const payments=[...(cust.billing.payments||[]),payment];
+    const r=RC[cust.modelCode]||{};
+    const newBilling={...cust.billing,payments};
+    const newCalc=calcB(newBilling,r);
+    const updC={...cust,billing:{...newBilling,calc:newCalc,paid:newCalc.paid},updatedAt:td()};
+    setCusts(p=>p.map(c=>c.id===custId?updC:c));
+    // Auto-send MR PDF to customer via WhatsApp
+    try{
+      const doc=makeMRDoc(updC,newBilling,newCalc);
+      sharePdf(doc,"MR_"+updC.name.replace(/ /g,"_")+"_"+td()+".pdf",updC.phone,"Please find your updated Money Receipt from NKD Bajaj, Dhanbad.");
+    }catch(e){}
+    // Store notification for manager / owner
+    const notif={id:Date.now(),custName:updC.name,model:updC.model||"",amt:payment.amt,mode:payment.mode,balance:Math.max(newCalc.K,0),salesman:updC.salesman||user,date:td(),time:new Date().toLocaleTimeString("en-IN",{hour:"2-digit",minute:"2-digit"}),read:false};
+    const updN=[...payNotifs,notif];
+    setPayNotifs(updN);
+    sv("nkd_pnotifs",updN);
+    _dbSet("payment_notifs",updN);
+    notify("✅ Payment saved · MR sending to customer");
   }
 
   function billC(cust,data){
@@ -2180,9 +2222,19 @@ export default function App(){
   if(!fbReady)return(<div style={{minHeight:"100vh",background:"linear-gradient(160deg,#f0f7ff 0%,#f8fafc 100%)",display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",gap:14}}><div style={{width:110,background:"#fff",borderRadius:16,padding:"8px 12px"}}><img src="/logo.png" alt="NKD Bajaj" style={{width:"100%"}}/></div><div style={{color:"#f97316",fontWeight:700,fontSize:15}}>NKD Bajaj CRM</div><div style={{color:"#94a3b8",fontSize:12}}>Connecting to database…</div></div>);
   if(!li)return <Login nkdUsers={nkdUsers} onLogin={(r,u,b)=>{setRole(r);setUser(u);if(b)sv("nkd_br",b);sv("nkd_r",r);sv("nkd_u",u);sv("nkd_li",true);setLi(true);if(isPortalRole(r))togglePortal(true);}}/>;
 
+  // Payment notification popup for manager / owner / tech
+  const notifPopup=(role==="manager"||role==="owner"||role==="tech")&&(
+    <PaymentNotifPopup notifs={payNotifs} onDismiss={()=>{
+      const marked=payNotifs.map(n=>({...n,read:true}));
+      setPayNotifs(marked);
+      sv("nkd_pnotifs",marked);
+      _dbSet("payment_notifs",marked);
+    }}/>
+  );
+
   // Owner / Admin → Web Portal (unless they switched to mobile)
   if(isPortalRole(role)&&portalMode){
-    return <OwnerPortal
+    return <>{notifPopup}<OwnerPortal
       custs={custs} stockData={stockData} billedChassis={billedChassis} statusData={statusData}
       role={role} user={user} mBr={mBr}
       saveStockData={saveStockData} saveStatusData={saveStatusData}
@@ -2190,13 +2242,14 @@ export default function App(){
       notify={notify}
       onLogout={()=>{sv("nkd_li",false);sv("nkd_portal",false);setPortalMode(false);setLi(false);}}
       onMobile={()=>togglePortal(false)}
-    />;
+    /></>;
   }
 
   const navItems=role==="admin"?[{id:"vault",l:"Document Vault",ic:"📁"},{id:"uploads",l:"Uploads",ic:"📤"},{id:"stock",l:"Stock",ic:"🏍️"},{id:"rcstatus",l:"RC/HSRP",ic:"🔍"}]:[{id:"dashboard",l:"Home",ic:"🏠"},{id:"followups",l:"Followup",ic:"📞",badge:due.length},{id:"customers",l:"Customers",ic:"👥"},{id:"stock",l:"Stock",ic:"🏍️"},{id:"rcstatus",l:"RC/HSRP",ic:"🔍"},...(role!=="salesman"?[{id:"approvals",l:"Approve",ic:"✅",badge:pending.length}]:[]),...(role!=="salesman"?[{id:"revival",l:"Revival",ic:"🔄"}]:[]),...(isOwner(role)?[{id:"reports",l:"Reports",ic:"📊"}]:[]),...(isOwner(role)?[{id:"vault",l:"Vault",ic:"📁"}]:[]),...(isOwner(role)?[{id:"uploads",l:"Uploads",ic:"📤"}]:[]),...(role!=="salesman"&&alerts.length>0?[{id:"alerts",l:"Alerts",ic:"⚠️",badge:alerts.length}]:[])];
 
   return(
     <div style={{minHeight:"100vh",background:"linear-gradient(160deg,#f0f7ff 0%,#e8f4ff 40%,#f8fafc 100%)",color:"#1e293b",fontFamily:"'Inter',-apple-system,sans-serif",maxWidth:480,margin:"0 auto"}}>
+      {notifPopup}
       <style>{`
         @import url('https://fonts.googleapis.com/css2?family=Sora:wght@400;600;700;800&display=swap');
         *{font-family:'Sora','Inter',-apple-system,sans-serif!important;-webkit-tap-highlight-color:transparent}

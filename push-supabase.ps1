@@ -11,7 +11,7 @@ Write-Host "Installing packages..." -ForegroundColor Cyan
 npm install
 
 git add -A
-git commit -m "Add Receive Payment in Billing tab + make dashboard payment button visible"
+git commit -m "Auto-send MR PDF to customer on payment + popup notification for manager/owner"
 git push
 
 if ($LASTEXITCODE -eq 0) {
