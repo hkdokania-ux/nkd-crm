@@ -1217,6 +1217,8 @@ function BillingModal({cust,onClose,onSave,notify,role,stockData,billedChassis})
   const sEngineKey=findStockCol(sKeys,["engine"]);
   const sColorKey=findStockCol(sKeys,["color","colour"]);
   const sModelKey=findStockCol(sKeys,["model","name","variant","description","item","product","vehicle"]);
+  const sAgeKey=findStockCol(sKeys,["age","days","ageing","aging"]);
+  const sDateKey=findStockCol(sKeys,["date","invoice","inward","receipt","stock"]);
   const modelStr=(cust.model||"").toLowerCase();
   const modelCode=(cust.modelCode||"").toLowerCase();
   function rowMatchesModel(row){
@@ -1337,7 +1339,13 @@ function BillingModal({cust,onClose,onSave,notify,role,stockData,billedChassis})
               <div style={{gridColumn:"1/-1"}}>
                 <label style={{...lbl,fontSize:10}}>Chassis No * {availableForModel.length>0&&<span style={{color:"#34d399",fontWeight:700}}>({availableForModel.length} in stock)</span>}{availableForModel.length===0&&sRows.length>0&&<span style={{color:"#f97316",fontWeight:700}}>(no stock for this model)</span>}</label>
                 <input list="chassis-list" value={f.chassis||""} onChange={e=>pickChassis(e.target.value)} placeholder="Type or search chassis no…" style={{...inp,fontSize:12,padding:"8px 10px",textTransform:"uppercase"}} onBlur={e=>setF(p=>({...p,chassis:String(e.target.value).toUpperCase()}))}/>
-                <datalist id="chassis-list">{availableForModel.map((row,i)=>{const ch=String(row[sChassisKey]||"");return(<option key={i} value={ch}>{sColorKey&&row[sColorKey]?row[sColorKey]:""}</option>);})}</datalist>
+                <datalist id="chassis-list">{availableForModel.map((row,i)=>{
+                  const ch=String(row[sChassisKey]||"");
+                  const col=sColorKey?String(row[sColorKey]||""):"";
+                  const age=sAgeKey?String(row[sAgeKey]||""):(sDateKey&&row[sDateKey]?Math.floor((new Date()-new Date(row[sDateKey]))/86400000)+"d":"");
+                  const label=[col,age?age+" days":""].filter(Boolean).join(" · ");
+                  return(<option key={i} value={ch}>{label}</option>);
+                })}</datalist>
               </div>
               {[{k:"engine",l:"Engine No"},{k:"color",l:"Colour"},{k:"deliveryDate",l:"Delivery Date",t:"date"},...(isFin?[{k:"financeBank",l:"Finance Bank"}]:[]),{k:"registrationNo",l:"Reg No"},{k:"insuranceNo",l:"Insurance No"},{k:"mrNo",l:"MR No."}].map(({k,l,t})=>(
                 <div key={k}><label style={{...lbl,fontSize:10}}>{l}</label><input type={t||"text"} value={f[k]||""} onChange={e=>setF(p=>({...p,[k]:e.target.value}))} onBlur={t!=="date"?e=>setF(p=>({...p,[k]:String(e.target.value).toUpperCase()})):undefined} style={{...inp,fontSize:12,padding:"8px 10px",textTransform:t==="date"?"none":"uppercase"}}/></div>
