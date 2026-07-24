@@ -387,7 +387,58 @@ function DuePayRow({c,K,role,onOpen,onAddPayment}){
     </div>
   );
 }
-function Dashboard({custs,role,onOpen,onNav,onNavF,onSvcDone,onTeamTap,onAddPayment}){
+function ExchDashGroup({exchName,list,onUpd,notify}){
+  const [open,setOpen]=useState(false);
+  const [edits,setEdits]=useState({});
+  function getExv(c){return Number(c.billing?.exv||c.billing?.calc?.exv||0);}
+  function setE(id,field,val){setEdits(p=>({...p,[id]:{...(p[id]||{}),[ field]:val}}));}
+  function getE(c,field){return edits[c.id]?.[field]??c[field]??"";}
+  function getPhone(c){return c.billing?.details?.exchangePhone||c.exchangePhone||"";}
+  function receiveAndSend(){
+    const rows=list.map(c=>({name:c.name,model:c.model||"",regNo:c.billing?.details?.exchangeRegNo||c.exchangeRegNo||"",exv:getExv(c),amtRec:Number(getE(c,"exchAmtRec")||0),comm:Number(getE(c,"exchComm")||0),disc:Number(getE(c,"exchDisc")||0)}));
+    const doc=makeExchMRDoc(exchName,rows,td());
+    const fname="ExchMR_"+exchName.replace(/ /g,"_")+"_"+td()+".pdf";
+    const offNum=ld("nkd_office_wa",OFFICE_WA)||OFFICE_WA;
+    const exchPhone=list.map(c=>getPhone(c)).find(p=>p)||"";
+    const msg="Exchange Settlement MR for "+exchName+" — "+list.length+" vehicle(s)";
+    if(exchPhone)sharePdf(doc,fname,exchPhone,msg);
+    sharePdf(doc,fname,offNum,msg);
+    list.forEach(c=>{onUpd(c.id,{exchAmtRec:Number(getE(c,"exchAmtRec")||0),exchComm:Number(getE(c,"exchComm")||0),exchDisc:Number(getE(c,"exchDisc")||0),exchMrIssued:true,exchMrDate:td()});});
+    notify("✅ MR sent to "+(exchPhone?"exchanger & ":"")+"office for "+exchName);
+  }
+  return(
+    <div style={{background:"rgba(245,158,11,0.06)",border:"1px solid rgba(245,158,11,0.4)",borderRadius:12,padding:"11px 13px",marginBottom:7}}>
+      <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",cursor:"pointer"}} onClick={()=>setOpen(p=>!p)}>
+        <div>
+          <span style={{fontWeight:700,fontSize:13,color:"#1e293b"}}>{exchName}</span>
+          <span style={{fontSize:10,color:"#f59e0b",fontWeight:800,marginLeft:6}}>{list.length} vehicle{list.length>1?"s":""}</span>
+        </div>
+        <span style={{fontSize:12,color:"#f59e0b"}}>{open?"▲":"▼"}</span>
+      </div>
+      {!open&&list.map(c=><div key={c.id} style={{fontSize:11,color:"#64748b",marginTop:3}}>• {c.name} — {c.model} · EXV: {fc(getExv(c))}{c.billing?.mrNo?" · MR# "+c.billing.mrNo:""}</div>)}
+      {open&&(
+        <div style={{marginTop:10}}>
+          {list.map(c=>(
+            <div key={c.id} style={{background:"#fff",border:"1px solid #e2e8f0",borderRadius:10,padding:"10px 12px",marginBottom:8}}>
+              <div style={{fontWeight:700,fontSize:12,color:"#1e293b",marginBottom:6}}>{c.name} · {c.model}</div>
+              <div style={{fontSize:11,color:"#64748b",marginBottom:6}}>EXV: {fc(getExv(c))}{c.billing?.mrNo?" · MR# "+c.billing.mrNo:""}{getPhone(c)?" · 📞 "+getPhone(c):""}</div>
+              <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:6}}>
+                {[["exchAmtRec","Amt Recd"],["exchComm","Commission"]].map(([field,label])=>(
+                  <div key={field}>
+                    <div style={{fontSize:9,color:"#64748b",marginBottom:2}}>{label}</div>
+                    <input type="number" value={getE(c,field)} onChange={e=>setE(c.id,field,e.target.value)} placeholder="₹0" style={{width:"100%",border:"1px solid #cbd5e1",borderRadius:7,padding:"6px 8px",fontSize:12,boxSizing:"border-box"}}/>
+                  </div>
+                ))}
+              </div>
+            </div>
+          ))}
+          <button onClick={receiveAndSend} style={{width:"100%",background:"linear-gradient(135deg,#f59e0b,#d97706)",border:"none",borderRadius:9,padding:"10px",fontSize:12,color:"#fff",fontWeight:700,cursor:"pointer",boxShadow:"0 2px 8px rgba(245,158,11,0.35)"}}>📲 Issue MR & Send to Exchanger + Office</button>
+        </div>
+      )}
+    </div>
+  );
+}
+function Dashboard({custs,role,onOpen,onNav,onNavF,onSvcDone,onTeamTap,onAddPayment,onUpd,notify}){
   const hot=custs.filter(c=>c.status==="Hot"&&!c.billed);
   const stats=[
     {l:"Hot",st:"Hot",v:custs.filter(c=>c.status==="Hot"&&!c.billed).length,c:"#ef4444"},
@@ -461,12 +512,9 @@ function Dashboard({custs,role,onOpen,onNav,onNavF,onSvcDone,onTeamTap,onAddPaym
           <div style={{marginBottom:18}}>
             <div style={{fontSize:12,fontWeight:800,color:"#f59e0b",marginBottom:8}}>🔄 EXCHANGER DUE — PENDING SETTLEMENT ({exchPending.length})</div>
             {Object.entries(byExch).map(([name,list])=>(
-              <div key={name} style={{background:"rgba(245,158,11,0.06)",border:"1px solid rgba(245,158,11,0.35)",borderRadius:12,padding:"11px 13px",marginBottom:7}}>
-                <div style={{fontWeight:700,fontSize:13,color:"#1e293b",marginBottom:4}}>{name} <span style={{fontSize:10,color:"#f59e0b",fontWeight:800}}>· {list.length} vehicle{list.length>1?"s":""}</span></div>
-                {list.map(c=><div key={c.id} style={{fontSize:11,color:"#64748b",marginBottom:2}}>• {c.name} — {c.model} · EXV: {fc(Number(c.billing?.exv||c.billing?.calc?.exv||0))}{c.billing?.mrNo?" · MR# "+c.billing.mrNo:""}</div>)}
-              </div>
+              <ExchDashGroup key={name} exchName={name} list={list} onUpd={onUpd} notify={notify}/>
             ))}
-            <div style={{fontSize:10,color:"#94a3b8",textAlign:"right",marginTop:4}}>Total exch value pending: {fc(totalExv)} · Go to Portal → Exchanger Due to settle</div>
+            <div style={{fontSize:10,color:"#94a3b8",textAlign:"right",marginTop:4}}>Total exch value pending: {fc(totalExv)}</div>
           </div>
         );
       })()}
@@ -2599,7 +2647,7 @@ export default function App(){
 
       <div style={{padding:16,paddingBottom:110}}>
         {role==="admin"&&view!=="vault"&&view!=="rcstatus"&&view!=="stock"&&view!=="uploads"&&setView("vault")}
-        {view==="dashboard"&&<Dashboard custs={myC} role={role} onOpen={openD} onNav={nav} onNavF={st=>{setCustF(st);nav("customers");}} onSvcDone={id=>{upd(id,{serviceDone:true});notify("Service marked done ✓");}} onTeamTap={s=>{setFSM(s);nav("followups");}} onAddPayment={addPayment}/>}
+        {view==="dashboard"&&<Dashboard custs={myC} role={role} onOpen={openD} onNav={nav} onNavF={st=>{setCustF(st);nav("customers");}} onSvcDone={id=>{upd(id,{serviceDone:true});notify("Service marked done ✓");}} onTeamTap={s=>{setFSM(s);nav("followups");}} onAddPayment={addPayment} onUpd={upd} notify={notify}/>}
         {view==="followups"&&<Followups items={due} onOpen={openD} onLog={logF} onCallLog={logCall} showSMFilter={role!=="salesman"} initSM={fSM}/>}
         {view==="customers"&&<CustList custs={myC} onOpen={openD} initF={custF} showSM={role!=="salesman"}/>}
         {view==="detail"&&sel&&<Detail cust={custs.find(c=>c.id===sel.id)||sel} role={role} onBack={goBack} onUpd={p=>upd(sel.id,p)} onLog={logF} onBill={()=>setBillOpen(true)} onBook={()=>setBookOpen(true)} notify={notify} initTab={dtab} clearInit={()=>setDtab(null)} onAddPayment={addPayment}/>}
