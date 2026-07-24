@@ -151,8 +151,8 @@ function makeCombinedDoc(cust,b,c){
   line("______________________",pad,y+14,9);line("______________________",W-pad,y+14,9,"normal","right");
   return doc;
 }
-function makeBookingPdf(cust){
-  const bk=cust.booking||{};
+function makeBookingPdf(cust,bkOvr){
+  const bk=bkOvr||cust.booking||{};
   const doc=new jsPDF({unit:"mm",format:"a4"});
   const W=210,pad=18;let y=18;
   function line(text,x,yy,size,style,align){doc.setFontSize(size||11);doc.setFont("helvetica",style||"normal");doc.text(text,x,yy,{align:align||"left"});}
@@ -1015,16 +1015,8 @@ function Detail({cust,role,onBack,onUpd,onLog,onBill,onBook,notify,initTab,clear
         {!cust.billed&&!cust.stopped?<button onClick={onBill} style={{background:"rgba(52,211,153,0.1)",border:"1px solid rgba(52,211,153,0.3)",borderRadius:13,padding:"11px 6px",display:"flex",flexDirection:"column",alignItems:"center",gap:4,cursor:"pointer"}}><span style={{fontSize:22}}>🏍️</span><span style={{fontSize:11,color:"#34d399",fontWeight:700}}>{cust.billingDraft?"Resume":"Bill"}</span><span style={{fontSize:10,color:cust.billingDraft?"#f59e0b":"#94a3b8"}}>{cust.billingDraft?"Draft Saved":"Vehicle"}</span></button>:<div style={{background:"rgba(52,211,153,0.07)",border:"1px solid rgba(52,211,153,0.25)",borderRadius:13,padding:"11px 6px",display:"flex",flexDirection:"column",alignItems:"center",gap:4}}><span style={{fontSize:22}}>✅</span><span style={{fontSize:11,color:"#34d399",fontWeight:700}}>Billed</span><span style={{fontSize:10,color:"#94a3b8"}}>{fd(cust.billedDate)}</span></div>}
       </div>
 
-      {!cust.billed&&!cust.stopped&&(cust.booking&&role==="salesman"?
-        <div style={{width:"100%",background:"rgba(139,92,246,0.07)",border:"1px solid rgba(139,92,246,0.25)",borderRadius:12,padding:"11px",color:"#a78bfa",fontWeight:700,fontSize:13,marginBottom:8,textAlign:"center"}}>📝 Booking: {fc(cust.booking.amt)} on {fd(cust.booking.date)} · {cust.booking.mode}<br/><span style={{fontSize:10,fontWeight:400,color:"#94a3b8"}}>Only manager can edit booking amount</span></div>:
-        <button onClick={onBook} style={{width:"100%",background:"rgba(139,92,246,0.1)",border:"1px solid rgba(139,92,246,0.35)",borderRadius:12,padding:"11px",color:"#a78bfa",fontWeight:700,fontSize:13,cursor:"pointer",marginBottom:cust.booking&&cust.booking.receiptHtml?8:12}}>📝 {cust.booking?"Booking: "+fc(cust.booking.amt)+" on "+fd(cust.booking.date)+" — Edit":"Take Booking Amount (without documents)"}</button>
-      )}
+      {!cust.billed&&!cust.stopped&&(()=>{const allBks=cust.bookings||(cust.booking?[cust.booking]:[]);const totalBk=allBks.reduce((s,b)=>s+Number(b.amt||0),0);return(<><Fragment>{allBks.length>0&&(<div style={{background:"rgba(139,92,246,0.06)",border:"1px solid rgba(139,92,246,0.3)",borderRadius:12,padding:"11px 13px",marginBottom:8}}><div style={{fontWeight:800,fontSize:12,color:"#8b5cf6",marginBottom:8}}>📝 BOOKINGS — Total: {fc(totalBk)}</div>{allBks.map((bk,i)=>(<div key={i} style={{display:"flex",justifyContent:"space-between",alignItems:"center",background:"#fff",border:"1px solid #e2e8f0",borderRadius:9,padding:"8px 10px",marginBottom:6}}><div><div style={{fontSize:12,fontWeight:700,color:"#1e293b"}}>#{i+1} · {fc(bk.amt)} · {bk.mode}</div><div style={{fontSize:10,color:"#94a3b8"}}>{fd(bk.date)}{bk.note?" · "+bk.note:""}</div></div><button onClick={()=>{const doc=makeBookingPdf(cust,bk);sharePdf(doc,"Booking"+(i+1)+"_"+cust.name.replace(/ /g,"_")+"_"+(bk.date||td())+".pdf",cust.phone,"Booking Receipt #"+(i+1)+" from NKD Bajaj, Dhanbad.");}} style={{background:"rgba(37,211,102,0.1)",border:"1px solid rgba(37,211,102,0.35)",borderRadius:8,padding:"6px 10px",fontSize:10,color:"#22c55e",fontWeight:700,cursor:"pointer",whiteSpace:"nowrap"}}>📲 MR #{i+1}</button></div>))}</div>)}</Fragment><button onClick={onBook} style={{width:"100%",background:"rgba(139,92,246,0.1)",border:"1px solid rgba(139,92,246,0.35)",borderRadius:12,padding:"11px",color:"#a78bfa",fontWeight:700,fontSize:13,cursor:"pointer",marginBottom:8}}>{allBks.length>0?"➕ Add Another Booking Payment":"📝 Take Booking Amount (without documents)"}</button></>);})()}
       {!cust.billed&&!cust.stopped&&<button onClick={()=>{const taking=!cust.testRide;onUpd({testRide:taking?{date:td()}:null,remarks:(cust.remarks||"")+(taking?"\n["+td()+"] TEST RIDE taken":"")});if(taking){setTab("docs");notify("🚦 Test ride recorded — upload the license here");}}} style={{width:"100%",background:cust.testRide?"rgba(34,197,94,0.1)":"rgba(96,165,250,0.08)",border:"1px solid "+(cust.testRide?"rgba(34,197,94,0.35)":"rgba(96,165,250,0.3)"),borderRadius:12,padding:"10px",color:cust.testRide?"#22c55e":"#60a5fa",fontWeight:700,fontSize:12,cursor:"pointer",marginBottom:8}}>🏍️ Test Ride {cust.testRide?"✓ Done "+fd(cust.testRide.date):"— Tap when taken (upload license in Docs)"}</button>}
-      {!cust.billed&&cust.booking&&<div style={{display:"flex",flexDirection:"column",gap:8,marginBottom:12}}>
-        <button onClick={()=>{const doc=makeBookingPdf(cust);sharePdf(doc,"BookingReceipt_"+cust.name.replace(/ /g,"_")+"_"+td()+".pdf",cust.phone,"Please find your Booking Receipt from NKD Bajaj, Dhanbad.");}} style={{width:"100%",background:"rgba(37,211,102,0.1)",border:"1px solid rgba(37,211,102,0.35)",borderRadius:12,padding:13,color:"#22c55e",fontWeight:700,fontSize:13,cursor:"pointer"}}>📲 Send Booking Receipt PDF → Customer (WhatsApp)</button>
-        <button onClick={()=>{const num=ld("nkd_office_wa",OFFICE_WA)||OFFICE_WA;const doc=makeBookingPdf(cust);sharePdf(doc,"BookingRecord_"+cust.name.replace(/ /g,"_")+"_"+td()+".pdf",num,"Booking Record for "+cust.name+" — "+fc(cust.booking.amt)+" ("+cust.booking.mode+")");}} style={{width:"100%",background:"rgba(139,92,246,0.1)",border:"1px solid rgba(139,92,246,0.35)",borderRadius:12,padding:11,color:"#a78bfa",fontWeight:700,fontSize:12,cursor:"pointer"}}>🏢 Send Booking Record PDF → Office (WhatsApp)</button>
-        <div style={{fontSize:10,color:"#94a3b8"}}>On mobile — tapping Send opens WhatsApp share sheet directly. On desktop — PDF downloads then WhatsApp opens.</div>
-      </div>}
       {cust.managerApproval==="rejected"&&!cust.billed&&<div style={{background:"rgba(239,68,68,0.12)",border:"1px solid rgba(239,68,68,0.5)",borderRadius:12,padding:"11px 13px",marginBottom:12}}>
         <div style={{fontSize:12,color:"#ef4444",fontWeight:800,marginBottom:3}}>❌ BILLING REJECTED BY MANAGER</div>
         <div style={{fontSize:12,color:"#1e293b",lineHeight:1.5}}>Correct the calculation sheet and tap 🏍️ Bill again. All uploaded documents are retained.</div>
@@ -1166,28 +1158,34 @@ function QuickLog({cust,onLog}){
 }
 
 function BookingModal({cust,onClose,onSave}){
-  const [amt,setAmt]=useState(cust.booking?cust.booking.amt:"");
-  const [date,setDate]=useState(cust.booking?cust.booking.date:td());
-  const [mode,setMode]=useState(cust.booking?cust.booking.mode||"Cash":"Cash");
+  const [amt,setAmt]=useState("");
+  const [mode,setMode]=useState("Cash");
   const [note,setNote]=useState("");
   const [proof,setProof]=useState(null);
   function pickProof(file){compressImg(file,setProof);}
+  const existingBks=(cust.bookings||(cust.booking?[cust.booking]:[]));
+  const totalBooked=existingBks.reduce((s,b)=>s+Number(b.amt||0),0);
   function submit(){
     if(!amt||Number(amt)<=0){alert("Enter booking amount");return;}
-    onSave({amt:Number(amt),date,mode,note,proof});
+    onSave({amt:Number(amt),date:td(),mode,note,proof});
   }
   return(
     <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.88)",zIndex:150,display:"flex",alignItems:"flex-end"}}>
-      <div style={{background:"#ffffff",width:"100%",borderRadius:"20px 20px 0 0",padding:"20px 16px 44px"}}>
+      <div style={{background:"#ffffff",width:"100%",borderRadius:"20px 20px 0 0",padding:"20px 16px 44px",maxHeight:"92vh",overflowY:"auto"}}>
         <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:14}}>
-          <div style={{fontWeight:800,fontSize:17,color:"#1e293b"}}>Take Booking</div>
+          <div style={{fontWeight:800,fontSize:17,color:"#1e293b"}}>{existingBks.length>0?"Add Booking Payment":"Take Booking"}</div>
           <button onClick={onClose} style={{background:"#c2d6ec",border:"none",borderRadius:8,width:32,height:32,cursor:"pointer",color:"#64748b",fontSize:18}}>✕</button>
         </div>
-        <div style={{fontSize:12,color:"#94a3b8",marginBottom:14}}>{cust.name} · {cust.model}</div>
-        <div style={{background:"rgba(139,92,246,0.08)",border:"1px solid rgba(139,92,246,0.25)",borderRadius:10,padding:"9px 12px",marginBottom:14,fontSize:11,color:"#a78bfa"}}>Records booking without KYC documents. Amount &amp; date auto-fill in the calculation sheet at billing time.</div>
+        <div style={{fontSize:12,color:"#94a3b8",marginBottom:10}}>{cust.name} · {cust.model}</div>
+        {existingBks.length>0&&(
+          <div style={{background:"rgba(139,92,246,0.06)",border:"1px solid rgba(139,92,246,0.25)",borderRadius:10,padding:"9px 12px",marginBottom:12}}>
+            <div style={{fontSize:11,fontWeight:700,color:"#8b5cf6",marginBottom:6}}>Previous Bookings — Total: {fc(totalBooked)}</div>
+            {existingBks.map((b,i)=><div key={i} style={{fontSize:11,color:"#64748b",marginBottom:2}}>#{i+1} · {fd(b.date)} · {fc(b.amt)} · {b.mode}</div>)}
+          </div>
+        )}
         <div style={{display:"flex",flexDirection:"column",gap:10}}>
+          <div style={{background:"rgba(139,92,246,0.06)",border:"1px solid rgba(139,92,246,0.2)",borderRadius:8,padding:"7px 10px",fontSize:11,color:"#a78bfa"}}>📅 Date will be auto-set to today ({fd(td())}) when saved</div>
           <div><label style={lbl}>Booking Amount ₹ *</label><input type="number" style={inp} value={amt} onChange={e=>setAmt(e.target.value)}/></div>
-          <div><label style={lbl}>Booking Date *</label><input type="date" style={inp} value={date} onChange={e=>setDate(e.target.value)}/></div>
           <div><label style={lbl}>Mode</label><div style={{display:"flex",gap:7}}>{["Cash","UPI","Cheque"].map(m=><button key={m} onClick={()=>setMode(m)} style={{flex:1,background:mode===m?"#dbeafe":"#6b8fb5",border:"1px solid "+(mode===m?"#3b82f6":"#6b8fb5"),borderRadius:10,padding:10,color:mode===m?"#60a5fa":"#5a6478",fontWeight:700,cursor:"pointer",fontSize:12}}>{m}</button>)}</div></div>
           <div><label style={lbl}>Notes</label><input style={inp} value={note} onChange={e=>setNote(e.target.value)} placeholder="e.g. balance on delivery"/></div>
           <div><label style={lbl}>Payment Proof (cheque / UPI screenshot)</label>
@@ -1196,7 +1194,7 @@ function BookingModal({cust,onClose,onSave}){
           </div>
           <div style={{display:"flex",gap:8}}>
             <button onClick={onClose} style={{...btn("#6b8fb5","#8892a4"),flex:1,padding:14,borderRadius:13}}>← Go Back</button>
-            <button onClick={submit} style={{...btn("linear-gradient(135deg,#8b5cf6,#6d28d9)"),flex:2,padding:14,fontSize:15,borderRadius:13}}>Save Booking</button>
+            <button onClick={submit} style={{...btn("linear-gradient(135deg,#8b5cf6,#6d28d9)"),flex:2,padding:14,fontSize:15,borderRadius:13}}>💾 Save & Issue MR</button>
           </div>
         </div>
       </div>
@@ -1378,6 +1376,23 @@ function BillingModal({cust,onClose,onSave,onDraft,notify,role,stockData,billedC
   }
 
   const [busy,setBusy]=useState(false);
+  const [mrSent,setMrSent]=useState(false);
+  function generateAndSendMR(){
+    try{
+      const details={name:f.billName||cust.name,exchangeName:f.exchName,exchangePhone:f.exchPhone,exchangeAsked:f.exchModel,exchangeRegNo:f.exchRegNo,exchangeOffered:String(f.exv||""),fatherName:f.fatherName,address:cust.address,dob:f.dob,nominee:f.nominee,nomineeRel:f.nomineeRel,aadhar:f.aadhar,pan:f.pan};
+      const tempBilling={...f,details,calc:c,paid:c.paid};
+      const tempCust={...cust,...details,billing:tempBilling,billedDate:f.deliveryDate||td()};
+      const doc=makeMRDoc(tempCust,tempBilling,c);
+      sharePdf(doc,"MR_"+cust.name.replace(/ /g,"_")+"_"+td()+".pdf",cust.phone,"Please find your Money Receipt from NKD Bajaj, Dhanbad.");
+      savePdfToDrive(doc,"MR_"+cust.name.replace(/ /g,"_")+"_"+td()+".pdf",cust.name,"MR");
+      const offNum=ld("nkd_office_wa",OFFICE_WA)||OFFICE_WA;
+      const doc2=makeCombinedDoc(tempCust,tempBilling,c);
+      sharePdf(doc2,"CalcMR_"+cust.name.replace(/ /g,"_")+"_"+td()+".pdf",offNum,"Calc+MR for "+cust.name+" — "+cust.model);
+      savePdfToDrive(doc2,"CalcMR_"+cust.name.replace(/ /g,"_")+"_"+td()+".pdf",cust.name,"CalcSheet");
+      setMrSent(true);
+      notify("✅ MR sent to customer & office — now enter payment received");
+    }catch(e){notify("⚠️ Error generating MR: "+e.message,"err");}
+  }
   function saveDraft(){
     onDraft({...f,payMode:(f.payments||[]).filter(p=>Number(p.amt||0)>0).map(p=>p.mode).join(" + ")||"—",paid:c.paid,calc:c,checklist:chk,verify:ver,details:{name:f.billName||cust.name,exchangeName:f.exchName,exchangePhone:f.exchPhone,exchangeAsked:f.exchModel,exchangeRegNo:f.exchRegNo,exchangeOffered:String(f.exv||""),fatherName:f.fatherName,address:cust.address,dob:f.dob,nominee:f.nominee,nomineeRel:f.nomineeRel,aadhar:f.aadhar,pan:f.pan}});
     notify("📋 Draft saved — reopen billing to continue");
@@ -1494,17 +1509,27 @@ function BillingModal({cust,onClose,onSave,onDraft,notify,role,stockData,billedC
             <div style={{display:"flex",justifyContent:"space-between",padding:"5px 0",borderBottom:"1px solid #131820",fontSize:11}}><span style={{color:"#64748b"}}>Balance from Customer (I)</span><span style={{color:"#1e293b",fontWeight:700}}>{fc(c.I)}</span></div>
             <div style={{borderTop:"1px solid #6b8fb5",paddingTop:8,marginTop:4}}>
               <div style={{fontSize:10,color:"#f97316",fontWeight:700,marginBottom:6}}>PAYMENT RECEIVED (J)</div>
-              {(f.payments||[]).map((p,i)=>(
-                <div key={i} style={{display:"flex",gap:6,marginBottom:6,alignItems:"center"}}>
-                  <select value={p.mode} onChange={e=>{const px=[...f.payments];px[i]={...px[i],mode:e.target.value};setF(q=>({...q,payments:px}));}} style={{background:"#f1f5f9",border:"1px solid #6b8fb5",borderRadius:8,padding:"5px 6px",fontSize:11,color:"#1e293b",width:90,flexShrink:0}}>
-                    {["Cash","Cheque","UPI","RTGS","Finance"].map(m=><option key={m}>{m}</option>)}
-                  </select>
-                  <input type="number" value={p.amt||""} placeholder="Amount" onChange={e=>{const px=[...f.payments];px[i]={...px[i],amt:e.target.value};setF(q=>({...q,payments:px}));}} style={{flex:1,background:"#f1f5f9",border:"1px solid #6b8fb5",borderRadius:8,padding:"5px 8px",fontSize:11,color:"#1e293b"}}/>
-                  <input value={p.ref||""} placeholder="Cheque No / Ref" onChange={e=>{const px=[...f.payments];px[i]={...px[i],ref:e.target.value};setF(q=>({...q,payments:px}));}} style={{flex:1,background:"#f1f5f9",border:"1px solid #6b8fb5",borderRadius:8,padding:"5px 8px",fontSize:11,color:"#1e293b"}}/>
-                  {(f.payments||[]).length>1&&<button onClick={()=>setF(q=>({...q,payments:q.payments.filter((_,j)=>j!==i)}))} style={{background:"rgba(239,68,68,0.15)",border:"none",borderRadius:6,padding:"4px 8px",color:"#ef4444",cursor:"pointer",fontSize:13,flexShrink:0}}>✕</button>}
+              {!mrSent?(
+                <div style={{background:"rgba(249,115,22,0.08)",border:"1px solid rgba(249,115,22,0.4)",borderRadius:10,padding:"12px 14px",marginBottom:8,textAlign:"center"}}>
+                  <div style={{fontSize:12,color:"#f97316",fontWeight:700,marginBottom:8}}>Generate & Send MR first to unlock payment entry</div>
+                  <button onClick={generateAndSendMR} style={{background:"linear-gradient(135deg,#f97316,#ea580c)",border:"none",borderRadius:10,padding:"10px 18px",color:"#fff",fontSize:13,fontWeight:700,cursor:"pointer",width:"100%"}}>Generate MR &amp; Send to Customer + Office</button>
                 </div>
-              ))}
-              <button onClick={()=>setF(q=>({...q,payments:[...(q.payments||[]),{mode:"Cash",amt:"",ref:""}]}))} style={{width:"100%",background:"rgba(96,165,250,0.07)",border:"1px dashed rgba(96,165,250,0.3)",borderRadius:8,padding:"6px",color:"#60a5fa",fontSize:11,cursor:"pointer",marginBottom:4}}>+ Add Payment Entry</button>
+              ):(
+                <>
+                  <div style={{background:"rgba(34,197,94,0.1)",border:"1px solid rgba(34,197,94,0.4)",borderRadius:8,padding:"6px 10px",marginBottom:8,fontSize:11,color:"#22c55e",fontWeight:700,textAlign:"center"}}>MR sent to customer &amp; office</div>
+                  {(f.payments||[]).map((p,i)=>(
+                    <div key={i} style={{display:"flex",gap:6,marginBottom:6,alignItems:"center"}}>
+                      <select value={p.mode} onChange={e=>{const px=[...f.payments];px[i]={...px[i],mode:e.target.value};setF(q=>({...q,payments:px}));}} style={{background:"#f1f5f9",border:"1px solid #6b8fb5",borderRadius:8,padding:"5px 6px",fontSize:11,color:"#1e293b",width:90,flexShrink:0}}>
+                        {["Cash","Cheque","UPI","RTGS"].map(m=><option key={m}>{m}</option>)}
+                      </select>
+                      <input type="number" value={p.amt||""} placeholder="Amount" onChange={e=>{const px=[...f.payments];px[i]={...px[i],amt:e.target.value};setF(q=>({...q,payments:px}));}} style={{flex:1,background:"#f1f5f9",border:"1px solid #6b8fb5",borderRadius:8,padding:"5px 8px",fontSize:11,color:"#1e293b"}}/>
+                      <input value={p.ref||""} placeholder="Cheque No / Ref" onChange={e=>{const px=[...f.payments];px[i]={...px[i],ref:e.target.value};setF(q=>({...q,payments:px}));}} style={{flex:1,background:"#f1f5f9",border:"1px solid #6b8fb5",borderRadius:8,padding:"5px 8px",fontSize:11,color:"#1e293b"}}/>
+                      {(f.payments||[]).length>1&&<button onClick={()=>setF(q=>({...q,payments:q.payments.filter((_,j)=>j!==i)}))} style={{background:"rgba(239,68,68,0.15)",border:"none",borderRadius:6,padding:"4px 8px",color:"#ef4444",cursor:"pointer",fontSize:13,flexShrink:0}}>✕</button>}
+                    </div>
+                  ))}
+                  <button onClick={()=>setF(q=>({...q,payments:[...(q.payments||[]),{mode:"Cash",amt:"",ref:""}]}))} style={{width:"100%",background:"rgba(96,165,250,0.07)",border:"1px dashed rgba(96,165,250,0.3)",borderRadius:8,padding:"6px",color:"#60a5fa",fontSize:11,cursor:"pointer",marginBottom:4}}>+ Add Payment Entry</button>
+                </>
+              )}
               <div style={{display:"flex",justifyContent:"space-between",padding:"5px 0",fontSize:12,fontWeight:700}}><span style={{color:"#64748b"}}>Total Received (J)</span><span style={{color:"#1e293b"}}>{fc(c.paid)}</span></div>
             </div>
             <div style={{background:c.K===0?"rgba(34,197,94,0.12)":"rgba(239,68,68,0.12)",border:"1px solid "+(c.K===0?"#22c55e":"#ef4444"),borderRadius:10,padding:"11px 12px",marginTop:6}}>
@@ -2188,10 +2213,9 @@ function CashBook({custs}){
   const entries=[];
   custs.forEach(c=>{
     const br=SM_BRANCH[c.salesman]||c.branch||"—";
-    // Booking payment
-    if(c.booking&&c.booking.date===date){
-      entries.push({type:"Booking",name:c.name,model:c.model||"",amt:Number(c.booking.amt||0),mode:c.booking.mode||"Cash",branch:br,salesman:c.salesman||"",time:""});
-    }
+    // Booking payments (multiple supported)
+    const allBks=c.bookings||(c.booking?[c.booking]:[]);
+    allBks.forEach((bk,bi)=>{if(bk&&bk.date===date){entries.push({type:"Booking #"+(bi+1),name:c.name,model:c.model||"",amt:Number(bk.amt||0),mode:bk.mode||"Cash",branch:br,salesman:c.salesman||"",time:""});}});
     // Received payments (from billing)
     if(c.billing&&c.billing.payments){
       c.billing.payments.forEach(p=>{
@@ -2705,10 +2729,14 @@ export default function App(){
       {addOpen&&<AddModal onClose={()=>setAddOpen(false)} onSave={d=>{addC(d);setAddOpen(false);}} curUser={user} role={role} existing={custs}/>}
       {bookOpen&&sel&&<BookingModal cust={custs.find(c=>c.id===sel.id)||sel} onClose={()=>setBookOpen(false)} onSave={bk=>{const cu=custs.find(c=>c.id===sel.id)||sel;
         var brc="<!DOCTYPE html><html><head><title>Booking Receipt</title><style>*{margin:0;padding:0;box-sizing:border-box}body{font-family:Arial;font-size:13px;padding:20px;color:#111}.logo{font-size:24px;font-weight:900;letter-spacing:2px;text-align:center}.hdr{text-align:center;border-bottom:2px solid #000;padding-bottom:10px;margin-bottom:14px}.hdr p{font-size:11px;color:#444;margin-top:2px}h2{text-align:center;font-size:17px;margin:10px 0 14px}.row{display:flex;justify-content:space-between;padding:5px 0;border-bottom:1px solid #eee}.v{font-weight:700}.total{display:flex;justify-content:space-between;padding:12px 0;border-top:2px solid #000;font-size:17px;font-weight:900;margin-top:8px}.sigs{display:flex;justify-content:space-between;margin-top:40px}.sigs div{text-align:center;font-size:11px}</style></head><body><div class=hdr><div class=logo>NKD BAJAJ</div><p>Authorised Main Dealer — Bajaj Auto Ltd.</p><p>Hirak Road, Near Kamal Katesaria School, Dhanbad</p><p>Ph: 7033099006 | info@nkdbajaj.com</p></div><h2>BOOKING RECEIPT</h2><div class=row><span>Date</span><span class=v>"+bk.date+"</span></div><div class=row><span>Customer</span><span class=v>"+cu.name+"</span></div><div class=row><span>Phone</span><span class=v>"+cu.phone+"</span></div><div class=row><span>Model</span><span class=v>"+(cu.model||"")+" ("+(cu.modelCode||"")+")</span></div><div class=row><span>Mode</span><span class=v>"+bk.mode+"</span></div>"+(bk.note?"<div class=row><span>Note</span><span class=v>"+bk.note+"</span></div>":"")+"<div class=total><span>BOOKING AMOUNT RECEIVED</span><span>"+fc(bk.amt)+"</span></div><p style='font-size:11px;color:#666;margin-top:8px'>Balance payable at delivery. Subject to realization of payment.</p><div class=sigs><div>____________________<br/>Customer Sign</div><div>____________________<br/>For NKD Bajaj</div></div></body></html>";
-        const updCu={...cu,booking:{...bk,receiptHtml:brc},status:"Booked",photos:{...(cu.photos||{}),...(bk.proof?{booking_proof:bk.proof}:{})},remarks:(cu.remarks||"")+"\n["+td()+"] BOOKED: "+fc(bk.amt)+" ("+bk.mode+") booking date "+bk.date+(bk.note?" — "+bk.note:"")};
+        const newBk={...bk,receiptHtml:brc,savedAt:td()};
+        const prevBks=cu.bookings||(cu.booking?[cu.booking]:[]);
+        const allBks=[...prevBks,newBk];
+        const totalBk=allBks.reduce((s,b)=>s+Number(b.amt||0),0);
+        const updCu={...cu,booking:newBk,bookings:allBks,totalBooking:totalBk,status:"Booked",photos:{...(cu.photos||{}),...(bk.proof?{["booking_proof_"+allBks.length]:bk.proof}:{})},remarks:(cu.remarks||"")+"\n["+td()+"] BOOKING #"+allBks.length+": "+fc(bk.amt)+" ("+bk.mode+") — Total booked: "+fc(totalBk)+(bk.note?" — "+bk.note:"")};
         upd(cu.id,updCu);
-        try{const doc=makeBookingPdf(updCu);sharePdf(doc,"Booking_"+cu.name.replace(/ /g,"_")+"_"+td()+".pdf",cu.phone,"Please find your Booking Receipt from NKD Bajaj, Dhanbad.");savePdfToDrive(doc,"Booking_"+cu.name.replace(/ /g,"_")+"_"+td()+".pdf",cu.name,"Booking");}catch(e){}
-        setBookOpen(false);setDtab("docs");notify("✅ Booking saved & receipt sent to customer!");}}/>}
+        try{const doc=makeBookingPdf(updCu,newBk);sharePdf(doc,"Booking"+allBks.length+"_"+cu.name.replace(/ /g,"_")+"_"+td()+".pdf",cu.phone,"Please find your Booking Receipt #"+allBks.length+" from NKD Bajaj, Dhanbad.");savePdfToDrive(doc,"Booking"+allBks.length+"_"+cu.name.replace(/ /g,"_")+"_"+td()+".pdf",cu.name,"Booking");}catch(e){}
+        setBookOpen(false);setDtab("docs");notify("✅ Booking #"+allBks.length+" saved & MR sent to customer!");}}/>}
       {billOpen&&sel&&<BillingModal cust={custs.find(c=>c.id===sel.id)||sel} onClose={()=>setBillOpen(false)} onSave={d=>{billC(custs.find(c=>c.id===sel.id)||sel,d);setBillOpen(false);}} onDraft={d=>{upd(sel.id,{billingDraft:d});setBillOpen(false);}} notify={notify} role={role} stockData={stockData} billedChassis={billedChassis}/>}
     </div>
   );
