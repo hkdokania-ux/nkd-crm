@@ -176,6 +176,14 @@ function makeBookingPdf(cust){
   line("NKD Bajaj, Dhanbad",W-pad,y+22,8,"italic","right");
   return doc;
 }
+function savePdfToDrive(doc,filename,customerName,docType){
+  try{
+    const now=new Date();
+    const monthFolder=now.toLocaleDateString("en-IN",{month:"long",year:"numeric"});
+    const base64=doc.output("datauristring");
+    fetch(DRIVE_UPLOAD_URL,{method:"POST",body:JSON.stringify({fileName:filename,fileData:base64,mimeType:"application/pdf",customerName:(customerName||"Unknown").replace(/[<>:"/\\|?*]/g," ").trim()||"Unknown",docType:docType||"doc",monthFolder:monthFolder})}).catch(()=>{});
+  }catch(e){}
+}
 async function sharePdf(doc,filename,phone,msg){
   const blob=doc.output("blob");
   const file=new File([blob],filename,{type:"application/pdf"});
@@ -403,6 +411,7 @@ function ExchDashGroup({exchName,list,onUpd,notify}){
     const msg="Exchange Settlement MR for "+exchName+" — "+list.length+" vehicle(s)";
     if(exchPhone)sharePdf(doc,fname,exchPhone,msg);
     sharePdf(doc,fname,offNum,msg);
+    savePdfToDrive(doc,fname,exchName,"ExchMR");
     list.forEach(c=>{onUpd(c.id,{exchAmtRec:Number(getE(c,"exchAmtRec")||0),exchComm:Number(getE(c,"exchComm")||0),exchDisc:Number(getE(c,"exchDisc")||0),exchMrIssued:true,exchMrDate:td()});});
     notify("✅ MR sent to "+(exchPhone?"exchanger & ":"")+"office for "+exchName);
   }
@@ -2095,7 +2104,9 @@ function ExchangerDue({custs,onUpd,notify}){
     entries.forEach(c=>{
       onUpd(c.id,{exchAmtRec:Number(getE(c,"exchAmtRec")||0),exchComm:Number(getE(c,"exchComm")||0),exchDisc:Number(getE(c,"exchDisc")||0),exchMrIssued:true,exchMrDate:td()});
     });
-    sharePdf(doc,"ExchMR_"+exchName.replace(/ /g,"_")+"_"+td()+".pdf",num,"Exchange Settlement MR for "+exchName+" — "+entries.length+" vehicle(s)");
+    const efname="ExchMR_"+exchName.replace(/ /g,"_")+"_"+td()+".pdf";
+    sharePdf(doc,efname,num,"Exchange Settlement MR for "+exchName+" — "+entries.length+" vehicle(s)");
+    savePdfToDrive(doc,efname,exchName,"ExchMR");
     notify("✅ MR issued & sent to office for "+exchName);
   }
   if(Object.keys(grouped).length===0)return(<div style={{maxWidth:900}}><div style={{fontWeight:800,fontSize:18,color:"#1e293b",marginBottom:16}}>🔄 Exchanger Due</div><div style={{textAlign:"center",color:"#94a3b8",padding:60,fontSize:14}}>No pending exchange settlements</div></div>);
@@ -2514,9 +2525,11 @@ export default function App(){
     try{
       const doc=makeMRDoc(cust,billing,calc);
       sharePdf(doc,"MR_"+cust.name.replace(/ /g,"_")+"_"+td()+".pdf",cust.phone,"Please find your Money Receipt from NKD Bajaj, Dhanbad.");
+      savePdfToDrive(doc,"MR_"+cust.name.replace(/ /g,"_")+"_"+td()+".pdf",cust.name,"MR");
       const offNum=ld("nkd_office_wa",OFFICE_WA)||OFFICE_WA;
       const doc2=makeCombinedDoc(cust,billing,calc);
       sharePdf(doc2,"CalcMR_"+cust.name.replace(/ /g,"_")+"_"+td()+".pdf",offNum,"Calc Sheet + MR for "+cust.name+" ("+cust.model+") — Paid: "+fc(calc.paid)+" · Balance: "+fc(Math.max(calc.K,0)));
+      savePdfToDrive(doc2,"CalcMR_"+cust.name.replace(/ /g,"_")+"_"+td()+".pdf",cust.name,"CalcSheet");
     }catch(e){}
   }
 
@@ -2689,7 +2702,7 @@ export default function App(){
         var brc="<!DOCTYPE html><html><head><title>Booking Receipt</title><style>*{margin:0;padding:0;box-sizing:border-box}body{font-family:Arial;font-size:13px;padding:20px;color:#111}.logo{font-size:24px;font-weight:900;letter-spacing:2px;text-align:center}.hdr{text-align:center;border-bottom:2px solid #000;padding-bottom:10px;margin-bottom:14px}.hdr p{font-size:11px;color:#444;margin-top:2px}h2{text-align:center;font-size:17px;margin:10px 0 14px}.row{display:flex;justify-content:space-between;padding:5px 0;border-bottom:1px solid #eee}.v{font-weight:700}.total{display:flex;justify-content:space-between;padding:12px 0;border-top:2px solid #000;font-size:17px;font-weight:900;margin-top:8px}.sigs{display:flex;justify-content:space-between;margin-top:40px}.sigs div{text-align:center;font-size:11px}</style></head><body><div class=hdr><div class=logo>NKD BAJAJ</div><p>Authorised Main Dealer — Bajaj Auto Ltd.</p><p>Hirak Road, Near Kamal Katesaria School, Dhanbad</p><p>Ph: 7033099006 | info@nkdbajaj.com</p></div><h2>BOOKING RECEIPT</h2><div class=row><span>Date</span><span class=v>"+bk.date+"</span></div><div class=row><span>Customer</span><span class=v>"+cu.name+"</span></div><div class=row><span>Phone</span><span class=v>"+cu.phone+"</span></div><div class=row><span>Model</span><span class=v>"+(cu.model||"")+" ("+(cu.modelCode||"")+")</span></div><div class=row><span>Mode</span><span class=v>"+bk.mode+"</span></div>"+(bk.note?"<div class=row><span>Note</span><span class=v>"+bk.note+"</span></div>":"")+"<div class=total><span>BOOKING AMOUNT RECEIVED</span><span>"+fc(bk.amt)+"</span></div><p style='font-size:11px;color:#666;margin-top:8px'>Balance payable at delivery. Subject to realization of payment.</p><div class=sigs><div>____________________<br/>Customer Sign</div><div>____________________<br/>For NKD Bajaj</div></div></body></html>";
         const updCu={...cu,booking:{...bk,receiptHtml:brc},status:"Booked",photos:{...(cu.photos||{}),...(bk.proof?{booking_proof:bk.proof}:{})},remarks:(cu.remarks||"")+"\n["+td()+"] BOOKED: "+fc(bk.amt)+" ("+bk.mode+") booking date "+bk.date+(bk.note?" — "+bk.note:"")};
         upd(cu.id,updCu);
-        try{const doc=makeBookingPdf(updCu);sharePdf(doc,"Booking_"+cu.name.replace(/ /g,"_")+"_"+td()+".pdf",cu.phone,"Please find your Booking Receipt from NKD Bajaj, Dhanbad.");}catch(e){}
+        try{const doc=makeBookingPdf(updCu);sharePdf(doc,"Booking_"+cu.name.replace(/ /g,"_")+"_"+td()+".pdf",cu.phone,"Please find your Booking Receipt from NKD Bajaj, Dhanbad.");savePdfToDrive(doc,"Booking_"+cu.name.replace(/ /g,"_")+"_"+td()+".pdf",cu.name,"Booking");}catch(e){}
         setBookOpen(false);setDtab("docs");notify("✅ Booking saved & receipt sent to customer!");}}/>}
       {billOpen&&sel&&<BillingModal cust={custs.find(c=>c.id===sel.id)||sel} onClose={()=>setBillOpen(false)} onSave={d=>{billC(custs.find(c=>c.id===sel.id)||sel,d);setBillOpen(false);}} onDraft={d=>{upd(sel.id,{billingDraft:d});setBillOpen(false);}} notify={notify} role={role} stockData={stockData} billedChassis={billedChassis}/>}
     </div>
