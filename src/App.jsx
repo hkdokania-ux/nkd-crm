@@ -678,6 +678,8 @@ function UploadsHub({stockData,statusData,onStockUpload,onStatusUpload,notify}){
   );
 }
 function findStockCol(keys,words){return keys.find(k=>words.some(w=>k.toLowerCase().includes(w)))||null;}
+function cleanBranch(raw){const s=String(raw||"").toLowerCase();if(s.includes("chirkunda"))return"Chirkunda";if(s.includes("saraidhela")||s.includes("saraidela"))return"Saraidhela";if(s.includes("hirak")||s.includes("12967")||s.includes("nkd"))return"Hirak Road";return raw||"";}
+function excelDateToAge(raw){const n=typeof raw==="number"?raw:Number(raw);if(n>40000&&n<100000){const dt=new Date(Math.round((n-25569)*86400000));return Math.max(0,Math.floor((Date.now()-dt.getTime())/86400000));}return null;}
 function StockView({stockData,billedChassis,role,userBranch,onUpload,notify}){
   const [q,setQ]=useState("");
   const [tab,setTab]=useState("stock"); // "stock" | "ageing"
@@ -695,15 +697,17 @@ function StockView({stockData,billedChassis,role,userBranch,onUpload,notify}){
 
   function getAge(row){
     if(!dateKey||!row[dateKey])return null;
-    // Try parsing various date formats
-    const raw=String(row[dateKey]).trim();
+    const rawVal=row[dateKey];
+    // Excel serial date (number or numeric string like 46164.5)
+    const numVal=typeof rawVal==="number"?rawVal:Number(rawVal);
+    if(!isNaN(numVal)&&numVal>40000&&numVal<100000){return excelDateToAge(numVal);}
+    // String date formats
+    const raw=String(rawVal).trim();
     let d=new Date(raw);
-    // Handle DD/MM/YYYY
     if(isNaN(d)&&raw.includes("/")){const p=raw.split("/");if(p.length===3)d=new Date(p[2]+"-"+p[1].padStart(2,"0")+"-"+p[0].padStart(2,"0"));}
-    // Handle DD-MM-YYYY
     if(isNaN(d)&&raw.includes("-")&&raw.length<=10){const p=raw.split("-");if(p.length===3&&p[0].length<=2)d=new Date(p[2]+"-"+p[1].padStart(2,"0")+"-"+p[0].padStart(2,"0"));}
     if(isNaN(d))return null;
-    return Math.floor((Date.now()-d.getTime())/(1000*60*60*24));
+    return Math.max(0,Math.floor((Date.now()-d.getTime())/86400000));
   }
   function ageBadge(days){
     if(days===null)return{bg:"#f1f5f9",border:"#6b8fb5",col:"#64748b",label:"No date",tag:"—"};
@@ -749,7 +753,7 @@ function StockView({stockData,billedChassis,role,userBranch,onUpload,notify}){
     const age=row.__age!==undefined?row.__age:getAge(row);
     const ab=ageBadge(age);
     const mine=isMyBranch(row);
-    const branchName=branchKey?String(row[branchKey]||""):"";
+    const branchName=branchKey?cleanBranch(row[branchKey]):"";
     return(
       <div key={i} style={{background:mine?"rgba(59,130,246,0.04)":age>90?"rgba(239,68,68,0.04)":age>60?"rgba(249,115,22,0.04)":"#ffffff",border:"2px solid "+(mine?"#3b82f6":ab.border),borderRadius:12,padding:"10px 14px",marginBottom:8,position:"relative"}}>
         {/* Branch row */}
@@ -1224,7 +1228,6 @@ function BillingModal({cust,onClose,onSave,onDraft,notify,role,stockData,billedC
   const sAgeKey=findStockCol(sKeys,["age","days","ageing","aging"]);
   const sDateKey=findStockCol(sKeys,["date","invoice","inward","receipt","stock"]);
   const sBranchKey=findStockCol(sKeys,["branch","location","godown","showroom","store","place"]);
-  function cleanBranch(raw){const s=String(raw||"").toLowerCase();if(s.includes("chirkunda"))return"Chirkunda";if(s.includes("saraidhela")||s.includes("saraidela"))return"Saraidhela";if(s.includes("hirak")||s.includes("12967")||s.includes("nkd"))return"Hirak Road";return raw||"";}
   const modelStr=(cust.model||"").toLowerCase();
   const modelCode=(cust.modelCode||"").toLowerCase();
   function rowMatchesModel(row){
