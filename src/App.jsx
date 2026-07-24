@@ -927,7 +927,7 @@ function Detail({cust,role,onBack,onUpd,onLog,onBill,onBook,notify,initTab,clear
       <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:8,marginBottom:12}}>
         <a href={"tel:"+cust.phone} style={{background:"rgba(34,197,94,0.1)",border:"1px solid rgba(34,197,94,0.3)",borderRadius:13,padding:"11px 6px",display:"flex",flexDirection:"column",alignItems:"center",gap:4,textDecoration:"none"}}><PhIcon s={22}/><span style={{fontSize:11,color:"#22c55e",fontWeight:700}}>Call</span><span style={{fontSize:10,color:"#94a3b8"}}>{cust.phone}</span></a>
         <a href={"https://wa.me/91"+cust.phone+"?text="+encodeURIComponent("Hello "+cust.name+", NKD Bajaj here. Following up on your "+cust.model+" enquiry.")} target="_blank" rel="noreferrer" style={{background:"rgba(37,211,102,0.08)",border:"1px solid rgba(37,211,102,0.3)",borderRadius:13,padding:"11px 6px",display:"flex",flexDirection:"column",alignItems:"center",gap:4,textDecoration:"none"}}><WAIcon s={22}/><span style={{fontSize:11,color:"#25D366",fontWeight:700}}>WhatsApp</span><span style={{fontSize:10,color:"#94a3b8"}}>Message</span></a>
-        {!cust.billed&&!cust.stopped?<button onClick={onBill} style={{background:"rgba(52,211,153,0.1)",border:"1px solid rgba(52,211,153,0.3)",borderRadius:13,padding:"11px 6px",display:"flex",flexDirection:"column",alignItems:"center",gap:4,cursor:"pointer"}}><span style={{fontSize:22}}>🏍️</span><span style={{fontSize:11,color:"#34d399",fontWeight:700}}>Bill</span><span style={{fontSize:10,color:"#94a3b8"}}>Vehicle</span></button>:<div style={{background:"rgba(52,211,153,0.07)",border:"1px solid rgba(52,211,153,0.25)",borderRadius:13,padding:"11px 6px",display:"flex",flexDirection:"column",alignItems:"center",gap:4}}><span style={{fontSize:22}}>✅</span><span style={{fontSize:11,color:"#34d399",fontWeight:700}}>Billed</span><span style={{fontSize:10,color:"#94a3b8"}}>{fd(cust.billedDate)}</span></div>}
+        {!cust.billed&&!cust.stopped?<button onClick={onBill} style={{background:"rgba(52,211,153,0.1)",border:"1px solid rgba(52,211,153,0.3)",borderRadius:13,padding:"11px 6px",display:"flex",flexDirection:"column",alignItems:"center",gap:4,cursor:"pointer"}}><span style={{fontSize:22}}>🏍️</span><span style={{fontSize:11,color:"#34d399",fontWeight:700}}>{cust.billingDraft?"Resume":"Bill"}</span><span style={{fontSize:10,color:cust.billingDraft?"#f59e0b":"#94a3b8"}}>{cust.billingDraft?"Draft Saved":"Vehicle"}</span></button>:<div style={{background:"rgba(52,211,153,0.07)",border:"1px solid rgba(52,211,153,0.25)",borderRadius:13,padding:"11px 6px",display:"flex",flexDirection:"column",alignItems:"center",gap:4}}><span style={{fontSize:22}}>✅</span><span style={{fontSize:11,color:"#34d399",fontWeight:700}}>Billed</span><span style={{fontSize:10,color:"#94a3b8"}}>{fd(cust.billedDate)}</span></div>}
       </div>
 
       {!cust.billed&&!cust.stopped&&(cust.booking&&role==="salesman"?
@@ -1200,11 +1200,11 @@ function Tot({label,val,col}){
     </div>
   );
 }
-function BillingModal({cust,onClose,onSave,notify,role,stockData,billedChassis}){
+function BillingModal({cust,onClose,onSave,onDraft,notify,role,stockData,billedChassis}){
   const r=RC[cust.modelCode]||{};
   const isFin=cust.finance==="Finance";
-  const eb=cust.billing||{};
-  const [f,setF]=useState({...eb,billName:eb.billName||cust.name,exchName:cust.exchangeName||"",exchModel:cust.exchangeAsked||"",exchRegNo:cust.exchangeRegNo||"",bkDate:(cust.booking&&cust.booking.date)||td(),fatherName:cust.fatherName||"",dob:cust.dob||"",aadhar:cust.aadhar||"",pan:cust.pan||"",nominee:cust.nominee||"",nomineeRel:cust.nomineeRel||"",hdl:eb.hdl!==undefined?eb.hdl:(r.hdl||600),ins:eb.ins!==undefined?eb.ins:(r.ins||0),reg:eb.reg!==undefined?eb.reg:(r.reg||0),acc:0,tef:isFin?500:0,hyp:isFin?500:0,addAmc:false,cof:0,sdis:0,corp:0,bk:(cust.booking&&cust.booking.amt)||0,exv:eb.exv!==undefined?eb.exv:0,loan:0,payments:eb.payments&&eb.payments.length?eb.payments:(eb.paid||eb.payMode?[{mode:eb.payMode||"Cash",amt:Number(eb.paid||0),ref:""}]:[{mode:"Cash",amt:0,ref:""}]),chassis:"",engine:"",color:"",deliveryDate:td(),financeBank:"",registrationNo:"",insuranceNo:""});
+  const eb=cust.billing||cust.billingDraft||{};
+  const [f,setF]=useState({...eb,billName:eb.billName||cust.name,exchName:cust.exchangeName||"",exchPhone:cust.exchangePhone||eb.details?.exchangePhone||"",exchModel:cust.exchangeAsked||"",exchRegNo:cust.exchangeRegNo||"",bkDate:(cust.booking&&cust.booking.date)||td(),fatherName:cust.fatherName||"",dob:cust.dob||"",aadhar:cust.aadhar||"",pan:cust.pan||"",nominee:cust.nominee||"",nomineeRel:cust.nomineeRel||"",hdl:eb.hdl!==undefined?eb.hdl:(r.hdl||600),ins:eb.ins!==undefined?eb.ins:(r.ins||0),reg:eb.reg!==undefined?eb.reg:(r.reg||0),acc:0,tef:isFin?500:0,hyp:isFin?500:0,addAmc:false,cof:0,sdis:0,corp:0,bk:(cust.booking&&cust.booking.amt)||0,exv:eb.exv!==undefined?eb.exv:0,loan:0,payments:eb.payments&&eb.payments.length?eb.payments:(eb.paid||eb.payMode?[{mode:eb.payMode||"Cash",amt:Number(eb.paid||0),ref:""}]:[{mode:"Cash",amt:0,ref:""}]),chassis:"",engine:"",color:"",deliveryDate:td(),financeBank:"",registrationNo:"",insuranceNo:""});
   const c=calcB(f,r);
   const [chk,setChk]=useState(eb.checklist||{pdi:false,helmet:false,docs:false,service:false});
   const VER_ALL=[["nameV","Customer name verified"],["fatherV","Father name verified"],["aadharV","Aadhar number verified"],["nomineeV","Nominee & relation added"],["chassisV","Chassis number verified"],["engineV","Engine number verified"],["colorV","Colour verified"]];
@@ -1294,6 +1294,11 @@ function BillingModal({cust,onClose,onSave,notify,role,stockData,billedChassis})
   }
 
   const [busy,setBusy]=useState(false);
+  function saveDraft(){
+    onDraft({...f,payMode:(f.payments||[]).filter(p=>Number(p.amt||0)>0).map(p=>p.mode).join(" + ")||"—",paid:c.paid,calc:c,checklist:chk,verify:ver,details:{name:f.billName||cust.name,exchangeName:f.exchName,exchangePhone:f.exchPhone,exchangeAsked:f.exchModel,exchangeRegNo:f.exchRegNo,exchangeOffered:String(f.exv||""),fatherName:f.fatherName,address:cust.address,dob:f.dob,nominee:f.nominee,nomineeRel:f.nomineeRel,aadhar:f.aadhar,pan:f.pan}});
+    notify("📋 Draft saved — reopen billing to continue");
+    onClose();
+  }
   function submit(){
     if(busy)return;
     if(!f.chassis){notify("Enter chassis number","err");return;}
@@ -1308,7 +1313,7 @@ function BillingModal({cust,onClose,onSave,notify,role,stockData,billedChassis})
     var payModeSummary=activePmtsS.map(p=>p.mode+(p.ref?" ("+p.ref+")":"")).join(" + ")||"—";
     var payModeRows=activePmtsS.map(p=>"<div class=row><span>"+p.mode+(p.ref?" ("+p.ref+")":"")+"</span><span class=v>"+fc(Number(p.amt))+"</span></div>").join("");
     var calcHtml=html.replace("MONEY RECEIPT","CALCULATION SHEET (INTERNAL)").replace("</h2>","</h2>"+[payModeRows||("<div class=row><span>Payment Mode</span><span class=v>—</span></div>"),"<div class=row><span>MR No.</span><span class=v>"+(f.mrNo||"—")+"</span></div>","<div class=row><span>Financed By</span><span class=v>"+(f.financeBank||"Cash")+"</span></div>"].join("")+CALC_G);
-    onSave({...f,payMode:payModeSummary,paid:c.paid,calc:c,calcHtml:calcHtml,checklist:chk,verify:ver,verifyList:VER_ALL.map(([k,l])=>[k,l]),receiptHtml:html,details:{name:f.billName||cust.name,exchangeName:f.exchName,exchangeAsked:f.exchModel,exchangeRegNo:f.exchRegNo,exchangeOffered:String(f.exv||""),fatherName:f.fatherName,address:cust.address,dob:f.dob,nominee:f.nominee,nomineeRel:f.nomineeRel,aadhar:f.aadhar,pan:f.pan}});
+    onSave({...f,payMode:payModeSummary,paid:c.paid,calc:c,calcHtml:calcHtml,checklist:chk,verify:ver,verifyList:VER_ALL.map(([k,l])=>[k,l]),receiptHtml:html,details:{name:f.billName||cust.name,exchangeName:f.exchName,exchangePhone:f.exchPhone,exchangeAsked:f.exchModel,exchangeRegNo:f.exchRegNo,exchangeOffered:String(f.exv||""),fatherName:f.fatherName,address:cust.address,dob:f.dob,nominee:f.nominee,nomineeRel:f.nomineeRel,aadhar:f.aadhar,pan:f.pan}});
     setBusy(true);
     notify(role==="salesman"?"✅ Sent to Manager for approval — receipt saved in Billing tab":"✅ Billed & approved — receipt saved in Billing tab");
   }
@@ -1337,8 +1342,8 @@ function BillingModal({cust,onClose,onSave,notify,role,stockData,billedChassis})
           <div style={{fontSize:10,fontWeight:700,color:"#f59e0b",letterSpacing:0.8,marginBottom:6}}>EXCHANGE DETAILS (if old bike exchanged)</div>
           <div style={{background:"#ffffff",border:"1px solid #6b8fb5",borderRadius:12,padding:12}}>
             <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:8}}>
-              {[{k:"exchName",l:"Exchanger Name"},{k:"exchModel",l:"Old Bike Model"},{k:"exchRegNo",l:"Old Vehicle Reg No"}].map(({k,l})=>(
-                <div key={k}><label style={{...lbl,fontSize:10}}>{l}</label><input value={f[k]||""} onChange={e=>setF(p=>({...p,[k]:e.target.value}))} onBlur={e=>setF(p=>({...p,[k]:String(e.target.value).toUpperCase()}))} style={{...inp,fontSize:12,padding:"8px 10px",textTransform:"uppercase"}}/></div>
+              {[{k:"exchName",l:"Exchanger Name"},{k:"exchPhone",l:"Exchanger Mobile",t:"tel"},{k:"exchModel",l:"Old Bike Model"},{k:"exchRegNo",l:"Old Vehicle Reg No"}].map(({k,l,t})=>(
+                <div key={k}><label style={{...lbl,fontSize:10}}>{l}</label><input type={t||"text"} inputMode={t==="tel"?"numeric":undefined} value={f[k]||""} onChange={e=>setF(p=>({...p,[k]:e.target.value}))} onBlur={t!=="tel"?e=>setF(p=>({...p,[k]:String(e.target.value).toUpperCase()})):undefined} style={{...inp,fontSize:12,padding:"8px 10px",textTransform:t==="tel"?"none":"uppercase"}}/></div>
               ))}
               <div><label style={{...lbl,fontSize:10}}>Exchange Value ₹</label><input type="number" inputMode="numeric" value={f.exv||""} onChange={e=>setF(p=>({...p,exv:e.target.value}))} style={{...inp,fontSize:12,padding:"8px 10px"}}/></div>
             </div>
@@ -1448,8 +1453,9 @@ function BillingModal({cust,onClose,onSave,notify,role,stockData,billedChassis})
           </div>
         </div>
 
+        <button onClick={saveDraft} style={{...btn("linear-gradient(135deg,#64748b,#475569)"),width:"100%",padding:13,fontSize:14,borderRadius:12,marginBottom:10}}>💾 Save Draft (continue later)</button>
         <div style={{background:role==="salesman"?"rgba(249,115,22,0.08)":"rgba(139,92,246,0.08)",border:"1px solid "+(role==="salesman"?"rgba(249,115,22,0.3)":"rgba(139,92,246,0.3)"),borderRadius:10,padding:"10px 12px",marginBottom:14,fontSize:12,color:role==="salesman"?"#f97316":"#a78bfa",fontWeight:600}}>{role==="salesman"?"⏳ Sent to Manager for approval":"✅ You are "+role+" — auto-approved"}</div>
-        <button onClick={submit} style={{...btn("linear-gradient(135deg,#059669,#10b981)"),width:"100%",padding:17,fontSize:16,borderRadius:16,boxShadow:"0 6px 24px rgba(16,185,129,0.35)"}}>{busy?"Saving…":"✅ Confirm Billing & Print Money Receipt"}</button>
+        <button onClick={submit} style={{...btn("linear-gradient(135deg,#059669,#10b981)"),width:"100%",padding:17,fontSize:16,borderRadius:16,boxShadow:"0 6px 24px rgba(16,185,129,0.35)"}}>{busy?"Saving…":"✅ Confirm Billing & Send MR on WhatsApp"}</button>
       </div>
     </div>
   );
@@ -2035,7 +2041,7 @@ function ExchangerDue({custs,onUpd,notify}){
             {/* Exchanger header */}
             <div onClick={()=>setCollapsed(p=>({...p,[exchName]:isOpen}))} style={{background:"rgba(245,158,11,0.08)",borderBottom:isOpen?"1px solid #6b8fb5":"none",padding:"13px 18px",display:"flex",justifyContent:"space-between",alignItems:"center",cursor:"pointer"}}>
               <div>
-                <div style={{fontWeight:800,fontSize:15,color:"#92400e"}}>🏪 {exchName}</div>
+                <div style={{fontWeight:800,fontSize:15,color:"#92400e"}}>🏪 {exchName}{(()=>{const ph=entries[0]?.billing?.details?.exchangePhone||entries[0]?.exchangePhone||"";return ph?<span style={{fontSize:12,fontWeight:500,color:"#78716c",marginLeft:10}}>📞 {ph}</span>:null;})()}</div>
                 <div style={{fontSize:11,color:"#78716c",marginTop:2}}>{entries.length} vehicle{entries.length>1?"s":""} · Exchange Due: <b>{fc(totExv)}</b>{totRec>0?<> · Received: <b style={{color:"#16a34a"}}>{fc(totRec)}</b></>:null}</div>
               </div>
               <div style={{display:"flex",gap:10,alignItems:"center"}}>
@@ -2048,7 +2054,7 @@ function ExchangerDue({custs,onUpd,notify}){
               <div style={{overflowX:"auto"}}>
                 <table style={{width:"100%",borderCollapse:"collapse",minWidth:700}}>
                   <thead><tr style={{background:"#f8fafc"}}>
-                    {["Customer","Vehicle","Reg No","Exch Value","Amt Rec'd","Commission","Disc Allowed"].map(h=><th key={h} style={{padding:"9px 12px",fontSize:11,color:"#64748b",fontWeight:700,textAlign:"left",borderBottom:"1px solid #6b8fb5",whiteSpace:"nowrap"}}>{h}</th>)}
+                    {["Customer","Vehicle","Reg No","Exch Value","Amt Rec'd","Commission","Disc Allowed","📞"].map(h=><th key={h} style={{padding:"9px 12px",fontSize:11,color:"#64748b",fontWeight:700,textAlign:"left",borderBottom:"1px solid #6b8fb5",whiteSpace:"nowrap"}}>{h}</th>)}
                   </tr></thead>
                   <tbody>{entries.map(c=>{
                     const exv=getExv(c);
@@ -2072,6 +2078,9 @@ function ExchangerDue({custs,onUpd,notify}){
                         </td>
                         <td style={{padding:"8px 10px"}}>
                           <input type="number" inputMode="numeric" value={getE(c,"exchDisc")} onChange={e=>setE(c.id,"exchDisc",e.target.value)} onBlur={e=>onUpd(c.id,{exchDisc:Number(e.target.value||0)})} style={{width:90,padding:"6px 8px",border:"1px solid #6b8fb5",borderRadius:7,fontSize:12}} placeholder="0"/>
+                        </td>
+                        <td style={{padding:"8px 12px"}}>
+                          {(()=>{const ph=c.billing?.details?.exchangePhone||c.exchangePhone||"";return ph?(<div style={{display:"flex",flexDirection:"column",gap:4}}><div style={{fontSize:11,fontWeight:600,color:"#1e293b"}}>{ph}</div><a href={"https://wa.me/91"+ph.replace(/\D/g,"")} target="_blank" rel="noreferrer" style={{fontSize:10,color:"#22c55e",fontWeight:700,textDecoration:"none"}}>💬 WhatsApp</a></div>):(<span style={{fontSize:11,color:"#cbd5e1"}}>—</span>);})()}
                         </td>
                       </tr>
                     );
@@ -2611,7 +2620,7 @@ export default function App(){
         upd(cu.id,updCu);
         try{const doc=makeBookingPdf(updCu);sharePdf(doc,"Booking_"+cu.name.replace(/ /g,"_")+"_"+td()+".pdf",cu.phone,"Please find your Booking Receipt from NKD Bajaj, Dhanbad.");}catch(e){}
         setBookOpen(false);setDtab("docs");notify("✅ Booking saved & receipt sent to customer!");}}/>}
-      {billOpen&&sel&&<BillingModal cust={custs.find(c=>c.id===sel.id)||sel} onClose={()=>setBillOpen(false)} onSave={d=>{billC(custs.find(c=>c.id===sel.id)||sel,d);setBillOpen(false);}} notify={notify} role={role} stockData={stockData} billedChassis={billedChassis}/>}
+      {billOpen&&sel&&<BillingModal cust={custs.find(c=>c.id===sel.id)||sel} onClose={()=>setBillOpen(false)} onSave={d=>{billC(custs.find(c=>c.id===sel.id)||sel,d);setBillOpen(false);}} onDraft={d=>{upd(sel.id,{billingDraft:d});setBillOpen(false);}} notify={notify} role={role} stockData={stockData} billedChassis={billedChassis}/>}
     </div>
   );
 }
