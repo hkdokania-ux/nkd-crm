@@ -360,6 +360,7 @@ function DuePayRow({c,K,role,onOpen,onAddPayment}){
         <div onClick={()=>onOpen(c,"billing")} style={{flex:1,minWidth:0,cursor:"pointer"}}>
           <div style={{fontWeight:700,fontSize:13,color:"#1e293b"}}>{c.name}</div>
           <div style={{fontSize:11,color:"#64748b"}}>{c.model} · Billed {fd(c.billedDate)}{role!=="salesman"?" · "+c.salesman:""}</div>
+          {c.billing?.mrNo&&<div style={{fontSize:10,color:"#8b5cf6",fontWeight:700,marginTop:2}}>MR# {c.billing.mrNo}</div>}
         </div>
         <div style={{textAlign:"right",flexShrink:0,marginLeft:10}}>
           <div style={{fontWeight:900,fontSize:15,color:"#ef4444"}}>{fc(K)}</div>
@@ -450,6 +451,25 @@ function Dashboard({custs,role,onOpen,onNav,onNavF,onSvcDone,onTeamTap,onAddPaym
           </div>)}
         </div>
       ):null;})()}
+      {(()=>{
+        const exchPending=custs.filter(c=>c.billed&&c.billing&&Number(c.billing.exv||c.billing.calc?.exv||0)>0&&!c.exchMrIssued);
+        if(exchPending.length===0)return null;
+        const byExch={};
+        exchPending.forEach(c=>{const n=c.billing?.details?.exchangeName||c.exchangeName||"Unknown";if(!byExch[n])byExch[n]=[];byExch[n].push(c);});
+        const totalExv=exchPending.reduce((s,c)=>s+Number(c.billing?.exv||c.billing?.calc?.exv||0),0);
+        return(
+          <div style={{marginBottom:18}}>
+            <div style={{fontSize:12,fontWeight:800,color:"#f59e0b",marginBottom:8}}>🔄 EXCHANGER DUE — PENDING SETTLEMENT ({exchPending.length})</div>
+            {Object.entries(byExch).map(([name,list])=>(
+              <div key={name} style={{background:"rgba(245,158,11,0.06)",border:"1px solid rgba(245,158,11,0.35)",borderRadius:12,padding:"11px 13px",marginBottom:7}}>
+                <div style={{fontWeight:700,fontSize:13,color:"#1e293b",marginBottom:4}}>{name} <span style={{fontSize:10,color:"#f59e0b",fontWeight:800}}>· {list.length} vehicle{list.length>1?"s":""}</span></div>
+                {list.map(c=><div key={c.id} style={{fontSize:11,color:"#64748b",marginBottom:2}}>• {c.name} — {c.model} · EXV: {fc(Number(c.billing?.exv||c.billing?.calc?.exv||0))}{c.billing?.mrNo?" · MR# "+c.billing.mrNo:""}</div>)}
+              </div>
+            ))}
+            <div style={{fontSize:10,color:"#94a3b8",textAlign:"right",marginTop:4}}>Total exch value pending: {fc(totalExv)} · Go to Portal → Exchanger Due to settle</div>
+          </div>
+        );
+      })()}
       <div style={{fontSize:12,fontWeight:700,color:"#ef4444",marginBottom:8}}>🔥 HOT LEADS</div>
       {hot.length===0&&<div style={{color:"#64748b",fontSize:13,textAlign:"center",padding:24}}>No hot leads</div>}
       {hot.slice(0,4).map(c=><Card key={c.id} c={c} onClick={()=>onOpen(c)} showSM={role!=="salesman"}/>)}
