@@ -11,6 +11,7 @@ const RC={DY13:{n:"CT110 X ES NXT",cat:"CT",ex:71184,cAcc:0,hdl:600,ins:6834,reg
 
 const SM=["Amit Kumar","Ravi Singh","Suresh Yadav","Priya Sharma","Deepak Gupta"];
 const BRANCHES=["Hirak Road","Saraidhela","Chirkunda"];
+const OFFICE_WA="7033099010";
 const SM_BRANCH={"Amit Kumar":"Hirak Road","Ravi Singh":"Hirak Road","Suresh Yadav":"Saraidhela","Priya Sharma":"Saraidhela","Deepak Gupta":"Chirkunda"};
 const ST_C={Hot:"#ef4444",Warm:"#f97316",Cold:"#3b82f6",Booked:"#8b5cf6",Billed:"#10b981",Lost:"#6b7280"};
 const FU={Hot:1,Warm:3,Cold:7};
@@ -936,7 +937,7 @@ function Detail({cust,role,onBack,onUpd,onLog,onBill,onBook,notify,initTab,clear
       {!cust.billed&&!cust.stopped&&<button onClick={()=>{const taking=!cust.testRide;onUpd({testRide:taking?{date:td()}:null,remarks:(cust.remarks||"")+(taking?"\n["+td()+"] TEST RIDE taken":"")});if(taking){setTab("docs");notify("🚦 Test ride recorded — upload the license here");}}} style={{width:"100%",background:cust.testRide?"rgba(34,197,94,0.1)":"rgba(96,165,250,0.08)",border:"1px solid "+(cust.testRide?"rgba(34,197,94,0.35)":"rgba(96,165,250,0.3)"),borderRadius:12,padding:"10px",color:cust.testRide?"#22c55e":"#60a5fa",fontWeight:700,fontSize:12,cursor:"pointer",marginBottom:8}}>🏍️ Test Ride {cust.testRide?"✓ Done "+fd(cust.testRide.date):"— Tap when taken (upload license in Docs)"}</button>}
       {!cust.billed&&cust.booking&&<div style={{display:"flex",flexDirection:"column",gap:8,marginBottom:12}}>
         <button onClick={()=>{const doc=makeBookingPdf(cust);sharePdf(doc,"BookingReceipt_"+cust.name.replace(/ /g,"_")+"_"+td()+".pdf",cust.phone,"Please find your Booking Receipt from NKD Bajaj, Dhanbad.");}} style={{width:"100%",background:"rgba(37,211,102,0.1)",border:"1px solid rgba(37,211,102,0.35)",borderRadius:12,padding:13,color:"#22c55e",fontWeight:700,fontSize:13,cursor:"pointer"}}>📲 Send Booking Receipt PDF → Customer (WhatsApp)</button>
-        <button onClick={()=>{var num=ld("nkd_office_wa","");if(!num){num=prompt("Enter office WhatsApp number (10 digits):");if(!num)return;sv("nkd_office_wa",num);_dbSet("office_wa",num);}const doc=makeBookingPdf(cust);sharePdf(doc,"BookingRecord_"+cust.name.replace(/ /g,"_")+"_"+td()+".pdf",num,"Booking Record for "+cust.name+" — "+fc(cust.booking.amt)+" ("+cust.booking.mode+")");}} style={{width:"100%",background:"rgba(139,92,246,0.1)",border:"1px solid rgba(139,92,246,0.35)",borderRadius:12,padding:11,color:"#a78bfa",fontWeight:700,fontSize:12,cursor:"pointer"}}>🏢 Send Booking Record PDF → Office (WhatsApp)</button>
+        <button onClick={()=>{const num=ld("nkd_office_wa",OFFICE_WA)||OFFICE_WA;const doc=makeBookingPdf(cust);sharePdf(doc,"BookingRecord_"+cust.name.replace(/ /g,"_")+"_"+td()+".pdf",num,"Booking Record for "+cust.name+" — "+fc(cust.booking.amt)+" ("+cust.booking.mode+")");}} style={{width:"100%",background:"rgba(139,92,246,0.1)",border:"1px solid rgba(139,92,246,0.35)",borderRadius:12,padding:11,color:"#a78bfa",fontWeight:700,fontSize:12,cursor:"pointer"}}>🏢 Send Booking Record PDF → Office (WhatsApp)</button>
         <div style={{fontSize:10,color:"#94a3b8"}}>On mobile — tapping Send opens WhatsApp share sheet directly. On desktop — PDF downloads then WhatsApp opens.</div>
       </div>}
       {cust.managerApproval==="rejected"&&!cust.billed&&<div style={{background:"rgba(239,68,68,0.12)",border:"1px solid rgba(239,68,68,0.5)",borderRadius:12,padding:"11px 13px",marginBottom:12}}>
@@ -1488,8 +1489,7 @@ function BillingView({billing:b,cust,onAddPayment}){
   const custText=encodeURIComponent(["NKD BAJAJ - MONEY RECEIPT","Date: "+td(),"Customer: "+cust.name,"Model: "+(cust.model||"")+" ("+(cust.modelCode||"")+")","Amount Received: "+fc(c.paid),"Balance: "+fc(Math.max(c.K,0)),"","Thank you for choosing NKD Bajaj, Dhanbad!"].join("\n"));
   const officeText=encodeURIComponent(calcText);
   function sendOffice(){
-    var num=ld("nkd_office_wa","");
-    if(!num){num=prompt("Enter office WhatsApp number (10 digits) — saved for future:");if(!num)return;sv("nkd_office_wa",num);_dbSet("office_wa",num);}
+    var num=ld("nkd_office_wa",OFFICE_WA)||OFFICE_WA;
     window.open("https://wa.me/91"+num+"?text="+officeText,"_blank");
   }
   return(
@@ -1505,7 +1505,7 @@ function BillingView({billing:b,cust,onAddPayment}){
       {c.K>0&&onAddPayment&&<BillingPayBox K={c.K} custId={cust.id} onAddPayment={onAddPayment}/>}
       {<div style={{marginBottom:12}}>
         <button onClick={()=>{const doc=makeMRDoc(cust,b,c);sharePdf(doc,"MR_"+cust.name.replace(/ /g,"_")+"_"+td()+".pdf",cust.phone,"Please find your Money Receipt from NKD Bajaj, Dhanbad.");}} style={{width:"100%",background:"rgba(37,211,102,0.1)",border:"1px solid rgba(37,211,102,0.35)",borderRadius:12,padding:13,color:"#22c55e",fontWeight:700,fontSize:13,cursor:"pointer",marginBottom:8}}>📲 Send Money Receipt PDF → Customer (WhatsApp)</button>
-        <button onClick={()=>{const doc=makeCombinedDoc(cust,b,c);var num=ld("nkd_office_wa","");if(!num){num=prompt("Enter office WhatsApp number (10 digits):");if(!num)return;sv("nkd_office_wa",num);_dbSet("office_wa",num);}sharePdf(doc,"CalcSheet_MR_"+cust.name.replace(/ /g,"_")+"_"+td()+".pdf",num,"Calculation Sheet + Money Receipt for "+cust.name+" ("+cust.model+")");}} style={{width:"100%",background:"rgba(249,115,22,0.1)",border:"1px solid rgba(249,115,22,0.35)",borderRadius:12,padding:13,color:"#f97316",fontWeight:700,fontSize:13,cursor:"pointer",marginBottom:8}}>🏢 Send Calc Sheet + MR (2 pages) PDF → Office</button>
+        <button onClick={()=>{const doc=makeCombinedDoc(cust,b,c);const num=ld("nkd_office_wa",OFFICE_WA)||OFFICE_WA;sharePdf(doc,"CalcSheet_MR_"+cust.name.replace(/ /g,"_")+"_"+td()+".pdf",num,"Calculation Sheet + Money Receipt for "+cust.name+" ("+cust.model+")");}} style={{width:"100%",background:"rgba(249,115,22,0.1)",border:"1px solid rgba(249,115,22,0.35)",borderRadius:12,padding:13,color:"#f97316",fontWeight:700,fontSize:13,cursor:"pointer",marginBottom:8}}>🏢 Send Calc Sheet + MR (2 pages) PDF → Office</button>
         <div style={{display:"flex",gap:8}}>
           <button onClick={()=>setShowR(b.receiptHtml)} style={{flex:1,background:"rgba(96,165,250,0.08)",border:"1px solid rgba(96,165,250,0.25)",borderRadius:10,padding:10,color:"#60a5fa",fontWeight:700,fontSize:11,cursor:"pointer"}}>🧾 Preview MR</button>
           <button onClick={()=>b.calcHtml&&setShowR(b.calcHtml)} style={{flex:1,background:"rgba(245,158,11,0.08)",border:"1px solid rgba(245,158,11,0.25)",borderRadius:10,padding:10,color:"#f59e0b",fontWeight:700,fontSize:11,cursor:"pointer"}}>📊 Preview Calc</button>
@@ -1961,6 +1961,130 @@ function PaymentNotifPopup({notifs,onDismiss}){
     </div>
   );
 }
+function makeExchMRDoc(exchName,entries,date){
+  const doc=new jsPDF({unit:"mm",format:"a4"});
+  const W=210,pad=18;
+  let y=18;
+  function line(text,x,yy,size,style,align){doc.setFontSize(size||11);doc.setFont("helvetica",style||"normal");doc.text(String(text),x,yy,{align:align||"left"});}
+  function hline(yy){doc.setDrawColor(200);doc.line(pad,yy,W-pad,yy);}
+  line("NKD BAJAJ",W/2,y,18,"bold","center");y+=7;
+  line("Authorised Bajaj Dealer | Dhanbad",W/2,y,9,"normal","center");y+=5;
+  hline(y);y+=6;
+  line("EXCHANGE SETTLEMENT MR",W/2,y,14,"bold","center");y+=8;
+  hline(y);y+=6;
+  line("Exchanger: "+exchName,pad,y,11,"bold");line("Date: "+fd(date),W-pad,y,10,"normal","right");y+=10;
+  hline(y);y+=5;
+  // Table header
+  const cols=[pad,60,100,130,158,185];
+  const hdrs=["Customer","Vehicle / Reg No","Exch Value","Amt Rec'd","Commission","Discount"];
+  hdrs.forEach((h,i)=>{doc.setFontSize(9);doc.setFont("helvetica","bold");doc.text(h,cols[i],y);});
+  y+=5;hline(y);y+=5;
+  let totExv=0,totRec=0,totComm=0,totDisc=0;
+  entries.forEach(e=>{
+    doc.setFontSize(9);doc.setFont("helvetica","normal");
+    doc.text(String(e.name||"").substring(0,20),cols[0],y);
+    doc.text((String(e.model||"").substring(0,14)+"\n"+(e.regNo||"")).trim(),cols[1],y);
+    doc.text(fc(e.exv),cols[2],y,{align:"left"});
+    doc.text(fc(e.amtRec),cols[3],y,{align:"left"});
+    doc.text(fc(e.comm),cols[4],y,{align:"left"});
+    doc.text(fc(e.disc),cols[5],y,{align:"left"});
+    totExv+=Number(e.exv||0);totRec+=Number(e.amtRec||0);totComm+=Number(e.comm||0);totDisc+=Number(e.disc||0);
+    y+=8;if(y>270){doc.addPage();y=20;}
+  });
+  hline(y);y+=5;
+  doc.setFontSize(10);doc.setFont("helvetica","bold");
+  doc.text("TOTALS",cols[0],y);
+  doc.text(fc(totExv),cols[2],y);doc.text(fc(totRec),cols[3],y);doc.text(fc(totComm),cols[4],y);doc.text(fc(totDisc),cols[5],y);
+  y+=10;hline(y);y+=10;
+  line("Exchanger Signature",pad,y+16,9);line("Authorised Signatory",W-pad,y+16,9,"normal","right");
+  line("______________________",pad,y+14,9);line("______________________",W-pad,y+14,9,"normal","right");
+  line("NKD Bajaj, Dhanbad",W-pad,y+22,8,"italic","right");
+  return doc;
+}
+function ExchangerDue({custs,onUpd,notify}){
+  const exchCusts=custs.filter(c=>c.billed&&c.billing&&Number(c.billing.exv||c.billing.calc?.exv||0)>0&&!c.exchMrIssued);
+  const [edits,setEdits]=useState({});
+  const [collapsed,setCollapsed]=useState({});
+  function getExchName(c){return c.billing?.details?.exchangeName||c.exchangeName||"Unknown Exchanger";}
+  function getExv(c){return Number(c.billing?.exv||c.billing?.calc?.exv||0);}
+  const grouped={};
+  exchCusts.forEach(c=>{const n=getExchName(c);if(!grouped[n])grouped[n]=[];grouped[n].push(c);});
+  function setE(id,field,val){setEdits(p=>({...p,[id]:{...(p[id]||{}),[ field]:val}}));}
+  function getE(c,field){return edits[c.id]?.[field]??c[field]??"";}
+  function issueMR(exchName,entries){
+    const num=ld("nkd_office_wa",OFFICE_WA)||OFFICE_WA;
+    const rows=entries.map(c=>({name:c.name,model:c.model||"",regNo:c.billing?.details?.exchangeRegNo||c.exchangeRegNo||"",exv:getExv(c),amtRec:Number(getE(c,"exchAmtRec")||0),comm:Number(getE(c,"exchComm")||0),disc:Number(getE(c,"exchDisc")||0)}));
+    const doc=makeExchMRDoc(exchName,rows,td());
+    entries.forEach(c=>{
+      onUpd(c.id,{exchAmtRec:Number(getE(c,"exchAmtRec")||0),exchComm:Number(getE(c,"exchComm")||0),exchDisc:Number(getE(c,"exchDisc")||0),exchMrIssued:true,exchMrDate:td()});
+    });
+    sharePdf(doc,"ExchMR_"+exchName.replace(/ /g,"_")+"_"+td()+".pdf",num,"Exchange Settlement MR for "+exchName+" — "+entries.length+" vehicle(s)");
+    notify("✅ MR issued & sent to office for "+exchName);
+  }
+  if(Object.keys(grouped).length===0)return(<div style={{maxWidth:900}}><div style={{fontWeight:800,fontSize:18,color:"#1e293b",marginBottom:16}}>🔄 Exchanger Due</div><div style={{textAlign:"center",color:"#94a3b8",padding:60,fontSize:14}}>No pending exchange settlements</div></div>);
+  return(
+    <div style={{maxWidth:960}}>
+      <div style={{fontWeight:800,fontSize:18,color:"#1e293b",marginBottom:4}}>🔄 Exchanger Due</div>
+      <div style={{color:"#64748b",fontSize:12,marginBottom:18}}>Exchange customers pending settlement. Amounts are editable — update and issue MR when settled.</div>
+      {Object.entries(grouped).map(([exchName,entries])=>{
+        const isOpen=!collapsed[exchName];
+        const totExv=entries.reduce((s,c)=>s+getExv(c),0);
+        const totRec=entries.reduce((s,c)=>s+Number(getE(c,"exchAmtRec")||0),0);
+        return(
+          <div key={exchName} style={{background:"#fff",border:"1px solid #6b8fb5",borderRadius:14,marginBottom:18,overflow:"hidden"}}>
+            {/* Exchanger header */}
+            <div onClick={()=>setCollapsed(p=>({...p,[exchName]:isOpen}))} style={{background:"rgba(245,158,11,0.08)",borderBottom:isOpen?"1px solid #6b8fb5":"none",padding:"13px 18px",display:"flex",justifyContent:"space-between",alignItems:"center",cursor:"pointer"}}>
+              <div>
+                <div style={{fontWeight:800,fontSize:15,color:"#92400e"}}>🏪 {exchName}</div>
+                <div style={{fontSize:11,color:"#78716c",marginTop:2}}>{entries.length} vehicle{entries.length>1?"s":""} · Exchange Due: <b>{fc(totExv)}</b>{totRec>0?<> · Received: <b style={{color:"#16a34a"}}>{fc(totRec)}</b></>:null}</div>
+              </div>
+              <div style={{display:"flex",gap:10,alignItems:"center"}}>
+                <button onClick={e=>{e.stopPropagation();issueMR(exchName,entries);}} style={{padding:"9px 18px",background:"linear-gradient(135deg,#f59e0b,#d97706)",border:"none",borderRadius:10,color:"#fff",fontWeight:700,fontSize:12,cursor:"pointer"}}>📄 Issue MR → Office</button>
+                <span style={{fontSize:16,color:"#94a3b8"}}>{isOpen?"▲":"▼"}</span>
+              </div>
+            </div>
+            {/* Customer rows */}
+            {isOpen&&(
+              <div style={{overflowX:"auto"}}>
+                <table style={{width:"100%",borderCollapse:"collapse",minWidth:700}}>
+                  <thead><tr style={{background:"#f8fafc"}}>
+                    {["Customer","Vehicle","Reg No","Exch Value","Amt Rec'd","Commission","Disc Allowed"].map(h=><th key={h} style={{padding:"9px 12px",fontSize:11,color:"#64748b",fontWeight:700,textAlign:"left",borderBottom:"1px solid #6b8fb5",whiteSpace:"nowrap"}}>{h}</th>)}
+                  </tr></thead>
+                  <tbody>{entries.map(c=>{
+                    const exv=getExv(c);
+                    const due=exv-Number(getE(c,"exchAmtRec")||0);
+                    return(
+                      <tr key={c.id} style={{borderBottom:"1px solid #f1f5f9"}}>
+                        <td style={{padding:"10px 12px"}}>
+                          <div style={{fontWeight:700,fontSize:13,color:"#1e293b"}}>{c.name}</div>
+                          <div style={{fontSize:10,color:"#94a3b8"}}>{c.billing?.deliveryDate?fd(c.billing.deliveryDate):fd(c.billedDate)}</div>
+                        </td>
+                        <td style={{padding:"10px 12px",fontSize:12,color:"#475569"}}>{c.billing?.details?.exchangeAsked||c.exchangeAsked||c.model||"—"}</td>
+                        <td style={{padding:"10px 12px",fontSize:12,color:"#475569"}}>{c.billing?.details?.exchangeRegNo||c.exchangeRegNo||"—"}</td>
+                        <td style={{padding:"10px 12px",fontSize:13,fontWeight:800,color:"#1e293b"}}>{fc(exv)}</td>
+                        <td style={{padding:"8px 10px"}}>
+                          <input type="number" inputMode="numeric" value={getE(c,"exchAmtRec")} onChange={e=>setE(c.id,"exchAmtRec",e.target.value)} onBlur={e=>onUpd(c.id,{exchAmtRec:Number(e.target.value||0)})} style={{width:90,padding:"6px 8px",border:"1px solid #6b8fb5",borderRadius:7,fontSize:12,fontWeight:700,color:due<=0?"#16a34a":"#ef4444"}} placeholder="0"/>
+                          {due>0&&<div style={{fontSize:9,color:"#ef4444",marginTop:2}}>Due: {fc(due)}</div>}
+                          {due<=0&&Number(getE(c,"exchAmtRec")||0)>0&&<div style={{fontSize:9,color:"#16a34a",marginTop:2}}>✓ Settled</div>}
+                        </td>
+                        <td style={{padding:"8px 10px"}}>
+                          <input type="number" inputMode="numeric" value={getE(c,"exchComm")} onChange={e=>setE(c.id,"exchComm",e.target.value)} onBlur={e=>onUpd(c.id,{exchComm:Number(e.target.value||0)})} style={{width:90,padding:"6px 8px",border:"1px solid #6b8fb5",borderRadius:7,fontSize:12}} placeholder="0"/>
+                        </td>
+                        <td style={{padding:"8px 10px"}}>
+                          <input type="number" inputMode="numeric" value={getE(c,"exchDisc")} onChange={e=>setE(c.id,"exchDisc",e.target.value)} onBlur={e=>onUpd(c.id,{exchDisc:Number(e.target.value||0)})} style={{width:90,padding:"6px 8px",border:"1px solid #6b8fb5",borderRadius:7,fontSize:12}} placeholder="0"/>
+                        </td>
+                      </tr>
+                    );
+                  })}</tbody>
+                </table>
+              </div>
+            )}
+          </div>
+        );
+      })}
+    </div>
+  );
+}
 function CashBook({custs}){
   const [date,setDate]=useState(td());
   const [branch,setBranch]=useState("All");
@@ -2037,7 +2161,7 @@ function CashBook({custs}){
     </div>
   );
 }
-function OwnerPortal({custs,stockData,billedChassis,statusData,role,user,mBr,saveStockData,saveStatusData,nkdUsers,onSaveUsers,notify,onLogout,onMobile}){
+function OwnerPortal({custs,stockData,billedChassis,statusData,role,user,mBr,saveStockData,saveStatusData,nkdUsers,onSaveUsers,notify,onUpd,onLogout,onMobile}){
   const [view,setView]=useState(role==="admin"?"uploads":"dashboard");
   const billed=custs.filter(c=>c.billed);
   const thisM=td().slice(0,7);
@@ -2050,7 +2174,7 @@ function OwnerPortal({custs,stockData,billedChassis,statusData,role,user,mBr,sav
   const smPerf=Object.entries(smMap).sort((a,b)=>b[1].bill-a[1].bill);
   const navItems=role==="admin"
     ?[{id:"uploads",l:"Uploads & Data",ic:"📤"},{id:"vault",l:"Document Vault",ic:"📁"}]
-    :[{id:"dashboard",l:"Dashboard",ic:"📊"},{id:"customers",l:"All Customers",ic:"👥"},{id:"team",l:"Team Performance",ic:"👔"},{id:"cashbook",l:"Cash Book",ic:"💰"},{id:"stock",l:"Stock & Ageing",ic:"🏍️"},{id:"uploads",l:"Uploads",ic:"📤"},{id:"rcstatus",l:"RC / HSRP",ic:"📋"},{id:"reports",l:"Reports",ic:"📄"},{id:"users",l:"User Accounts",ic:"👤"},{id:"vault",l:"Document Vault",ic:"📁"}];
+    :[{id:"dashboard",l:"Dashboard",ic:"📊"},{id:"customers",l:"All Customers",ic:"👥"},{id:"team",l:"Team Performance",ic:"👔"},{id:"cashbook",l:"Cash Book",ic:"💰"},{id:"exchdue",l:"Exchanger Due",ic:"🔄"},{id:"stock",l:"Stock & Ageing",ic:"🏍️"},{id:"uploads",l:"Uploads",ic:"📤"},{id:"rcstatus",l:"RC / HSRP",ic:"📋"},{id:"reports",l:"Reports",ic:"📄"},{id:"users",l:"User Accounts",ic:"👤"},{id:"vault",l:"Document Vault",ic:"📁"}];
   // tech = full owner powers
   const SB=({label})=>(<th style={{fontSize:11,color:"#64748b",fontWeight:700,textAlign:"left",padding:"7px 12px",borderBottom:"2px solid #6b8fb5",background:"#f8fafc"}}>{label}</th>);
   const TD=({v,col,bold})=>(<td style={{padding:"8px 12px",fontSize:13,color:col||"#1e293b",fontWeight:bold?700:400,borderBottom:"1px solid #e8eef8"}}>{v}</td>);
@@ -2217,6 +2341,7 @@ function OwnerPortal({custs,stockData,billedChassis,statusData,role,user,mBr,sav
 
         {/* ── CASH BOOK ── */}
         {view==="cashbook"&&<CashBook custs={custs}/>}
+        {view==="exchdue"&&<ExchangerDue custs={custs} onUpd={onUpd} notify={notify}/>}
 
         {/* ── USERS ── */}
         {view==="users"&&isOwner(role)&&<UserMgmt nkdUsers={nkdUsers||DEFAULT_USERS} onSave={onSaveUsers} notify={notify}/>}
@@ -2373,7 +2498,7 @@ export default function App(){
       role={role} user={user} mBr={mBr}
       saveStockData={saveStockData} saveStatusData={saveStatusData}
       nkdUsers={nkdUsers} onSaveUsers={saveUsers}
-      notify={notify}
+      notify={notify} onUpd={upd}
       onLogout={()=>{sv("nkd_li",false);sv("nkd_portal",false);setPortalMode(false);setLi(false);}}
       onMobile={()=>togglePortal(false)}
     /></>;
