@@ -1943,6 +1943,82 @@ function PaymentNotifPopup({notifs,onDismiss}){
     </div>
   );
 }
+function CashBook({custs}){
+  const [date,setDate]=useState(td());
+  const [branch,setBranch]=useState("All");
+  // Collect all payments for the selected date
+  const entries=[];
+  custs.forEach(c=>{
+    const br=SM_BRANCH[c.salesman]||c.branch||"—";
+    // Booking payment
+    if(c.booking&&c.booking.date===date){
+      entries.push({type:"Booking",name:c.name,model:c.model||"",amt:Number(c.booking.amt||0),mode:c.booking.mode||"Cash",branch:br,salesman:c.salesman||"",time:""});
+    }
+    // Received payments (from billing)
+    if(c.billing&&c.billing.payments){
+      c.billing.payments.forEach(p=>{
+        if(p.date===date&&Number(p.amt||0)>0){
+          entries.push({type:"Payment",name:c.name,model:c.model||"",amt:Number(p.amt),mode:p.mode||"Cash",branch:br,salesman:c.salesman||"",time:p.time||""});
+        }
+      });
+    }
+  });
+  const filtered=branch==="All"?entries:entries.filter(e=>e.branch===branch);
+  const byBranch={};
+  filtered.forEach(e=>{if(!byBranch[e.branch])byBranch[e.branch]=[];byBranch[e.branch].push(e);});
+  const total=filtered.reduce((s,e)=>s+e.amt,0);
+  const modeTotal={};filtered.forEach(e=>{modeTotal[e.mode]=(modeTotal[e.mode]||0)+e.amt;});
+  return(
+    <div style={{maxWidth:900}}>
+      <div style={{fontWeight:800,fontSize:18,color:"#1e293b",marginBottom:16}}>💰 Cash Book</div>
+      <div style={{display:"flex",gap:10,marginBottom:16,flexWrap:"wrap",alignItems:"center"}}>
+        <input type="date" value={date} max={td()} onChange={e=>setDate(e.target.value)} style={{...inp,width:"auto",padding:"8px 12px",fontSize:13}}/>
+        <div style={{display:"flex",gap:6}}>
+          {["All",...BRANCHES].map(b=><button key={b} onClick={()=>setBranch(b)} style={{padding:"8px 14px",borderRadius:10,border:"1px solid "+(branch===b?"#3b82f6":"#6b8fb5"),background:branch===b?"#dbeafe":"#f8fafc",color:branch===b?"#1d4ed8":"#64748b",fontWeight:700,fontSize:12,cursor:"pointer"}}>{b}</button>)}
+        </div>
+      </div>
+      {/* Summary cards */}
+      <div style={{display:"flex",gap:10,marginBottom:16,flexWrap:"wrap"}}>
+        <div style={{background:"linear-gradient(135deg,#22c55e,#16a34a)",borderRadius:14,padding:"14px 20px",color:"#fff",minWidth:140}}>
+          <div style={{fontSize:11,fontWeight:600,opacity:0.85}}>TOTAL RECEIVED</div>
+          <div style={{fontSize:22,fontWeight:900}}>{fc(total)}</div>
+          <div style={{fontSize:11,opacity:0.8}}>{filtered.length} transactions</div>
+        </div>
+        {Object.entries(modeTotal).map(([m,a])=>(
+          <div key={m} style={{background:"#fff",border:"1px solid #6b8fb5",borderRadius:14,padding:"14px 20px",minWidth:120}}>
+            <div style={{fontSize:11,color:"#94a3b8",fontWeight:600}}>{m.toUpperCase()}</div>
+            <div style={{fontSize:18,fontWeight:800,color:"#1e293b"}}>{fc(a)}</div>
+          </div>
+        ))}
+      </div>
+      {filtered.length===0?<div style={{textAlign:"center",color:"#94a3b8",padding:40,fontSize:14}}>No payments recorded for {fd(date)}</div>:
+      Object.entries(byBranch).map(([br,rows])=>(
+        <div key={br} style={{background:"#fff",border:"1px solid #6b8fb5",borderRadius:14,marginBottom:16,overflow:"hidden"}}>
+          <div style={{background:"rgba(96,165,250,0.08)",borderBottom:"1px solid #6b8fb5",padding:"10px 16px",display:"flex",justifyContent:"space-between",alignItems:"center"}}>
+            <div style={{fontWeight:700,fontSize:14,color:"#1e293b"}}>🏢 {br}</div>
+            <div style={{fontWeight:800,color:"#22c55e",fontSize:14}}>{fc(rows.reduce((s,r)=>s+r.amt,0))}</div>
+          </div>
+          <table style={{width:"100%",borderCollapse:"collapse"}}>
+            <thead><tr style={{background:"#f8fafc"}}>
+              {["Type","Customer","Model","Amount","Mode","By","Time"].map(h=><th key={h} style={{padding:"8px 12px",fontSize:11,color:"#64748b",fontWeight:700,textAlign:"left",borderBottom:"1px solid #6b8fb5"}}>{h}</th>)}
+            </tr></thead>
+            <tbody>{rows.map((r,i)=>(
+              <tr key={i} style={{borderBottom:"1px solid #f1f5f9"}}>
+                <td style={{padding:"9px 12px",fontSize:12}}><span style={{background:r.type==="Booking"?"rgba(139,92,246,0.1)":"rgba(34,197,94,0.1)",color:r.type==="Booking"?"#8b5cf6":"#16a34a",borderRadius:6,padding:"2px 8px",fontWeight:700,fontSize:11}}>{r.type}</span></td>
+                <td style={{padding:"9px 12px",fontSize:12,fontWeight:600,color:"#1e293b"}}>{r.name}</td>
+                <td style={{padding:"9px 12px",fontSize:11,color:"#64748b"}}>{r.model}</td>
+                <td style={{padding:"9px 12px",fontSize:13,fontWeight:800,color:"#22c55e"}}>{fc(r.amt)}</td>
+                <td style={{padding:"9px 12px",fontSize:12,color:"#475569"}}>{r.mode}</td>
+                <td style={{padding:"9px 12px",fontSize:11,color:"#64748b"}}>{r.salesman}</td>
+                <td style={{padding:"9px 12px",fontSize:11,color:"#94a3b8"}}>{r.time}</td>
+              </tr>
+            ))}</tbody>
+          </table>
+        </div>
+      ))}
+    </div>
+  );
+}
 function OwnerPortal({custs,stockData,billedChassis,statusData,role,user,mBr,saveStockData,saveStatusData,nkdUsers,onSaveUsers,notify,onLogout,onMobile}){
   const [view,setView]=useState(role==="admin"?"uploads":"dashboard");
   const billed=custs.filter(c=>c.billed);
@@ -1956,7 +2032,7 @@ function OwnerPortal({custs,stockData,billedChassis,statusData,role,user,mBr,sav
   const smPerf=Object.entries(smMap).sort((a,b)=>b[1].bill-a[1].bill);
   const navItems=role==="admin"
     ?[{id:"uploads",l:"Uploads & Data",ic:"📤"},{id:"vault",l:"Document Vault",ic:"📁"}]
-    :[{id:"dashboard",l:"Dashboard",ic:"📊"},{id:"customers",l:"All Customers",ic:"👥"},{id:"team",l:"Team Performance",ic:"👔"},{id:"stock",l:"Stock & Ageing",ic:"🏍️"},{id:"uploads",l:"Uploads",ic:"📤"},{id:"rcstatus",l:"RC / HSRP",ic:"📋"},{id:"reports",l:"Reports",ic:"📄"},{id:"users",l:"User Accounts",ic:"👤"},{id:"vault",l:"Document Vault",ic:"📁"}];
+    :[{id:"dashboard",l:"Dashboard",ic:"📊"},{id:"customers",l:"All Customers",ic:"👥"},{id:"team",l:"Team Performance",ic:"👔"},{id:"cashbook",l:"Cash Book",ic:"💰"},{id:"stock",l:"Stock & Ageing",ic:"🏍️"},{id:"uploads",l:"Uploads",ic:"📤"},{id:"rcstatus",l:"RC / HSRP",ic:"📋"},{id:"reports",l:"Reports",ic:"📄"},{id:"users",l:"User Accounts",ic:"👤"},{id:"vault",l:"Document Vault",ic:"📁"}];
   // tech = full owner powers
   const SB=({label})=>(<th style={{fontSize:11,color:"#64748b",fontWeight:700,textAlign:"left",padding:"7px 12px",borderBottom:"2px solid #6b8fb5",background:"#f8fafc"}}>{label}</th>);
   const TD=({v,col,bold})=>(<td style={{padding:"8px 12px",fontSize:13,color:col||"#1e293b",fontWeight:bold?700:400,borderBottom:"1px solid #e8eef8"}}>{v}</td>);
@@ -2120,6 +2196,9 @@ function OwnerPortal({custs,stockData,billedChassis,statusData,role,user,mBr,sav
 
         {/* ── REPORTS ── */}
         {view==="reports"&&<div style={{maxWidth:800}}><Reports custs={custs} onImportCust={()=>{}}/></div>}
+
+        {/* ── CASH BOOK ── */}
+        {view==="cashbook"&&<CashBook custs={custs}/>}
 
         {/* ── USERS ── */}
         {view==="users"&&isOwner(role)&&<UserMgmt nkdUsers={nkdUsers||DEFAULT_USERS} onSave={onSaveUsers} notify={notify}/>}
