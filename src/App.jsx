@@ -1224,9 +1224,8 @@ function BillingModal({cust,onClose,onSave,notify,role,stockData,billedChassis})
     return(m.includes(modelStr.slice(0,6))||m.includes(modelCode))&&!(billedChassis||[]).includes(String(row[sChassisKey]||"").trim().toUpperCase());
   });
   function pickChassis(chassisVal){
-    if(chassisVal==="OTHERS"){setF(p=>({...p,chassis:"OTHERS"}));setChassisCustom("");return;}
+    if(chassisVal==="OTHERS"){setF(p=>({...p,chassis:"",engine:p.engine,color:p.color}));return;}
     const row=availableForModel.find(r=>String(r[sChassisKey]||"")===chassisVal);
-    setChassisCustom("");
     setF(p=>({...p,chassis:chassisVal,engine:row&&sEngineKey?String(row[sEngineKey]||""):p.engine,color:row&&sColorKey?String(row[sColorKey]||""):p.color}));
   }
 
@@ -1279,9 +1278,7 @@ function BillingModal({cust,onClose,onSave,notify,role,stockData,billedChassis})
   const [busy,setBusy]=useState(false);
   function submit(){
     if(busy)return;
-    const finalChassis=f.chassis==="OTHERS"?chassisCustom.trim():f.chassis;
-    if(!finalChassis){notify(f.chassis==="OTHERS"?"Type the actual chassis number in the box below":"Enter chassis number","err");return;}
-    if(f.chassis==="OTHERS")setF(p=>({...p,chassis:finalChassis}));
+    if(!f.chassis){notify("Enter chassis number","err");return;}
     if(!f.aadhar||!f.fatherName||!f.nominee||!f.nomineeRel){notify("Fill KYC: Aadhar, Father name, Nominee & Relation","err");return;}
     if(c.C<0||c.E<0||c.G<0||c.I<0){alert("⚠️ Calculation error — a total has gone NEGATIVE.\nCheck discounts/booking/exchange amounts. No value can exceed the price above it.");return;}
     if(c.K<0){alert("⚠️ Payment Received ("+fc(c.paid)+") is MORE than balance due ("+fc(c.I)+").\nCorrect the Payment Received amount.");return;}
@@ -1310,7 +1307,7 @@ function BillingModal({cust,onClose,onSave,notify,role,stockData,billedChassis})
           <div style={{background:"#ffffff",border:"1px solid #6b8fb5",borderRadius:12,padding:12}}>
             <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:8}}>
               {[{k:"billName",l:"Customer Name (as on bill) *"},{k:"fatherName",l:"Father/Mother Name *"},{k:"dob",l:"Date of Birth",t:"date"},{k:"aadhar",l:"Aadhar No *"},{k:"pan",l:"PAN No"},{k:"nominee",l:"Nominee Name *"},{k:"nomineeRel",l:"Nominee Relation *"}].map(({k,l,t})=>(
-                <div key={k}><label style={{...lbl,fontSize:10}}>{l}</label><input type={t||"text"} value={f[k]||""} onChange={e=>setF(p=>({...p,[k]:e.target.value}))} onBlur={t!=="date"?e=>setF(p=>({...p,[k]:String(e.target.value).toUpperCase()})):undefined} style={{...inp,fontSize:12,padding:"8px 10px",textTransform:t==="date"?"none":"uppercase"}}/></div>
+                <div key={k}><label style={{...lbl,fontSize:10}}>{l}</label><input type={t||"text"} value={f[k]||""} max={t==="date"?td():undefined} onChange={e=>setF(p=>({...p,[k]:e.target.value}))} onBlur={t!=="date"?e=>setF(p=>({...p,[k]:String(e.target.value).toUpperCase()})):undefined} style={{...inp,fontSize:12,padding:"8px 10px",textTransform:t==="date"?"none":"uppercase"}}/></div>
               ))}
             </div>
           </div>
@@ -1336,7 +1333,6 @@ function BillingModal({cust,onClose,onSave,notify,role,stockData,billedChassis})
                 <label style={{...lbl,fontSize:10}}>Chassis No * {availableForModel.length>0&&<span style={{color:"#34d399",fontWeight:700}}>({availableForModel.length} in stock)</span>}{availableForModel.length===0&&sRows.length>0&&<span style={{color:"#f97316",fontWeight:700}}>(no stock for this model)</span>}</label>
                 <input list="chassis-list" value={f.chassis||""} onChange={e=>pickChassis(e.target.value)} placeholder="Type or search chassis no…" style={{...inp,fontSize:12,padding:"8px 10px",textTransform:"uppercase"}} onBlur={e=>setF(p=>({...p,chassis:String(e.target.value).toUpperCase()}))}/>
                 <datalist id="chassis-list">{availableForModel.map((row,i)=>{const ch=String(row[sChassisKey]||"");return(<option key={i} value={ch}>{sColorKey&&row[sColorKey]?row[sColorKey]:""}</option>);})}<option value="OTHERS">OTHERS — Vehicle not in current stock list</option></datalist>
-                {f.chassis==="OTHERS"&&<div style={{marginTop:6}}><label style={{...lbl,fontSize:10,color:"#f97316"}}>⚠️ Not in stock — type actual chassis no below:</label><input autoFocus value={chassisCustom} placeholder="TYPE CHASSIS NUMBER HERE…" onChange={e=>setChassisCustom(e.target.value.toUpperCase())} style={{...inp,fontSize:12,padding:"8px 10px",textTransform:"uppercase",borderColor:"#f97316"}}/></div>}
               </div>
               {[{k:"engine",l:"Engine No"},{k:"color",l:"Colour"},{k:"deliveryDate",l:"Delivery Date",t:"date"},...(isFin?[{k:"financeBank",l:"Finance Bank"}]:[]),{k:"registrationNo",l:"Reg No"},{k:"insuranceNo",l:"Insurance No"},{k:"mrNo",l:"MR No."}].map(({k,l,t})=>(
                 <div key={k}><label style={{...lbl,fontSize:10}}>{l}</label><input type={t||"text"} value={f[k]||""} onChange={e=>setF(p=>({...p,[k]:e.target.value}))} onBlur={t!=="date"?e=>setF(p=>({...p,[k]:String(e.target.value).toUpperCase()})):undefined} style={{...inp,fontSize:12,padding:"8px 10px",textTransform:t==="date"?"none":"uppercase"}}/></div>
