@@ -2430,6 +2430,16 @@ export default function App(){
   }
 
   function logCall(cust,dur){upd(cust.id,{callLog:[...(cust.callLog||[]),{date:td(),time:new Date().toLocaleTimeString("en-IN"),duration:dur,type:"call"}]});}
+  function sendMRBoth(cust,billing,calc){
+    try{
+      const doc=makeMRDoc(cust,billing,calc);
+      sharePdf(doc,"MR_"+cust.name.replace(/ /g,"_")+"_"+td()+".pdf",cust.phone,"Please find your Money Receipt from NKD Bajaj, Dhanbad.");
+      const offNum=ld("nkd_office_wa",OFFICE_WA)||OFFICE_WA;
+      const doc2=makeCombinedDoc(cust,billing,calc);
+      sharePdf(doc2,"CalcMR_"+cust.name.replace(/ /g,"_")+"_"+td()+".pdf",offNum,"Calc Sheet + MR for "+cust.name+" ("+cust.model+") — Paid: "+fc(calc.paid)+" · Balance: "+fc(Math.max(calc.K,0)));
+    }catch(e){}
+  }
+
   function addPayment(custId,payment){
     const cust=custs.find(c=>c.id===custId);
     if(!cust||!cust.billing)return;
@@ -2439,24 +2449,30 @@ export default function App(){
     const newCalc=calcB(newBilling,r);
     const updC={...cust,billing:{...newBilling,calc:newCalc,paid:newCalc.paid},updatedAt:td()};
     setCusts(p=>p.map(c=>c.id===custId?updC:c));
-    // Auto-send MR PDF to customer via WhatsApp
-    try{
-      const doc=makeMRDoc(updC,newBilling,newCalc);
-      sharePdf(doc,"MR_"+updC.name.replace(/ /g,"_")+"_"+td()+".pdf",updC.phone,"Please find your updated Money Receipt from NKD Bajaj, Dhanbad.");
-    }catch(e){}
+    // Auto-send MR to customer + office
+    sendMRBoth(updC,newBilling,newCalc);
     // Store notification for manager / owner
     const notif={id:Date.now(),custName:updC.name,model:updC.model||"",amt:payment.amt,mode:payment.mode,balance:Math.max(newCalc.K,0),salesman:updC.salesman||user,date:td(),time:new Date().toLocaleTimeString("en-IN",{hour:"2-digit",minute:"2-digit"}),read:false};
     const updN=[...payNotifs,notif];
     setPayNotifs(updN);
     sv("nkd_pnotifs",updN);
     _dbSet("payment_notifs",updN);
-    notify("✅ Payment saved · MR sending to customer");
+    notify("✅ Payment saved · MR sending to customer & office");
   }
 
   function billC(cust,data){
     const editLog=cust.billing?("\n["+td()+"] CALC SHEET EDITED by "+user):"";
-    upd(cust.id,{remarks:(cust.remarks||"")+editLog,billed:true,billedDate:td(),status:"Billed",billing:data,billedBy:user,managerApproval:role==="salesman"?null:"approved",approvedBy:role==="salesman"?null:user,...data.details});
-    notify("✅ Billed! Receipt ready");
+    const updCust={...cust,remarks:(cust.remarks||"")+editLog,billed:true,billedDate:td(),status:"Billed",billing:data,billedBy:user,managerApproval:role==="salesman"?null:"approved",approvedBy:role==="salesman"?null:user,...data.details};
+    upd(cust.id,updCust);
+    // Auto-send MR to customer + office if any payment was received
+    if(Number(data.paid||0)>0){
+      const r=RC[cust.modelCode]||{};
+      const calc=calcB(data,r);
+      sendMRBoth({...cust,...data.details,billing:data},data,calc);
+      notify("✅ Billed! MR sending to customer & office");
+    }else{
+      notify("✅ Billed! Receipt ready");
+    }
   }
 
   function approveBill(id,ok,remark){
