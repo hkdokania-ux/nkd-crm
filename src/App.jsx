@@ -2332,7 +2332,7 @@ export default function App(){
   const myPending=role==="salesman"?pending.filter(c=>c.salesman===user):pending;
   const revivable=custs.filter(c=>{if(c.billed)return false;const base=c.reactivatedAt||c.enquiryDate;return((new Date()-new Date(base))/(864e5*30))>=6;});
 
-  function openD(c,tab){setSel(c);if(tab)setDtab(tab);nav("detail");}
+  function openD(c,tab){setSel(c);if(tab)setDtab(tab);nav("detail");window.scrollTo({top:0,behavior:"instant"});}
 
   const [portalMode,setPortalMode]=useState(()=>ld("nkd_portal",false));
   function togglePortal(v){setPortalMode(v);sv("nkd_portal",v);}
