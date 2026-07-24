@@ -28,7 +28,8 @@ function fc(n){return"₹"+(Number(n)||0).toLocaleString("en-IN");}
 const DRIVE_UPLOAD_URL="https://script.google.com/macros/s/AKfycbzYG7g9u3zOy87f5Nl8a0s7Mf6QGH5bi0mVueyzwYG5FYZLAy7RSSGgb9D-H6CQgkbH/exec";
 function uploadToDrive(fileName,dataUrl,mimeType,customerName,docType,cb){
   try{
-    fetch(DRIVE_UPLOAD_URL,{method:"POST",body:JSON.stringify({fileName,fileData:dataUrl,mimeType:mimeType||"image/jpeg",customerName,docType})})
+    const monthFolder=new Date().toLocaleDateString("en-IN",{month:"long",year:"numeric"});
+    fetch(DRIVE_UPLOAD_URL,{method:"POST",body:JSON.stringify({fileName,fileData:dataUrl,mimeType:mimeType||"image/jpeg",customerName,docType,monthFolder})})
       .then(r=>r.json())
       .then(d=>{if(d&&d.success&&d.id){cb("https://drive.google.com/uc?id="+d.id+"&export=view",d.url);}else{cb(dataUrl,null);}})
       .catch(()=>cb(dataUrl,null));
