@@ -1223,6 +1223,7 @@ function BillingModal({cust,onClose,onSave,notify,role,stockData,billedChassis})
   const sAgeKey=findStockCol(sKeys,["age","days","ageing","aging"]);
   const sDateKey=findStockCol(sKeys,["date","invoice","inward","receipt","stock"]);
   const sBranchKey=findStockCol(sKeys,["branch","location","godown","showroom","store","place"]);
+  function cleanBranch(raw){const s=String(raw||"").toLowerCase();if(s.includes("chirkunda"))return"Chirkunda";if(s.includes("saraidhela")||s.includes("saraidela"))return"Saraidhela";if(s.includes("hirak")||s.includes("12967")||s.includes("nkd"))return"Hirak Road";return raw||"";}
   const modelStr=(cust.model||"").toLowerCase();
   const modelCode=(cust.modelCode||"").toLowerCase();
   function rowMatchesModel(row){
@@ -1347,7 +1348,7 @@ function BillingModal({cust,onClose,onSave,notify,role,stockData,billedChassis})
                   const ch=String(row[sChassisKey]||"");
                   const col=sColorKey?String(row[sColorKey]||""):"";
                   const age=sAgeKey?String(row[sAgeKey]||""):(sDateKey&&row[sDateKey]?Math.floor((new Date()-new Date(row[sDateKey]))/86400000)+"d":"");
-                  const br=sBranchKey?String(row[sBranchKey]||""):"";
+                  const br=sBranchKey?cleanBranch(row[sBranchKey]):"";
                   const label=[col,age?age+" days":"",br].filter(Boolean).join(" · ");
                   return(<option key={i} value={ch}>{label}</option>);
                 })}</datalist>
