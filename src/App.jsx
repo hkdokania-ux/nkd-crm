@@ -1216,15 +1216,18 @@ function BillingModal({cust,onClose,onSave,notify,role,stockData,billedChassis})
   const sChassisKey=findStockCol(sKeys,["chassis","frame"]);
   const sEngineKey=findStockCol(sKeys,["engine"]);
   const sColorKey=findStockCol(sKeys,["color","colour"]);
-  const sModelKey=findStockCol(sKeys,["model","name","variant"]);
+  const sModelKey=findStockCol(sKeys,["model","name","variant","description","item","product","vehicle"]);
   const modelStr=(cust.model||"").toLowerCase();
   const modelCode=(cust.modelCode||"").toLowerCase();
+  function rowMatchesModel(row){
+    const allVals=Object.values(row).map(v=>String(v||"").toLowerCase()).join(" ");
+    const words=modelStr.split(" ").filter(w=>w.length>2);
+    return allVals.includes(modelCode)||words.filter(w=>allVals.includes(w)).length>=2;
+  }
   const availableForModel=sRows.filter(row=>{
-    const m=String(row[sModelKey]||"").toLowerCase();
-    return(m.includes(modelStr.slice(0,6))||m.includes(modelCode))&&!(billedChassis||[]).includes(String(row[sChassisKey]||"").trim().toUpperCase());
+    return rowMatchesModel(row)&&!(billedChassis||[]).includes(String(row[sChassisKey]||"").trim().toUpperCase());
   });
   function pickChassis(chassisVal){
-    if(chassisVal==="OTHERS"){setF(p=>({...p,chassis:"",engine:p.engine,color:p.color}));return;}
     const row=availableForModel.find(r=>String(r[sChassisKey]||"")===chassisVal);
     setF(p=>({...p,chassis:chassisVal,engine:row&&sEngineKey?String(row[sEngineKey]||""):p.engine,color:row&&sColorKey?String(row[sColorKey]||""):p.color}));
   }
@@ -1334,7 +1337,7 @@ function BillingModal({cust,onClose,onSave,notify,role,stockData,billedChassis})
               <div style={{gridColumn:"1/-1"}}>
                 <label style={{...lbl,fontSize:10}}>Chassis No * {availableForModel.length>0&&<span style={{color:"#34d399",fontWeight:700}}>({availableForModel.length} in stock)</span>}{availableForModel.length===0&&sRows.length>0&&<span style={{color:"#f97316",fontWeight:700}}>(no stock for this model)</span>}</label>
                 <input list="chassis-list" value={f.chassis||""} onChange={e=>pickChassis(e.target.value)} placeholder="Type or search chassis no…" style={{...inp,fontSize:12,padding:"8px 10px",textTransform:"uppercase"}} onBlur={e=>setF(p=>({...p,chassis:String(e.target.value).toUpperCase()}))}/>
-                <datalist id="chassis-list">{availableForModel.map((row,i)=>{const ch=String(row[sChassisKey]||"");return(<option key={i} value={ch}>{sColorKey&&row[sColorKey]?row[sColorKey]:""}</option>);})}<option value="OTHERS">OTHERS — Vehicle not in current stock list</option></datalist>
+                <datalist id="chassis-list">{availableForModel.map((row,i)=>{const ch=String(row[sChassisKey]||"");return(<option key={i} value={ch}>{sColorKey&&row[sColorKey]?row[sColorKey]:""}</option>);})}</datalist>
               </div>
               {[{k:"engine",l:"Engine No"},{k:"color",l:"Colour"},{k:"deliveryDate",l:"Delivery Date",t:"date"},...(isFin?[{k:"financeBank",l:"Finance Bank"}]:[]),{k:"registrationNo",l:"Reg No"},{k:"insuranceNo",l:"Insurance No"},{k:"mrNo",l:"MR No."}].map(({k,l,t})=>(
                 <div key={k}><label style={{...lbl,fontSize:10}}>{l}</label><input type={t||"text"} value={f[k]||""} onChange={e=>setF(p=>({...p,[k]:e.target.value}))} onBlur={t!=="date"?e=>setF(p=>({...p,[k]:String(e.target.value).toUpperCase()})):undefined} style={{...inp,fontSize:12,padding:"8px 10px",textTransform:t==="date"?"none":"uppercase"}}/></div>
