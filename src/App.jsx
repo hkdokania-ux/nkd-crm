@@ -1222,6 +1222,7 @@ function BillingModal({cust,onClose,onSave,notify,role,stockData,billedChassis})
   const sModelKey=findStockCol(sKeys,["model","name","variant","description","item","product","vehicle"]);
   const sAgeKey=findStockCol(sKeys,["age","days","ageing","aging"]);
   const sDateKey=findStockCol(sKeys,["date","invoice","inward","receipt","stock"]);
+  const sBranchKey=findStockCol(sKeys,["branch","location","godown","showroom","store","place"]);
   const modelStr=(cust.model||"").toLowerCase();
   const modelCode=(cust.modelCode||"").toLowerCase();
   function rowMatchesModel(row){
@@ -1346,7 +1347,8 @@ function BillingModal({cust,onClose,onSave,notify,role,stockData,billedChassis})
                   const ch=String(row[sChassisKey]||"");
                   const col=sColorKey?String(row[sColorKey]||""):"";
                   const age=sAgeKey?String(row[sAgeKey]||""):(sDateKey&&row[sDateKey]?Math.floor((new Date()-new Date(row[sDateKey]))/86400000)+"d":"");
-                  const label=[col,age?age+" days":""].filter(Boolean).join(" · ");
+                  const br=sBranchKey?String(row[sBranchKey]||""):"";
+                  const label=[col,age?age+" days":"",br].filter(Boolean).join(" · ");
                   return(<option key={i} value={ch}>{label}</option>);
                 })}</datalist>
               </div>
