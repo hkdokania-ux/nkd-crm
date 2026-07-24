@@ -25,7 +25,7 @@ function td(){return new Date().toISOString().split("T")[0];}
 function aD(d,n){const x=new Date(d);x.setDate(x.getDate()+n);return x.toISOString().split("T")[0];}
 function fd(d){if(!d)return"—";return new Date(d).toLocaleDateString("en-IN",{day:"2-digit",month:"short",year:"numeric"});}
 function fc(n){return"₹"+(Number(n)||0).toLocaleString("en-IN");}
-const DRIVE_UPLOAD_URL="https://script.google.com/macros/s/AKfycbwGLd6gOTEvH7vuc-bXHlL9ywrDJXah7zUySquhg_JCv4NDwPzOuHKz9aaV4Ie8QhA/exec";
+const DRIVE_UPLOAD_URL="https://script.google.com/macros/s/AKfycbzYG7g9u3zOy87f5Nl8a0s7Mf6QGH5bi0mVueyzwYG5FYZLAy7RSSGgb9D-H6CQgkbH/exec";
 function uploadToDrive(fileName,dataUrl,mimeType,customerName,docType,cb){
   try{
     fetch(DRIVE_UPLOAD_URL,{method:"POST",body:JSON.stringify({fileName,fileData:dataUrl,mimeType:mimeType||"image/jpeg",customerName,docType})})
@@ -412,7 +412,7 @@ function ExchDashGroup({exchName,list,onUpd,notify}){
     if(exchPhone)sharePdf(doc,fname,exchPhone,msg);
     sharePdf(doc,fname,offNum,msg);
     savePdfToDrive(doc,fname,exchName,"ExchMR");
-    list.forEach(c=>{onUpd(c.id,{exchAmtRec:Number(getE(c,"exchAmtRec")||0),exchComm:Number(getE(c,"exchComm")||0),exchDisc:Number(getE(c,"exchDisc")||0),exchMrIssued:true,exchMrDate:td()});});
+    list.forEach(c=>{savePdfToDrive(doc,fname,c.name,"ExchMR");onUpd(c.id,{exchAmtRec:Number(getE(c,"exchAmtRec")||0),exchComm:Number(getE(c,"exchComm")||0),exchDisc:Number(getE(c,"exchDisc")||0),exchMrIssued:true,exchMrDate:td()});});
     notify("✅ MR sent to "+(exchPhone?"exchanger & ":"")+"office for "+exchName);
   }
   return(
@@ -2107,6 +2107,7 @@ function ExchangerDue({custs,onUpd,notify}){
     const efname="ExchMR_"+exchName.replace(/ /g,"_")+"_"+td()+".pdf";
     sharePdf(doc,efname,num,"Exchange Settlement MR for "+exchName+" — "+entries.length+" vehicle(s)");
     savePdfToDrive(doc,efname,exchName,"ExchMR");
+    entries.forEach(c=>savePdfToDrive(doc,efname,c.name,"ExchMR"));
     notify("✅ MR issued & sent to office for "+exchName);
   }
   if(Object.keys(grouped).length===0)return(<div style={{maxWidth:900}}><div style={{fontWeight:800,fontSize:18,color:"#1e293b",marginBottom:16}}>🔄 Exchanger Due</div><div style={{textAlign:"center",color:"#94a3b8",padding:60,fontSize:14}}>No pending exchange settlements</div></div>);
