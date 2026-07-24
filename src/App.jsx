@@ -987,7 +987,10 @@ function Detail({cust,role,onBack,onUpd,onLog,onBill,onBook,notify,initTab,clear
   const r=RC[cust.modelCode];
   const lastR=(cust.remarks||"").trim().split("\n").filter(Boolean).slice(-1)[0]||"";
 
-  function saveEdit(){onUpd(f);setEdit(false);notify("Saved ✓");}
+  function saveEdit(){
+    if(f.phone&&!/^\d{10}$/.test(f.phone)){notify("⚠️ Phone must be exactly 10 digits","err");return;}
+    onUpd(f);setEdit(false);notify("Saved ✓");
+  }
   function pickM(code){const m=RC[code];setF(p=>({...p,modelCode:code,model:m?m.n:"",cat:m?m.cat:""}));}
   function uploadPhoto(key,file){compressImg(file,function(dataUrl){
     onUpd({photos:{...(cust.photos||{}),[key]:dataUrl}});notify("Uploading to Drive…");
@@ -1046,7 +1049,7 @@ function Detail({cust,role,onBack,onUpd,onLog,onBill,onBook,notify,initTab,clear
           {edit?(
             <div style={{display:"flex",flexDirection:"column",gap:10}}>
               {[{k:"name",l:"Name"},{k:"phone",l:"Phone"+(cust.billed&&role==="salesman"?" 🔒":""),t:"tel",lock:cust.billed&&role==="salesman"},{k:"fatherName",l:"Father/Mother"},{k:"address",l:"Address"},{k:"dob",l:"DOB",t:"date"},{k:"aadhar",l:"Aadhar"},{k:"pan",l:"PAN"},...(cust.billed?[{k:"nominee",l:"Nominee"},{k:"nomineeRel",l:"Nom. Relation"},{k:"exchangeName",l:"Exchanger Name"},{k:"exchangeAsked",l:"Exchange Bike Model"},{k:"exchangeRegNo",l:"Old Vehicle Reg No"},{k:"exchangeOffered",l:"Exchange Value ₹"}]:[])].map(({k,l,t,lock})=>(
-                <div key={k}><label style={lbl}>{l}</label><input type={t||"text"} disabled={lock} style={{...inp,opacity:lock?0.5:1}} value={f[k]||""} onChange={e=>setF(p=>({...p,[k]:e.target.value}))}/>{lock&&<div style={{fontSize:10,color:"#f59e0b",marginTop:3}}>Phone locked after billing — ask Manager to change</div>}</div>
+                <div key={k}><label style={lbl}>{l}</label><input type={t||"text"} disabled={lock} style={{...inp,opacity:lock?0.5:1,borderColor:t==="tel"&&f[k]&&f[k].length!==10?"#ef4444":undefined}} value={f[k]||""} onChange={e=>{const v=t==="tel"?e.target.value.replace(/\D/g,"").slice(0,10):e.target.value;setF(p=>({...p,[k]:v}));}}/>{t==="tel"&&f[k]&&f[k].length>0&&f[k].length!==10&&<div style={{fontSize:10,color:"#ef4444",marginTop:2}}>⚠️ Must be 10 digits ({f[k].length} entered)</div>}{lock&&<div style={{fontSize:10,color:"#f59e0b",marginTop:3}}>Phone locked after billing — ask Manager to change</div>}</div>
               ))}
               <div><label style={lbl}>Model Code</label>
                 <select style={inp} value={f.modelCode||""} onChange={e=>pickM(e.target.value)}>
@@ -1227,7 +1230,7 @@ function AddModal({onClose,onSave,curUser,role,existing}){
         <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:16}}><div style={{fontWeight:800,fontSize:17,color:"#1e293b"}}>New Enquiry</div><button onClick={onClose} style={{background:"#c2d6ec",border:"none",borderRadius:8,width:32,height:32,cursor:"pointer",color:"#64748b",fontSize:18}}>✕</button></div>
         <div style={{display:"flex",flexDirection:"column",gap:10}}>
           {[{k:"name",l:"Customer Name *"},{k:"phone",l:"Phone *",t:"tel"},{k:"address",l:"Address"}].map(({k,l,t})=>(
-            <div key={k}><label style={lbl}>{l}</label><input type={t||"text"} style={t!=="tel"?{...inp,textTransform:"uppercase"}:inp} value={f[k]||""} onChange={e=>setF(p=>({...p,[k]:e.target.value}))} {...(t!=="tel"?capBlur(k):{})}/></div>
+            <div key={k}><label style={lbl}>{l}</label><input type={t||"text"} style={t!=="tel"?{...inp,textTransform:"uppercase"}:{...inp,borderColor:f[k]&&f[k].length!==10?"#ef4444":undefined}} value={f[k]||""} onChange={e=>{const v=t==="tel"?e.target.value.replace(/\D/g,"").slice(0,10):e.target.value;setF(p=>({...p,[k]:v}));}} {...(t!=="tel"?capBlur(k):{})}/>{t==="tel"&&f[k]&&f[k].length>0&&f[k].length!==10&&<div style={{fontSize:10,color:"#ef4444",marginTop:2}}>⚠️ Must be 10 digits ({f[k].length} entered)</div>}</div>
           ))}
           <div><label style={lbl}>Model — search by code or name</label>
             <input style={inp} value={mSearch} onChange={e=>{setMSearch(e.target.value);if(!e.target.value){pickM("");}}} placeholder="Type model code or name…" list="model-list"/>
@@ -1424,7 +1427,7 @@ function BillingModal({cust,onClose,onSave,onDraft,notify,role,stockData,billedC
           <div style={{background:"#ffffff",border:"1px solid #6b8fb5",borderRadius:12,padding:12}}>
             <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:8}}>
               {[{k:"exchName",l:"Exchanger Name"},{k:"exchPhone",l:"Exchanger Mobile",t:"tel"},{k:"exchModel",l:"Old Bike Model"},{k:"exchRegNo",l:"Old Vehicle Reg No"}].map(({k,l,t})=>(
-                <div key={k}><label style={{...lbl,fontSize:10}}>{l}</label><input type={t||"text"} inputMode={t==="tel"?"numeric":undefined} value={f[k]||""} onChange={e=>setF(p=>({...p,[k]:e.target.value}))} onBlur={t!=="tel"?e=>setF(p=>({...p,[k]:String(e.target.value).toUpperCase()})):undefined} style={{...inp,fontSize:12,padding:"8px 10px",textTransform:t==="tel"?"none":"uppercase"}}/></div>
+                <div key={k}><label style={{...lbl,fontSize:10}}>{l}</label><input type={t||"text"} inputMode={t==="tel"?"numeric":undefined} value={f[k]||""} onChange={e=>{const v=t==="tel"?e.target.value.replace(/\D/g,"").slice(0,10):e.target.value;setF(p=>({...p,[k]:v}));}} onBlur={t!=="tel"?e=>setF(p=>({...p,[k]:String(e.target.value).toUpperCase()})):undefined} style={{...inp,fontSize:12,padding:"8px 10px",textTransform:t==="tel"?"none":"uppercase",borderColor:t==="tel"&&f[k]&&f[k].length!==10?"#ef4444":undefined}}/>{t==="tel"&&f[k]&&f[k].length>0&&f[k].length!==10&&<div style={{fontSize:10,color:"#ef4444",marginTop:2}}>⚠️ Must be 10 digits</div>}</div>
               ))}
               <div><label style={{...lbl,fontSize:10}}>Exchange Value ₹</label><input type="number" inputMode="numeric" value={f.exv||""} onChange={e=>setF(p=>({...p,exv:e.target.value}))} style={{...inp,fontSize:12,padding:"8px 10px"}}/></div>
             </div>
