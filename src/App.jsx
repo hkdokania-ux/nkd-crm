@@ -1306,9 +1306,11 @@ function BillingModal({cust,onClose,onSave,notify,role,stockData,billedChassis})
           <div style={{fontSize:10,fontWeight:700,color:"#475569",letterSpacing:0.8,marginBottom:6}}>CUSTOMER KYC (required for billing)</div>
           <div style={{background:"#ffffff",border:"1px solid #6b8fb5",borderRadius:12,padding:12}}>
             <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:8}}>
-              {[{k:"billName",l:"Customer Name (as on bill) *"},{k:"fatherName",l:"Father/Mother Name *"},{k:"dob",l:"Date of Birth",t:"date"},{k:"aadhar",l:"Aadhar No *"},{k:"pan",l:"PAN No"},{k:"nominee",l:"Nominee Name *"},{k:"nomineeRel",l:"Nominee Relation *"}].map(({k,l,t})=>(
-                <div key={k}><label style={{...lbl,fontSize:10}}>{l}</label><input type={t||"text"} value={f[k]||""} max={t==="date"?td():undefined} onChange={e=>setF(p=>({...p,[k]:e.target.value}))} onBlur={t!=="date"?e=>setF(p=>({...p,[k]:String(e.target.value).toUpperCase()})):undefined} style={{...inp,fontSize:12,padding:"8px 10px",textTransform:t==="date"?"none":"uppercase"}}/></div>
-              ))}
+              {[{k:"billName",l:"Customer Name (as on bill) *"},{k:"fatherName",l:"Father/Mother Name *"},{k:"dob",l:"Date of Birth",t:"date"},{k:"aadhar",l:"Aadhar No *"},{k:"pan",l:"PAN No"},{k:"nominee",l:"Nominee Name *"},{k:"nomineeRel",l:"Nominee Relation *"}].map(({k,l,t})=>{
+                const age=k==="dob"&&f.dob?Math.floor((new Date()-new Date(f.dob))/31557600000):null;
+                return(<div key={k}><label style={{...lbl,fontSize:10}}>{l}</label><input type={t||"text"} value={f[k]||""} max={t==="date"?td():undefined} onChange={e=>setF(p=>({...p,[k]:e.target.value}))} onBlur={t!=="date"?e=>setF(p=>({...p,[k]:String(e.target.value).toUpperCase()})):undefined} style={{...inp,fontSize:12,padding:"8px 10px",textTransform:t==="date"?"none":"uppercase"}}/>
+                {age!==null&&age<18&&<div style={{background:"rgba(239,68,68,0.1)",border:"1px solid #ef4444",borderRadius:7,padding:"4px 8px",marginTop:3,fontSize:11,color:"#ef4444",fontWeight:700}}>⚠️ Under 18 — minor ({age} yrs)</div>}</div>);
+              })}
             </div>
           </div>
         </div>
