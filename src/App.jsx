@@ -1,5 +1,5 @@
 // v2.1
-import{useState,useEffect,useRef,useMemo}from"react";
+import{useState,useEffect,useRef,useMemo,Fragment}from"react";
 import*as XLSX from"xlsx";
 import{jsPDF}from"jspdf";
 import{createClient}from"@supabase/supabase-js";
@@ -806,10 +806,10 @@ function StockView({stockData,billedChassis,role,userBranch,onUpload,notify}){
           const isMine=isMyBranch(row);
           const prevMine=i>0?isMyBranch(filtered[i-1]):true;
           const showDivider=userBranch&&branchKey&&!isMine&&prevMine&&i>0;
-          return(<React.Fragment key={i}>
+          return(<Fragment key={i}>
             {showDivider&&<div style={{textAlign:"center",fontSize:11,color:"#94a3b8",margin:"10px 0 8px",display:"flex",alignItems:"center",gap:8}}><div style={{flex:1,height:1,background:"#6b8fb5"}}/><span>Other Branches</span><div style={{flex:1,height:1,background:"#6b8fb5"}}/></div>}
             <StockCard row={row} i={i}/>
-          </React.Fragment>);
+          </Fragment>);
         })}
         {filtered.length>60&&<div style={{textAlign:"center",color:"#94a3b8",fontSize:12,padding:8}}>Showing 60 of {filtered.length} — search to narrow down</div>}
       </>}
@@ -832,10 +832,10 @@ function StockView({stockData,billedChassis,role,userBranch,onUpload,notify}){
           const isMine=isMyBranch(row);
           const prevMine=i>0?isMyBranch(ageingRows[i-1]):true;
           const showDivider=userBranch&&branchKey&&!isMine&&prevMine&&i>0;
-          return(<React.Fragment key={i}>
+          return(<Fragment key={i}>
             {showDivider&&<div style={{textAlign:"center",fontSize:11,color:"#94a3b8",margin:"10px 0 8px",display:"flex",alignItems:"center",gap:8}}><div style={{flex:1,height:1,background:"#6b8fb5"}}/><span>Other Branches</span><div style={{flex:1,height:1,background:"#6b8fb5"}}/></div>}
             <StockCard row={row} i={i}/>
-          </React.Fragment>);
+          </Fragment>);
         })}
         {ageingRows.length>80&&<div style={{textAlign:"center",color:"#94a3b8",fontSize:12,padding:8}}>Showing 80 of {ageingRows.length}</div>}
       </>}
