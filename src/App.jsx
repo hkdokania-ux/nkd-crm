@@ -1233,6 +1233,13 @@ function BillingModal({cust,onClose,onSave,notify,role,stockData,billedChassis})
   }
   const availableForModel=sRows.filter(row=>{
     return rowMatchesModel(row)&&!(billedChassis||[]).includes(String(row[sChassisKey]||"").trim().toUpperCase());
+  }).sort((a,b)=>{
+    function getAge(row){
+      if(sAgeKey&&row[sAgeKey]!==undefined&&row[sAgeKey]!=="")return Number(row[sAgeKey])||0;
+      if(sDateKey&&row[sDateKey]){const raw=row[sDateKey];let dt=typeof raw==="number"&&raw>40000?new Date(Math.round((raw-25569)*86400000)):new Date(raw);if(dt&&!isNaN(dt))return Math.floor((Date.now()-dt)/86400000);}
+      return 0;
+    }
+    return getAge(b)-getAge(a);
   });
   function pickChassis(chassisVal){
     const row=availableForModel.find(r=>String(r[sChassisKey]||"")===chassisVal);
