@@ -2164,6 +2164,8 @@ export default function App(){
       _dbGet("office_wa").then(d=>{if(d)sv("nkd_office_wa",d);}),
       _dbGet("nkd_users").then(d=>{if(d){sv("nkd_users",d);setNkdUsers(d);}else{_dbSet("nkd_users",DEFAULT_USERS);sv("nkd_users",DEFAULT_USERS);}}),
       _dbGet("payment_notifs").then(d=>{if(d){sv("nkd_pnotifs",d);setPayNotifs(d);}}),
+      _dbGet("nkd_stock").then(d=>{if(d&&d.length){sv("nkd_stock",d);setStockData(d);}}),
+      _dbGet("nkd_rcstatus").then(d=>{if(d&&d.length){sv("nkd_rcstatus",d);setStatusData(d);}}),
     ]).catch(()=>{}).finally(()=>setFbReady(true));
   },[]);
 
