@@ -1347,9 +1347,17 @@ function BillingModal({cust,onClose,onSave,notify,role,stockData,billedChassis})
                 <datalist id="chassis-list">{availableForModel.map((row,i)=>{
                   const ch=String(row[sChassisKey]||"");
                   const col=sColorKey?String(row[sColorKey]||""):"";
-                  const age=sAgeKey?String(row[sAgeKey]||""):(sDateKey&&row[sDateKey]?Math.floor((new Date()-new Date(row[sDateKey]))/86400000)+"d":"");
+                  let age="";
+                  if(sAgeKey&&row[sAgeKey]!==undefined&&row[sAgeKey]!==null&&row[sAgeKey]!==""){age=String(Math.round(Number(row[sAgeKey])))+" days";}
+                  else if(sDateKey&&row[sDateKey]){
+                    const raw=row[sDateKey];
+                    let dt=null;
+                    if(typeof raw==="number"&&raw>40000){dt=new Date(Math.round((raw-25569)*86400000));}// Excel serial
+                    else{dt=new Date(raw);}
+                    if(dt&&!isNaN(dt)){age=Math.max(0,Math.floor((Date.now()-dt)/86400000))+" days";}
+                  }
                   const br=sBranchKey?cleanBranch(row[sBranchKey]):"";
-                  const label=[col,age?age+" days":"",br].filter(Boolean).join(" · ");
+                  const label=[col,age,br].filter(Boolean).join(" · ");
                   return(<option key={i} value={ch}>{label}</option>);
                 })}</datalist>
               </div>
