@@ -1141,7 +1141,7 @@ function AddModal({onClose,onSave,curUser,role,existing}){
         <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:16}}><div style={{fontWeight:800,fontSize:17,color:"#1e293b"}}>New Enquiry</div><button onClick={onClose} style={{background:"#c2d6ec",border:"none",borderRadius:8,width:32,height:32,cursor:"pointer",color:"#64748b",fontSize:18}}>✕</button></div>
         <div style={{display:"flex",flexDirection:"column",gap:10}}>
           {[{k:"name",l:"Customer Name *"},{k:"phone",l:"Phone *",t:"tel"},{k:"address",l:"Address"}].map(({k,l,t})=>(
-            <div key={k}><label style={lbl}>{l}</label><input type={t||"text"} style={inp} value={f[k]||""} onChange={e=>setF(p=>({...p,[k]:e.target.value}))} {...(t!=="tel"?capBlur(k):{})}/></div>
+            <div key={k}><label style={lbl}>{l}</label><input type={t||"text"} style={t!=="tel"?{...inp,textTransform:"uppercase"}:inp} value={f[k]||""} onChange={e=>setF(p=>({...p,[k]:e.target.value}))} {...(t!=="tel"?capBlur(k):{})}/></div>
           ))}
           <div><label style={lbl}>Model — search by code or name</label>
             <input style={inp} value={mSearch} onChange={e=>{setMSearch(e.target.value);if(!e.target.value){pickM("");}}} placeholder="Type model code or name…" list="model-list"/>
@@ -1305,7 +1305,7 @@ function BillingModal({cust,onClose,onSave,notify,role,stockData,billedChassis})
           <div style={{background:"#ffffff",border:"1px solid #6b8fb5",borderRadius:12,padding:12}}>
             <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:8}}>
               {[{k:"billName",l:"Customer Name (as on bill) *"},{k:"fatherName",l:"Father/Mother Name *"},{k:"dob",l:"Date of Birth",t:"date"},{k:"aadhar",l:"Aadhar No *"},{k:"pan",l:"PAN No"},{k:"nominee",l:"Nominee Name *"},{k:"nomineeRel",l:"Nominee Relation *"}].map(({k,l,t})=>(
-                <div key={k}><label style={{...lbl,fontSize:10}}>{l}</label><input type={t||"text"} value={f[k]||""} onChange={e=>setF(p=>({...p,[k]:e.target.value}))} style={{...inp,fontSize:12,padding:"8px 10px"}}/></div>
+                <div key={k}><label style={{...lbl,fontSize:10}}>{l}</label><input type={t||"text"} value={f[k]||""} onChange={e=>setF(p=>({...p,[k]:e.target.value}))} onBlur={t!=="date"?e=>setF(p=>({...p,[k]:String(e.target.value).toUpperCase()})):undefined} style={{...inp,fontSize:12,padding:"8px 10px",textTransform:t==="date"?"none":"uppercase"}}/></div>
               ))}
             </div>
           </div>
@@ -1316,7 +1316,7 @@ function BillingModal({cust,onClose,onSave,notify,role,stockData,billedChassis})
           <div style={{background:"#ffffff",border:"1px solid #6b8fb5",borderRadius:12,padding:12}}>
             <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:8}}>
               {[{k:"exchName",l:"Exchanger Name"},{k:"exchModel",l:"Old Bike Model"},{k:"exchRegNo",l:"Old Vehicle Reg No"}].map(({k,l})=>(
-                <div key={k}><label style={{...lbl,fontSize:10}}>{l}</label><input value={f[k]||""} onChange={e=>setF(p=>({...p,[k]:e.target.value}))} style={{...inp,fontSize:12,padding:"8px 10px"}}/></div>
+                <div key={k}><label style={{...lbl,fontSize:10}}>{l}</label><input value={f[k]||""} onChange={e=>setF(p=>({...p,[k]:e.target.value}))} onBlur={e=>setF(p=>({...p,[k]:String(e.target.value).toUpperCase()}))} style={{...inp,fontSize:12,padding:"8px 10px",textTransform:"uppercase"}}/></div>
               ))}
               <div><label style={{...lbl,fontSize:10}}>Exchange Value ₹</label><input type="number" inputMode="numeric" value={f.exv||""} onChange={e=>setF(p=>({...p,exv:e.target.value}))} style={{...inp,fontSize:12,padding:"8px 10px"}}/></div>
             </div>
