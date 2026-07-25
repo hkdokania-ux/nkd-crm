@@ -1291,7 +1291,7 @@ function BillingModal({cust,onClose,onSave,onDraft,notify,role,stockData,billedC
   const r=RC[cust.modelCode]||{};
   const isFin=cust.finance==="Finance";
   const eb=cust.billing||cust.billingDraft||{};
-  const [f,setF]=useState({...eb,billName:eb.billName||cust.name,exchName:cust.exchangeName||"",exchPhone:cust.exchangePhone||eb.details?.exchangePhone||"",exchModel:cust.exchangeAsked||"",exchRegNo:cust.exchangeRegNo||"",bkDate:(cust.booking&&cust.booking.date)||td(),fatherName:cust.fatherName||"",dob:cust.dob||"",aadhar:cust.aadhar||"",pan:cust.pan||"",nominee:cust.nominee||"",nomineeRel:cust.nomineeRel||"",hdl:eb.hdl!==undefined?eb.hdl:(r.hdl||600),ins:eb.ins!==undefined?eb.ins:(r.ins||0),reg:eb.reg!==undefined?eb.reg:(r.reg||0),acc:0,tef:isFin?500:0,hyp:isFin?500:0,addAmc:false,cof:0,sdis:0,corp:0,bk:(cust.booking&&cust.booking.amt)||0,exv:eb.exv!==undefined?eb.exv:0,loan:0,payments:eb.payments&&eb.payments.length?eb.payments:(eb.paid||eb.payMode?[{mode:eb.payMode||"Cash",amt:Number(eb.paid||0),ref:""}]:[{mode:"Cash",amt:0,ref:""}]),chassis:"",engine:"",color:"",deliveryDate:td(),financeBank:"",registrationNo:"",insuranceNo:""});
+  const [f,setF]=useState({...eb,billName:eb.billName||cust.name,exchName:cust.exchangeName||"",exchPhone:cust.exchangePhone||eb.details?.exchangePhone||"",exchModel:cust.exchangeAsked||"",exchRegNo:cust.exchangeRegNo||"",bkDate:(cust.booking&&cust.booking.date)||td(),fatherName:cust.fatherName||"",dob:cust.dob||"",aadhar:cust.aadhar||"",pan:cust.pan||"",nominee:cust.nominee||"",nomineeRel:cust.nomineeRel||"",hdl:eb.hdl!==undefined?eb.hdl:(r.hdl||600),ins:eb.ins!==undefined?eb.ins:(r.ins||0),reg:eb.reg!==undefined?eb.reg:(r.reg||0),acc:0,tef:isFin?500:0,hyp:isFin?500:0,addAmc:false,cof:0,sdis:0,corp:0,bk:(cust.booking&&cust.booking.amt)||0,exv:eb.exv!==undefined?eb.exv:0,loan:0,payments:eb.payments&&eb.payments.length?eb.payments:(eb.paid||eb.payMode?[{mode:eb.payMode||"Cash",amt:Number(eb.paid||0),date:td(),ref:""}]:[{mode:"Cash",amt:0,date:td(),ref:""}]),chassis:"",engine:"",color:"",deliveryDate:td(),financeBank:"",registrationNo:"",insuranceNo:""});
   const c=calcB(f,r);
   const [chk,setChk]=useState(eb.checklist||{pdi:false,helmet:false,docs:false,service:false});
   const VER_ALL=[["nameV","Customer name verified"],["fatherV","Father name verified"],["aadharV","Aadhar number verified"],["nomineeV","Nominee & relation added"],["chassisV","Chassis number verified"],["engineV","Engine number verified"],["colorV","Colour verified"]];
@@ -1517,26 +1517,26 @@ function BillingModal({cust,onClose,onSave,onDraft,notify,role,stockData,billedC
             <div style={{display:"flex",justifyContent:"space-between",padding:"5px 0",borderBottom:"1px solid #131820",fontSize:11}}><span style={{color:"#64748b"}}>Balance from Customer (I)</span><span style={{color:"#1e293b",fontWeight:700}}>{fc(c.I)}</span></div>
             <div style={{borderTop:"1px solid #6b8fb5",paddingTop:8,marginTop:4}}>
               <div style={{fontSize:10,color:"#f97316",fontWeight:700,marginBottom:6}}>PAYMENT RECEIVED (J)</div>
-              {!mrSent?(
-                <div style={{background:"rgba(249,115,22,0.08)",border:"1px solid rgba(249,115,22,0.4)",borderRadius:10,padding:"12px 14px",marginBottom:8,textAlign:"center"}}>
-                  <div style={{fontSize:12,color:"#f97316",fontWeight:700,marginBottom:8}}>Generate & Send MR first to unlock payment entry</div>
-                  <button onClick={generateAndSendMR} style={{background:"linear-gradient(135deg,#f97316,#ea580c)",border:"none",borderRadius:10,padding:"10px 18px",color:"#fff",fontSize:13,fontWeight:700,cursor:"pointer",width:"100%"}}>Generate MR &amp; Send to Customer + Office</button>
+              {(f.payments||[]).map((p,i)=>(
+                <div key={i} style={{marginBottom:8,background:"rgba(249,115,22,0.04)",border:"1px solid rgba(249,115,22,0.2)",borderRadius:9,padding:"8px 10px"}}>
+                  <div style={{display:"flex",gap:6,marginBottom:5,alignItems:"center"}}>
+                    <select value={p.mode} onChange={e=>{const px=[...f.payments];px[i]={...px[i],mode:e.target.value};setF(q=>({...q,payments:px}));}} style={{background:"#f1f5f9",border:"1px solid #6b8fb5",borderRadius:8,padding:"5px 6px",fontSize:11,color:"#1e293b",width:90,flexShrink:0}}>
+                      {["Cash","Cheque","UPI","RTGS"].map(m=><option key={m}>{m}</option>)}
+                    </select>
+                    <input type="number" value={p.amt||""} placeholder="Amount" onChange={e=>{const px=[...f.payments];px[i]={...px[i],amt:e.target.value};setF(q=>({...q,payments:px}));}} style={{flex:1,background:"#f1f5f9",border:"1px solid #6b8fb5",borderRadius:8,padding:"5px 8px",fontSize:11,color:"#1e293b"}}/>
+                    {(f.payments||[]).length>1&&<button onClick={()=>setF(q=>({...q,payments:q.payments.filter((_,j)=>j!==i)}))} style={{background:"rgba(239,68,68,0.15)",border:"none",borderRadius:6,padding:"4px 8px",color:"#ef4444",cursor:"pointer",fontSize:13,flexShrink:0}}>✕</button>}
+                  </div>
+                  <div style={{display:"flex",gap:6,alignItems:"center"}}>
+                    <input type="date" value={p.date||td()} onChange={e=>{const px=[...f.payments];px[i]={...px[i],date:e.target.value};setF(q=>({...q,payments:px}));}} style={{flex:1,background:"#f1f5f9",border:"1px solid #6b8fb5",borderRadius:8,padding:"5px 8px",fontSize:11,color:"#1e293b"}}/>
+                    <input value={p.ref||""} placeholder="Cheque No / Ref" onChange={e=>{const px=[...f.payments];px[i]={...px[i],ref:e.target.value};setF(q=>({...q,payments:px}));}} style={{flex:1,background:"#f1f5f9",border:"1px solid #6b8fb5",borderRadius:8,padding:"5px 8px",fontSize:11,color:"#1e293b"}}/>
+                  </div>
                 </div>
+              ))}
+              <button onClick={()=>setF(q=>({...q,payments:[...(q.payments||[]),{mode:"Cash",amt:"",date:td(),ref:""}]}))} style={{width:"100%",background:"rgba(96,165,250,0.07)",border:"1px dashed rgba(96,165,250,0.3)",borderRadius:8,padding:"6px",color:"#60a5fa",fontSize:11,cursor:"pointer",marginBottom:8}}>+ Add Payment Entry</button>
+              {!mrSent?(
+                <button onClick={generateAndSendMR} style={{width:"100%",background:"linear-gradient(135deg,#f97316,#ea580c)",border:"none",borderRadius:10,padding:"11px",color:"#fff",fontSize:13,fontWeight:700,cursor:"pointer",marginBottom:4}}>Generate MR &amp; Send to Customer + Office</button>
               ):(
-                <>
-                  <div style={{background:"rgba(34,197,94,0.1)",border:"1px solid rgba(34,197,94,0.4)",borderRadius:8,padding:"6px 10px",marginBottom:8,fontSize:11,color:"#22c55e",fontWeight:700,textAlign:"center"}}>MR sent to customer &amp; office</div>
-                  {(f.payments||[]).map((p,i)=>(
-                    <div key={i} style={{display:"flex",gap:6,marginBottom:6,alignItems:"center"}}>
-                      <select value={p.mode} onChange={e=>{const px=[...f.payments];px[i]={...px[i],mode:e.target.value};setF(q=>({...q,payments:px}));}} style={{background:"#f1f5f9",border:"1px solid #6b8fb5",borderRadius:8,padding:"5px 6px",fontSize:11,color:"#1e293b",width:90,flexShrink:0}}>
-                        {["Cash","Cheque","UPI","RTGS"].map(m=><option key={m}>{m}</option>)}
-                      </select>
-                      <input type="number" value={p.amt||""} placeholder="Amount" onChange={e=>{const px=[...f.payments];px[i]={...px[i],amt:e.target.value};setF(q=>({...q,payments:px}));}} style={{flex:1,background:"#f1f5f9",border:"1px solid #6b8fb5",borderRadius:8,padding:"5px 8px",fontSize:11,color:"#1e293b"}}/>
-                      <input value={p.ref||""} placeholder="Cheque No / Ref" onChange={e=>{const px=[...f.payments];px[i]={...px[i],ref:e.target.value};setF(q=>({...q,payments:px}));}} style={{flex:1,background:"#f1f5f9",border:"1px solid #6b8fb5",borderRadius:8,padding:"5px 8px",fontSize:11,color:"#1e293b"}}/>
-                      {(f.payments||[]).length>1&&<button onClick={()=>setF(q=>({...q,payments:q.payments.filter((_,j)=>j!==i)}))} style={{background:"rgba(239,68,68,0.15)",border:"none",borderRadius:6,padding:"4px 8px",color:"#ef4444",cursor:"pointer",fontSize:13,flexShrink:0}}>✕</button>}
-                    </div>
-                  ))}
-                  <button onClick={()=>setF(q=>({...q,payments:[...(q.payments||[]),{mode:"Cash",amt:"",ref:""}]}))} style={{width:"100%",background:"rgba(96,165,250,0.07)",border:"1px dashed rgba(96,165,250,0.3)",borderRadius:8,padding:"6px",color:"#60a5fa",fontSize:11,cursor:"pointer",marginBottom:4}}>+ Add Payment Entry</button>
-                </>
+                <div style={{background:"rgba(34,197,94,0.1)",border:"1px solid rgba(34,197,94,0.4)",borderRadius:8,padding:"6px 10px",marginBottom:4,fontSize:11,color:"#22c55e",fontWeight:700,textAlign:"center"}}>MR sent to customer &amp; office</div>
               )}
               <div style={{display:"flex",justifyContent:"space-between",padding:"5px 0",fontSize:12,fontWeight:700}}><span style={{color:"#64748b"}}>Total Received (J)</span><span style={{color:"#1e293b"}}>{fc(c.paid)}</span></div>
             </div>
