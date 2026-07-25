@@ -188,22 +188,21 @@ function savePdfToDrive(doc,filename,customerName,docType){
 async function sharePdf(doc,filename,phone,msg,recipientLabel){
   const blob=doc.output("blob");
   const file=new File([blob],filename,{type:"application/pdf"});
-  // Open WhatsApp portal to the contact so user can see the chat
-  if(phone){
-    const waMsg=encodeURIComponent(msg||"");
-    window.open("https://wa.me/91"+phone+"?text="+waMsg,"_blank");
-  }
-  // Auto-send the PDF via share sheet
+  // Try navigator.share first — on mobile this auto-sends AND opens WhatsApp
   try{
     if(navigator.share&&navigator.canShare&&navigator.canShare({files:[file]})){
       await navigator.share({files:[file],title:"NKD Bajaj",text:msg||""});
       return;
     }
   }catch(e){if(e&&e.name==="AbortError")return;}
-  // Fallback: download PDF
+  // Fallback (desktop / older iOS): download PDF + open WhatsApp Web
   const url=URL.createObjectURL(blob);
   const a=document.createElement("a");a.href=url;a.download=filename;a.click();
   setTimeout(()=>URL.revokeObjectURL(url),3000);
+  if(phone){
+    const waMsg=encodeURIComponent((msg||"")+(msg?"\n\n":"")+"Please find the attached PDF: "+filename);
+    setTimeout(()=>window.open("https://wa.me/91"+phone+"?text="+waMsg,"_blank"),800);
+  }
 }
 function sv(k,v){try{localStorage.setItem(k,JSON.stringify(v));return true;}catch(e){return false;}}
 function ld(k,d){try{const v=localStorage.getItem(k);return v?JSON.parse(v):d;}catch(e){return d;}}
@@ -1375,9 +1374,12 @@ function BillingModal({cust,onClose,onSave,onDraft,notify,role,stockData,billedC
     return "<!DOCTYPE html><html><head><title>Money Receipt</title><style>*{margin:0;padding:0;box-sizing:border-box}body{font-family:Arial,sans-serif;font-size:13px;padding:20px;color:#111}.logo{font-size:24px;font-weight:900;letter-spacing:2px;text-align:center}.hdr{text-align:center;border-bottom:2px solid #000;padding-bottom:10px;margin-bottom:14px}.hdr p{font-size:11px;color:#444;margin-top:2px}h2{text-align:center;font-size:17px;margin:10px 0 14px}.row{display:flex;justify-content:space-between;padding:4px 0;border-bottom:1px solid #eee}.v{font-weight:700}.total{display:flex;justify-content:space-between;padding:10px 0;border-top:2px solid #000;font-size:16px;font-weight:900}.sigs{display:flex;justify-content:space-between;margin-top:40px}.sigs div{text-align:center;font-size:11px}</style></head><body><div class=hdr><div class=logo>NKD BAJAJ</div><p>Authorised Main Dealer — Bajaj Auto Ltd.</p><p>Hirak Road, Near Kamal Katesaria School, Dhanbad</p><p>Ph: 7033099006 | info@nkdbajaj.com</p></div><h2>MONEY RECEIPT</h2>"+rows+"<div class=sigs><div>____________________<br/>Customer Sign</div><div>____________________<br/>For NKD Bajaj</div></div><p style='text-align:center;font-size:10px;margin-top:16px;color:#666'>Subject to realization of Cheque/Draft</p></body></html>";
   }
   function openReceipt(html){
-    var w=window.open("","_blank","width=420,height=700");
-    if(!w){notify("Popup blocked — receipt saved in Billing tab","warn");return;}
-    w.document.write(html);w.document.close();setTimeout(function(){w.print();},400);
+    // Use data URL so it works on mobile Safari (no popup required)
+    const blob=new Blob([html],{type:"text/html"});
+    const url=URL.createObjectURL(blob);
+    const a=document.createElement("a");a.href=url;a.target="_blank";a.rel="noopener";
+    document.body.appendChild(a);a.click();document.body.removeChild(a);
+    setTimeout(()=>URL.revokeObjectURL(url),5000);
   }
 
   const [busy,setBusy]=useState(false);
