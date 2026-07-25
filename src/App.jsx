@@ -185,16 +185,25 @@ function savePdfToDrive(doc,filename,customerName,docType){
     fetch(DRIVE_UPLOAD_URL,{method:"POST",body:JSON.stringify({fileName:filename,fileData:base64,mimeType:"application/pdf",customerName:(customerName||"Unknown").replace(/[<>:"/\\|?*]/g," ").trim()||"Unknown",docType:docType||"doc",monthFolder:monthFolder})}).catch(()=>{});
   }catch(e){}
 }
-function sharePdf(doc,filename,phone,msg){
-  // Always download PDF first, then open WhatsApp so user can review & send manually
+async function sharePdf(doc,filename,phone,msg,recipientLabel){
   const blob=doc.output("blob");
+  const file=new File([blob],filename,{type:"application/pdf"});
+  // Open WhatsApp portal to the contact so user can see the chat
+  if(phone){
+    const waMsg=encodeURIComponent(msg||"");
+    window.open("https://wa.me/91"+phone+"?text="+waMsg,"_blank");
+  }
+  // Auto-send the PDF via share sheet
+  try{
+    if(navigator.share&&navigator.canShare&&navigator.canShare({files:[file]})){
+      await navigator.share({files:[file],title:"NKD Bajaj",text:msg||""});
+      return;
+    }
+  }catch(e){if(e&&e.name==="AbortError")return;}
+  // Fallback: download PDF
   const url=URL.createObjectURL(blob);
   const a=document.createElement("a");a.href=url;a.download=filename;a.click();
   setTimeout(()=>URL.revokeObjectURL(url),3000);
-  if(phone){
-    const waMsg=encodeURIComponent((msg||"")+(msg?"\n\n":"")+"Please find the attached PDF: "+filename);
-    setTimeout(()=>window.open("https://wa.me/91"+phone+"?text="+waMsg,"_blank"),800);
-  }
 }
 function sv(k,v){try{localStorage.setItem(k,JSON.stringify(v));return true;}catch(e){return false;}}
 function ld(k,d){try{const v=localStorage.getItem(k);return v?JSON.parse(v):d;}catch(e){return d;}}
@@ -406,8 +415,8 @@ function ExchDashGroup({exchName,list,onUpd,notify}){
     const offNum=ld("nkd_office_wa",OFFICE_WA)||OFFICE_WA;
     const exchPhone=list.map(c=>getPhone(c)).find(p=>p)||"";
     const msg="Exchange Settlement MR for "+exchName+" — "+list.length+" vehicle(s)";
-    if(exchPhone)sharePdf(doc,fname,exchPhone,msg);
-    sharePdf(doc,fname,offNum,msg);
+    if(exchPhone)sharePdf(doc,fname,exchPhone,msg,exchName+" (Exchanger)");
+    sharePdf(doc,fname,offNum,msg,"Office");
     savePdfToDrive(doc,fname,exchName,"ExchMR");
     list.forEach(c=>{savePdfToDrive(doc,fname,c.name,"ExchMR");onUpd(c.id,{exchAmtRec:Number(getE(c,"exchAmtRec")||0),exchComm:Number(getE(c,"exchComm")||0),exchDisc:Number(getE(c,"exchDisc")||0),exchMrIssued:true,exchMrDate:td()});});
     notify("✅ MR sent to "+(exchPhone?"exchanger & ":"")+"office for "+exchName);
@@ -1379,11 +1388,11 @@ function BillingModal({cust,onClose,onSave,onDraft,notify,role,stockData,billedC
       const tempBilling={...f,details,calc:c,paid:c.paid};
       const tempCust={...cust,...details,billing:tempBilling,billedDate:f.deliveryDate||td()};
       const doc=makeMRDoc(tempCust,tempBilling,c);
-      sharePdf(doc,"MR_"+cust.name.replace(/ /g,"_")+"_"+td()+".pdf",cust.phone,"Please find your Money Receipt from NKD Bajaj, Dhanbad.");
+      sharePdf(doc,"MR_"+cust.name.replace(/ /g,"_")+"_"+td()+".pdf",cust.phone,"Please find your Money Receipt from NKD Bajaj, Dhanbad.",cust.name+" (Customer)");
       savePdfToDrive(doc,"MR_"+cust.name.replace(/ /g,"_")+"_"+td()+".pdf",cust.name,"MR");
       const offNum=ld("nkd_office_wa",OFFICE_WA)||OFFICE_WA;
       const doc2=makeCombinedDoc(tempCust,tempBilling,c);
-      sharePdf(doc2,"CalcMR_"+cust.name.replace(/ /g,"_")+"_"+td()+".pdf",offNum,"Calc+MR for "+cust.name+" — "+cust.model);
+      sharePdf(doc2,"CalcMR_"+cust.name.replace(/ /g,"_")+"_"+td()+".pdf",offNum,"Calc+MR for "+cust.name+" — "+cust.model,"Office");
       savePdfToDrive(doc2,"CalcMR_"+cust.name.replace(/ /g,"_")+"_"+td()+".pdf",cust.name,"CalcSheet");
       setMrSent(true);
       notify("✅ MR sent to customer & office — now enter payment received");
@@ -1615,8 +1624,8 @@ function BillingView({billing:b,cust,onAddPayment}){
       </div>
       {c.K>0&&onAddPayment&&<BillingPayBox K={c.K} custId={cust.id} onAddPayment={onAddPayment}/>}
       {<div style={{marginBottom:12}}>
-        <button onClick={()=>{const doc=makeMRDoc(cust,b,c);sharePdf(doc,"MR_"+cust.name.replace(/ /g,"_")+"_"+td()+".pdf",cust.phone,"Please find your Money Receipt from NKD Bajaj, Dhanbad.");}} style={{width:"100%",background:"rgba(37,211,102,0.1)",border:"1px solid rgba(37,211,102,0.35)",borderRadius:12,padding:13,color:"#22c55e",fontWeight:700,fontSize:13,cursor:"pointer",marginBottom:8}}>📲 Send Money Receipt PDF → Customer (WhatsApp)</button>
-        <button onClick={()=>{const doc=makeCombinedDoc(cust,b,c);const num=ld("nkd_office_wa",OFFICE_WA)||OFFICE_WA;sharePdf(doc,"CalcSheet_MR_"+cust.name.replace(/ /g,"_")+"_"+td()+".pdf",num,"Calculation Sheet + Money Receipt for "+cust.name+" ("+cust.model+")");}} style={{width:"100%",background:"rgba(249,115,22,0.1)",border:"1px solid rgba(249,115,22,0.35)",borderRadius:12,padding:13,color:"#f97316",fontWeight:700,fontSize:13,cursor:"pointer",marginBottom:8}}>🏢 Send Calc Sheet + MR (2 pages) PDF → Office</button>
+        <button onClick={()=>{const doc=makeMRDoc(cust,b,c);sharePdf(doc,"MR_"+cust.name.replace(/ /g,"_")+"_"+td()+".pdf",cust.phone,"Please find your Money Receipt from NKD Bajaj, Dhanbad.",cust.name+" (Customer)");}} style={{width:"100%",background:"rgba(37,211,102,0.1)",border:"1px solid rgba(37,211,102,0.35)",borderRadius:12,padding:13,color:"#22c55e",fontWeight:700,fontSize:13,cursor:"pointer",marginBottom:8}}>📲 Send Money Receipt PDF → Customer (WhatsApp)</button>
+        <button onClick={()=>{const doc=makeCombinedDoc(cust,b,c);const num=ld("nkd_office_wa",OFFICE_WA)||OFFICE_WA;sharePdf(doc,"CalcSheet_MR_"+cust.name.replace(/ /g,"_")+"_"+td()+".pdf",num,"Calculation Sheet + Money Receipt for "+cust.name+" ("+cust.model+")","Office");}} style={{width:"100%",background:"rgba(249,115,22,0.1)",border:"1px solid rgba(249,115,22,0.35)",borderRadius:12,padding:13,color:"#f97316",fontWeight:700,fontSize:13,cursor:"pointer",marginBottom:8}}>🏢 Send Calc Sheet + MR (2 pages) PDF → Office</button>
         <div style={{display:"flex",gap:8}}>
           <button onClick={()=>setShowR(b.receiptHtml)} style={{flex:1,background:"rgba(96,165,250,0.08)",border:"1px solid rgba(96,165,250,0.25)",borderRadius:10,padding:10,color:"#60a5fa",fontWeight:700,fontSize:11,cursor:"pointer"}}>🧾 Preview MR</button>
           <button onClick={()=>b.calcHtml&&setShowR(b.calcHtml)} style={{flex:1,background:"rgba(245,158,11,0.08)",border:"1px solid rgba(245,158,11,0.25)",borderRadius:10,padding:10,color:"#f59e0b",fontWeight:700,fontSize:11,cursor:"pointer"}}>📊 Preview Calc</button>
