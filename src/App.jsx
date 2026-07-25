@@ -517,7 +517,7 @@ function Dashboard({custs,role,onOpen,onNav,onNavF,onSvcDone,onTeamTap,onAddPaym
         </div>
       ):null;})()}
       {(()=>{
-        const exchPending=custs.filter(c=>c.billed&&c.billing&&Number(c.billing.exv||c.billing.calc?.exv||0)>0&&!c.exchMrIssued);
+        const exchPending=custs.filter(c=>{if(!c.billed||!c.billing)return false;const exv=Number(c.billing.exv||c.billing.calc?.exv||0);if(!exv)return false;const settled=c.exchMrIssued&&Number(c.exchAmtRec||0)>=exv;return !settled;});
         if(exchPending.length===0)return null;
         const byExch={};
         exchPending.forEach(c=>{const n=c.billing?.details?.exchangeName||c.exchangeName||"Unknown";if(!byExch[n])byExch[n]=[];byExch[n].push(c);});
@@ -2127,7 +2127,7 @@ function makeExchMRDoc(exchName,entries,date){
   return doc;
 }
 function ExchangerDue({custs,onUpd,notify}){
-  const exchCusts=custs.filter(c=>c.billed&&c.billing&&Number(c.billing.exv||c.billing.calc?.exv||0)>0&&!c.exchMrIssued);
+  const exchCusts=custs.filter(c=>{if(!c.billed||!c.billing)return false;const exv=Number(c.billing.exv||c.billing.calc?.exv||0);if(!exv)return false;const settled=c.exchMrIssued&&Number(c.exchAmtRec||0)>=exv;return !settled;});
   const [edits,setEdits]=useState({});
   const [collapsed,setCollapsed]=useState({});
   function getExchName(c){return c.billing?.details?.exchangeName||c.exchangeName||"Unknown Exchanger";}
