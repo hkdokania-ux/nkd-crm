@@ -431,7 +431,7 @@ function ExchDashGroup({exchName,list,onUpd,notify}){
     if(exchPhone)sharePdf(doc,fname,exchPhone,msg,exchName+" (Exchanger)");
     sharePdf(doc,fname,offNum,msg,"Office");
     savePdfToDrive(doc,fname,exchName,"ExchMR");
-    list.forEach(c=>{savePdfToDrive(doc,fname,c.name,"ExchMR");onUpd(c.id,{exchAmtRec:Number(getE(c,"exchAmtRec")||0),exchComm:Number(getE(c,"exchComm")||0),exchDisc:Number(getE(c,"exchDisc")||0),exchMrIssued:true,exchMrDate:td()});});
+    list.forEach(c=>{savePdfToDrive(doc,fname,c.name,"ExchMR");const prevPaid=c.exchMrIssued?Number(c.exchAmtRec||0):0;const nowPaying=Number(getE(c,"exchAmtRec")||0);onUpd(c.id,{exchAmtRec:prevPaid+nowPaying,exchComm:Number(getE(c,"exchComm")||0),exchMrIssued:true,exchMrDate:td()});});
     notify("✅ MR sent to "+(exchPhone?"exchanger & ":"")+"office for "+exchName);
   }
   return(
@@ -443,23 +443,33 @@ function ExchDashGroup({exchName,list,onUpd,notify}){
         </div>
         <span style={{fontSize:12,color:"#f59e0b"}}>{open?"▲":"▼"}</span>
       </div>
-      {!open&&list.map(c=><div key={c.id} style={{fontSize:11,color:"#64748b",marginTop:3}}>• {c.name} — {c.model} · EXV: {fc(getExv(c))}{c.billing?.mrNo?" · MR# "+c.billing.mrNo:""}</div>)}
+      {!open&&list.map(c=>{const exv=getExv(c);const paid=Number(c.exchAmtRec||0);const bal=exv-paid;return(<div key={c.id} style={{fontSize:11,color:"#64748b",marginTop:3}}>• {c.name} — {c.model} · {c.exchMrIssued?<span style={{color:"#ef4444",fontWeight:700}}>Balance: {fc(bal)}</span>:<span>EXV: {fc(exv)}</span>}{c.billing?.mrNo?" · MR# "+c.billing.mrNo:""}</div>);})}
       {open&&(
         <div style={{marginTop:10}}>
-          {list.map(c=>(
+          {list.map(c=>{
+            const exv=getExv(c);const paid=Number(c.exchAmtRec||0);const bal=exv-paid;
+            return(
             <div key={c.id} style={{background:"#fff",border:"1px solid #e2e8f0",borderRadius:10,padding:"10px 12px",marginBottom:8}}>
-              <div style={{fontWeight:700,fontSize:12,color:"#1e293b",marginBottom:6}}>{c.name} · {c.model}</div>
-              <div style={{fontSize:11,color:"#64748b",marginBottom:6}}>EXV: {fc(getExv(c))}{c.billing?.mrNo?" · MR# "+c.billing.mrNo:""}{getPhone(c)?" · 📞 "+getPhone(c):""}</div>
+              <div style={{fontWeight:700,fontSize:12,color:"#1e293b",marginBottom:4}}>{c.name} · {c.model}</div>
+              {c.exchMrIssued&&paid>0?(
+                <div style={{background:"rgba(239,68,68,0.06)",border:"1px solid rgba(239,68,68,0.2)",borderRadius:7,padding:"6px 10px",marginBottom:6}}>
+                  <div style={{fontSize:10,color:"#64748b"}}>EXV: {fc(exv)} · Already Paid: {fc(paid)}</div>
+                  <div style={{fontSize:13,fontWeight:800,color:"#ef4444"}}>Remaining Balance: {fc(bal)}</div>
+                </div>
+              ):(
+                <div style={{fontSize:11,color:"#64748b",marginBottom:6}}>EXV: {fc(exv)}{c.billing?.mrNo?" · MR# "+c.billing.mrNo:""}{getPhone(c)?" · 📞 "+getPhone(c):""}</div>
+              )}
               <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:6}}>
-                {[["exchAmtRec","Amt Recd"],["exchComm","Commission"]].map(([field,label])=>(
+                {[["exchAmtRec",c.exchMrIssued?"Now Paying":"Amt Recd"],["exchComm","Commission"]].map(([field,label])=>(
                   <div key={field}>
                     <div style={{fontSize:9,color:"#64748b",marginBottom:2}}>{label}</div>
-                    <input type="number" value={getE(c,field)} onChange={e=>setE(c.id,field,e.target.value)} placeholder="₹0" style={{width:"100%",border:"1px solid #cbd5e1",borderRadius:7,padding:"6px 8px",fontSize:12,boxSizing:"border-box"}}/>
+                    <input type="number" value={getE(c,field)} onChange={e=>setE(c.id,field,e.target.value)} placeholder={field==="exchAmtRec"&&c.exchMrIssued?String(bal):"₹0"} style={{width:"100%",border:"1px solid #cbd5e1",borderRadius:7,padding:"6px 8px",fontSize:12,boxSizing:"border-box"}}/>
                   </div>
                 ))}
               </div>
             </div>
-          ))}
+          );})}
+
           <button onClick={receiveAndSend} style={{width:"100%",background:"linear-gradient(135deg,#f59e0b,#d97706)",border:"none",borderRadius:9,padding:"10px",fontSize:12,color:"#fff",fontWeight:700,cursor:"pointer",boxShadow:"0 2px 8px rgba(245,158,11,0.35)"}}>📲 Issue MR & Send to Exchanger + Office</button>
         </div>
       )}
