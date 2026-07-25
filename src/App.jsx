@@ -185,20 +185,16 @@ function savePdfToDrive(doc,filename,customerName,docType){
     fetch(DRIVE_UPLOAD_URL,{method:"POST",body:JSON.stringify({fileName:filename,fileData:base64,mimeType:"application/pdf",customerName:(customerName||"Unknown").replace(/[<>:"/\\|?*]/g," ").trim()||"Unknown",docType:docType||"doc",monthFolder:monthFolder})}).catch(()=>{});
   }catch(e){}
 }
-async function sharePdf(doc,filename,phone,msg){
+function sharePdf(doc,filename,phone,msg){
+  // Always download PDF first, then open WhatsApp so user can review & send manually
   const blob=doc.output("blob");
-  const file=new File([blob],filename,{type:"application/pdf"});
-  try{
-    if(navigator.share&&navigator.canShare&&navigator.canShare({files:[file]})){
-      await navigator.share({files:[file],title:"NKD Bajaj",text:msg||""});
-      return;
-    }
-  }catch(e){if(e&&e.name==="AbortError")return;}
-  // Fallback: download + open WhatsApp
   const url=URL.createObjectURL(blob);
   const a=document.createElement("a");a.href=url;a.download=filename;a.click();
   setTimeout(()=>URL.revokeObjectURL(url),3000);
-  if(phone)setTimeout(()=>window.open("https://wa.me/91"+phone,"_blank"),800);
+  if(phone){
+    const waMsg=encodeURIComponent((msg||"")+(msg?"\n\n":"")+"Please find the attached PDF: "+filename);
+    setTimeout(()=>window.open("https://wa.me/91"+phone+"?text="+waMsg,"_blank"),800);
+  }
 }
 function sv(k,v){try{localStorage.setItem(k,JSON.stringify(v));return true;}catch(e){return false;}}
 function ld(k,d){try{const v=localStorage.getItem(k);return v?JSON.parse(v):d;}catch(e){return d;}}
