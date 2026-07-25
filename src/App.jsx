@@ -62,39 +62,54 @@ function dlFile(content,filename,mime){
     setTimeout(function(){URL.revokeObjectURL(url);},2000);
   }catch(e){alert("Download blocked in this preview — will work in the deployed app/browser");}
 }
+function numWords(n){
+  const a=["","One","Two","Three","Four","Five","Six","Seven","Eight","Nine","Ten","Eleven","Twelve","Thirteen","Fourteen","Fifteen","Sixteen","Seventeen","Eighteen","Nineteen"];
+  const b=["","","Twenty","Thirty","Forty","Fifty","Sixty","Seventy","Eighty","Ninety"];
+  function w(x){if(x===0)return"";if(x<20)return a[x]+" ";if(x<100)return b[Math.floor(x/10)]+" "+(x%10?a[x%10]+" ":"");if(x<1000)return a[Math.floor(x/100)]+" Hundred "+(x%100?w(x%100):"");if(x<100000)return w(Math.floor(x/1000))+"Thousand "+(x%1000?w(x%1000):"");if(x<10000000)return w(Math.floor(x/100000))+"Lakh "+(x%100000?w(x%100000):"");return w(Math.floor(x/10000000))+"Crore "+(x%10000000?w(x%10000000):"");}
+  const i=Math.floor(Math.abs(n)),d=Math.round((Math.abs(n)-i)*100);
+  return"Rupees "+w(i).trim()+(d>0?" and "+w(d).trim()+" Paise":"")+" Only";
+}
 function makeMRDoc(cust,b,c,pageOnly){
   const doc=new jsPDF({unit:"mm",format:"a4"});
   const W=210,pad=18;
   let y=18;
-  function line(text,x,yy,size,style,align){doc.setFontSize(size||11);doc.setFont("helvetica",style||"normal");doc.text(text,x,yy,{align:align||"left"});}
+  function line(text,x,yy,size,style,align){doc.setFontSize(size||11);doc.setFont("helvetica",style||"normal");doc.text(String(text),x,yy,{align:align||"left"});}
   function hline(yy){doc.setDrawColor(200);doc.line(pad,yy,W-pad,yy);}
   function row(l,v,yy){line(l,pad,yy,10,"normal");line(v,W-pad,yy,10,"bold","right");}
   // Header
   line("NKD BAJAJ",W/2,y,18,"bold","center");y+=7;
   line("Authorised Bajaj Dealer | Dhanbad",W/2,y,9,"normal","center");y+=5;
   hline(y);y+=6;
-  // Title
   line("MONEY RECEIPT",W/2,y,15,"bold","center");y+=8;
   hline(y);y+=6;
-  // MR details row
   line("MR No: "+(b.mrNo||"—"),pad,y,10);line("Date: "+fd(td()),W-pad,y,10,"normal","right");y+=10;
   // Customer block
-  const custRows=[["Customer Name",cust.name||""],["Father / Husband",cust.fatherName||""],["Address",cust.address||""],["Phone",cust.phone||""],["Aadhar",cust.aadhar||""],["PAN",cust.pan||""]];
-  custRows.forEach(([l,v])=>{if(v){row(l,v,y);y+=7;}});
+  [["Customer Name",cust.name||""],["Father / Husband",cust.fatherName||""],["Address",cust.address||""],["Phone",cust.phone||""],["Aadhar",cust.aadhar||""],["PAN",cust.pan||""]].forEach(([l,v])=>{if(v){row(l,v,y);y+=7;}});
   y+=2;hline(y);y+=6;
   // Vehicle block
   line("VEHICLE DETAILS",pad,y,10,"bold");y+=7;
-  const vehRows=[["Model",cust.model||""],["Model Code",cust.modelCode||""],["Chassis No",b.chassis||""],["Engine No",b.engine||""],["Colour",b.color||""],["Delivery Date",fd(b.deliveryDate)],["Reg No",b.registrationNo||""],["Finance By",b.financeBank||"Cash"]];
-  vehRows.forEach(([l,v])=>{if(v&&v!=="—"){row(l,v,y);y+=7;}});
+  [["Model",cust.model||""],["Model Code",cust.modelCode||""],["Chassis No",b.chassis||""],["Engine No",b.engine||""],["Colour",b.color||""],["Delivery Date",fd(b.deliveryDate)],["Reg No",b.registrationNo||""],["Finance By",b.financeBank||"Cash"]].forEach(([l,v])=>{if(v&&v!=="—"){row(l,v,y);y+=7;}});
   y+=2;hline(y);y+=6;
-  // Amount block
-  line("AMOUNT DETAILS",pad,y,10,"bold");y+=7;
-  const amtRows=[["On-Road Price (C)",fc(c.C)],["Consumer Offer",c.cof?"-"+fc(c.cof):""],["Special Discount",c.sdis?"-"+fc(c.sdis):""],["Corporate Scheme",c.corp?"-"+fc(c.corp):""],["DEAL PRICE (E)",fc(c.E)],["Booking Amount",c.bk?"-"+fc(c.bk):""],["Exchange Value",c.exv?"-"+fc(c.exv):""],["Loan / Disbursal",c.loan?"-"+fc(c.loan):""],["Balance from Customer",fc(c.I)]];
-  amtRows.forEach(([l,v])=>{if(v&&v!=="₹0"&&v!==""){const isTot=l.startsWith("DEAL");if(isTot){doc.setFontSize(11);doc.setFont("helvetica","bold");}else{doc.setFontSize(10);doc.setFont("helvetica","normal");}doc.text(l,pad,y);doc.text(v,W-pad,y,{align:"right"});y+=isTot?8:6;}});
-  const pmts=(b.payments&&b.payments.length?b.payments:[{mode:b.payMode||"",amt:c.paid,ref:""}]).filter(p=>Number(p.amt||0)>0);
-  if(pmts.length>1){doc.setFontSize(10);doc.setFont("helvetica","bold");doc.text("Payment Received",pad,y);doc.text(fc(c.paid),W-pad,y,{align:"right"});y+=7;pmts.forEach(p=>{doc.setFontSize(9);doc.setFont("helvetica","normal");const lbl="  "+p.mode+(p.ref?" ["+p.ref+"]":"");doc.text(lbl,pad,y);doc.text(fc(Number(p.amt)),W-pad,y,{align:"right"});y+=6;});}else{doc.setFontSize(10);doc.setFont("helvetica","normal");const lbl="Amount Received"+(pmts[0]?(" ("+pmts[0].mode+(pmts[0].ref?" — "+pmts[0].ref:"")+")"):"")+(" (J)");doc.text(lbl,pad,y);doc.text(fc(c.paid),W-pad,y,{align:"right"});y+=6;}
-  doc.setFontSize(11);doc.setFont("helvetica","bold");doc.text("BALANCE (K)",pad,y);doc.text(fc(Math.max(c.K,0)),W-pad,y,{align:"right"});y+=8;
-  y+=4;hline(y);y+=10;
+  // Amount block — only payment received, amount in words, salesman
+  line("PAYMENT DETAILS",pad,y,10,"bold");y+=8;
+  const pmts=(b.payments&&b.payments.length?b.payments:[{mode:b.payMode||"Cash",amt:c.paid,ref:""}]).filter(p=>Number(p.amt||0)>0);
+  if(pmts.length>1){
+    doc.setFontSize(11);doc.setFont("helvetica","bold");doc.text("Amount Received",pad,y);doc.text(fc(c.paid),W-pad,y,{align:"right"});y+=8;
+    pmts.forEach(p=>{doc.setFontSize(9);doc.setFont("helvetica","normal");doc.text("  "+p.mode+(p.ref?" ["+p.ref+"]":"")+(p.date?" ("+fd(p.date)+")":""),pad,y);doc.text(fc(Number(p.amt)),W-pad,y,{align:"right"});y+=6;});
+  }else{
+    const lbl="Amount Received"+(pmts[0]?" ("+pmts[0].mode+(pmts[0].ref?" — "+pmts[0].ref:"")+")":"");
+    doc.setFontSize(12);doc.setFont("helvetica","bold");doc.text(lbl,pad,y);doc.text(fc(c.paid),W-pad,y,{align:"right"});y+=9;
+  }
+  // Amount in words
+  doc.setFontSize(10);doc.setFont("helvetica","italic");
+  const words=numWords(c.paid);
+  const wordLines=doc.splitTextToSize("( "+words+" )",W-2*pad);
+  wordLines.forEach(wl=>{doc.text(wl,pad,y);y+=6;});
+  y+=4;
+  // Salesman
+  doc.setFontSize(10);doc.setFont("helvetica","normal");
+  doc.text("Salesman: "+(cust.salesman||"—"),pad,y);y+=8;
+  hline(y);y+=10;
   // Signature
   line("Customer Signature",pad,y+16,9);line("Authorised Signatory",W-pad,y+16,9,"normal","right");
   line("______________________",pad,y+14,9);line("______________________",W-pad,y+14,9,"normal","right");
@@ -140,12 +155,11 @@ function makeCombinedDoc(cust,b,c){
   line("MR No: "+(b.mrNo||"—"),pad,y,10);line("Date: "+fd(td()),W-pad,y,10,"normal","right");y+=10;
   [["Customer",cust.name||""],["Father / Husband",cust.fatherName||""],["Phone",cust.phone||""],["Model",cust.model||""],["Chassis No",b.chassis||""],["Colour",b.color||""]].forEach(([l,v])=>{if(v){row(l,v,y);y+=7;}});
   y+=2;hline(y);y+=6;
-  line("AMOUNT DETAILS",pad,y,10,"bold");y+=7;
-  const cmbPmts=(b.payments&&b.payments.length?b.payments:[{mode:b.payMode||"",amt:c.paid,ref:""}]).filter(p=>Number(p.amt||0)>0);
-  const cmbAmtRows=[["Deal Price",fc(c.E)],["Loan Amount",c.loan?fc(c.loan):""],["Balance from Customer",fc(c.I)]];
-  cmbAmtRows.forEach(([l,v])=>{if(v&&v!=="₹0"){doc.setFontSize(10);doc.setFont("helvetica","normal");doc.text(l,pad,y);doc.text(v,W-pad,y,{align:"right"});y+=6;}});
-  if(cmbPmts.length>1){doc.setFontSize(11);doc.setFont("helvetica","bold");doc.text("Amount Received",pad,y);doc.text(fc(c.paid),W-pad,y,{align:"right"});y+=7;cmbPmts.forEach(p=>{doc.setFontSize(9);doc.setFont("helvetica","normal");doc.text("  "+p.mode+(p.ref?" ["+p.ref+"]":""),pad,y);doc.text(fc(Number(p.amt)),W-pad,y,{align:"right"});y+=6;});}else{doc.setFontSize(11);doc.setFont("helvetica","bold");const lbl="Amount Received"+(cmbPmts[0]?(" ("+cmbPmts[0].mode+(cmbPmts[0].ref?" — "+cmbPmts[0].ref:"")+")"):"")+":";doc.text(lbl,pad,y);doc.text(fc(c.paid),W-pad,y,{align:"right"});y+=8;}
-  doc.setFontSize(11);doc.setFont("helvetica","bold");doc.text("BALANCE",pad,y);doc.text(fc(Math.max(c.K,0)),W-pad,y,{align:"right"});y+=8;
+  line("PAYMENT DETAILS",pad,y,10,"bold");y+=8;
+  const cmbPmts=(b.payments&&b.payments.length?b.payments:[{mode:b.payMode||"Cash",amt:c.paid,ref:""}]).filter(p=>Number(p.amt||0)>0);
+  if(cmbPmts.length>1){doc.setFontSize(11);doc.setFont("helvetica","bold");doc.text("Amount Received",pad,y);doc.text(fc(c.paid),W-pad,y,{align:"right"});y+=8;cmbPmts.forEach(p=>{doc.setFontSize(9);doc.setFont("helvetica","normal");doc.text("  "+p.mode+(p.ref?" ["+p.ref+"]":"")+(p.date?" ("+fd(p.date)+")":""),pad,y);doc.text(fc(Number(p.amt)),W-pad,y,{align:"right"});y+=6;});}else{doc.setFontSize(12);doc.setFont("helvetica","bold");const lbl="Amount Received"+(cmbPmts[0]?" ("+cmbPmts[0].mode+(cmbPmts[0].ref?" — "+cmbPmts[0].ref:"")+")":"");doc.text(lbl,pad,y);doc.text(fc(c.paid),W-pad,y,{align:"right"});y+=9;}
+  doc.setFontSize(10);doc.setFont("helvetica","italic");const cmbWords=numWords(c.paid);const cmbWL=doc.splitTextToSize("( "+cmbWords+" )",W-2*pad);cmbWL.forEach(wl=>{doc.text(wl,pad,y);y+=6;});y+=4;
+  doc.setFontSize(10);doc.setFont("helvetica","normal");doc.text("Salesman: "+(cust.salesman||"—"),pad,y);y+=8;
   y+=6;hline(y);y+=10;
   line("Customer Signature",pad,y+16,9);line("Authorised Signatory",W-pad,y+16,9,"normal","right");
   line("______________________",pad,y+14,9);line("______________________",W-pad,y+14,9,"normal","right");
