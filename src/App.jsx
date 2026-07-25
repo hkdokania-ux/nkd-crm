@@ -1385,6 +1385,8 @@ function BillingModal({cust,onClose,onSave,onDraft,notify,role,stockData,billedC
   const [busy,setBusy]=useState(false);
   const [mrSent,setMrSent]=useState(false);
   function generateAndSendMR(){
+    const activePmts=(f.payments||[]).filter(p=>Number(p.amt||0)>0);
+    if(activePmts.length===0){notify("⚠️ Enter at least one payment amount before generating MR","err");return;}
     try{
       const details={name:f.billName||cust.name,exchangeName:f.exchName,exchangePhone:f.exchPhone,exchangeAsked:f.exchModel,exchangeRegNo:f.exchRegNo,exchangeOffered:String(f.exv||""),fatherName:f.fatherName,address:cust.address,dob:f.dob,nominee:f.nominee,nomineeRel:f.nomineeRel,aadhar:f.aadhar,pan:f.pan};
       const tempBilling={...f,details,calc:c,paid:c.paid};
@@ -1509,7 +1511,7 @@ function BillingModal({cust,onClose,onSave,onDraft,notify,role,stockData,billedC
             <Inp label="− Corporate Scheme" k="corp" f={f} setF={setF}/>
             <Tot label="Deal Price E = C − D" val={c.E} col="#a78bfa"/>
             <div style={{height:8}}/>
-            <Inp label="− Booking Amount" k="bk" f={f} setF={setF}/>
+            <div style={{display:"flex",alignItems:"center",padding:"4px 0",borderBottom:"1px solid #131820",gap:8}}><span style={{fontSize:12,color:"#64748b",flex:1}}>− Booking Amount</span><span style={{fontSize:11,color:"#1e293b",fontWeight:700}}>{fc(f.bk||0)}</span></div>
             <div style={{display:"flex",alignItems:"center",padding:"4px 0",borderBottom:"1px solid #131820",gap:8}}><span style={{fontSize:12,color:"#64748b",flex:1}}>Booking Date</span><span style={{fontSize:11,color:"#1e293b",fontWeight:700}}>{fd(f.bkDate)||"—"}</span></div>
             <Inp label="− Exchange Value" k="exv" f={f} setF={setF}/>
             <Tot label="Net G = E − F" val={c.G} col="#60a5fa"/>
@@ -2098,26 +2100,26 @@ function makeExchMRDoc(exchName,entries,date){
   line("Exchanger: "+exchName,pad,y,11,"bold");line("Date: "+fd(date),W-pad,y,10,"normal","right");y+=10;
   hline(y);y+=5;
   // Table header
-  const cols=[pad,60,100,130,158,185];
-  const hdrs=["Customer","Vehicle / Reg No","Exch Value","Amt Rec'd","Commission","Discount"];
+  const cols=[pad,60,100,132,162];
+  const hdrs=["Customer","Vehicle / Reg No","Exch Value","Amt Rec'd","Commission (extra)"];
   hdrs.forEach((h,i)=>{doc.setFontSize(9);doc.setFont("helvetica","bold");doc.text(h,cols[i],y);});
   y+=5;hline(y);y+=5;
-  let totExv=0,totRec=0,totComm=0,totDisc=0;
+  let totExv=0,totRec=0,totComm=0;
   entries.forEach(e=>{
+    const total=Number(e.amtRec||0)+Number(e.comm||0);
     doc.setFontSize(9);doc.setFont("helvetica","normal");
     doc.text(String(e.name||"").substring(0,20),cols[0],y);
     doc.text((String(e.model||"").substring(0,14)+"\n"+(e.regNo||"")).trim(),cols[1],y);
     doc.text(fc(e.exv),cols[2],y,{align:"left"});
     doc.text(fc(e.amtRec),cols[3],y,{align:"left"});
-    doc.text(fc(e.comm),cols[4],y,{align:"left"});
-    doc.text(fc(e.disc),cols[5],y,{align:"left"});
-    totExv+=Number(e.exv||0);totRec+=Number(e.amtRec||0);totComm+=Number(e.comm||0);totDisc+=Number(e.disc||0);
+    doc.text(fc(e.comm)+" (+ above)",cols[4],y,{align:"left"});
+    totExv+=Number(e.exv||0);totRec+=Number(e.amtRec||0);totComm+=Number(e.comm||0);
     y+=8;if(y>270){doc.addPage();y=20;}
   });
   hline(y);y+=5;
   doc.setFontSize(10);doc.setFont("helvetica","bold");
   doc.text("TOTALS",cols[0],y);
-  doc.text(fc(totExv),cols[2],y);doc.text(fc(totRec),cols[3],y);doc.text(fc(totComm),cols[4],y);doc.text(fc(totDisc),cols[5],y);
+  doc.text(fc(totExv),cols[2],y);doc.text(fc(totRec),cols[3],y);doc.text(fc(totComm)+" (extra)",cols[4],y);
   y+=10;hline(y);y+=10;
   line("Exchanger Signature",pad,y+16,9);line("Authorised Signatory",W-pad,y+16,9,"normal","right");
   line("______________________",pad,y+14,9);line("______________________",W-pad,y+14,9,"normal","right");
@@ -2174,7 +2176,7 @@ function ExchangerDue({custs,onUpd,notify}){
               <div style={{overflowX:"auto"}}>
                 <table style={{width:"100%",borderCollapse:"collapse",minWidth:700}}>
                   <thead><tr style={{background:"#f8fafc"}}>
-                    {["Customer","Vehicle","Reg No","Exch Value","Amt Rec'd","Commission","Disc Allowed","📞"].map(h=><th key={h} style={{padding:"9px 12px",fontSize:11,color:"#64748b",fontWeight:700,textAlign:"left",borderBottom:"1px solid #6b8fb5",whiteSpace:"nowrap"}}>{h}</th>)}
+                    {["Customer","Vehicle","Reg No","Exch Value","Amt Rec'd","Commission (extra)","📞"].map(h=><th key={h} style={{padding:"9px 12px",fontSize:11,color:"#64748b",fontWeight:700,textAlign:"left",borderBottom:"1px solid #6b8fb5",whiteSpace:"nowrap"}}>{h}</th>)}
                   </tr></thead>
                   <tbody>{entries.map(c=>{
                     const exv=getExv(c);
