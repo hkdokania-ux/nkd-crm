@@ -77,7 +77,7 @@ function makeMRDoc(cust,b,c,pageOnly){
   line("MONEY RECEIPT",W/2,y,15,"bold","center");y+=8;
   hline(y);y+=6;
   // MR details row
-  line("MR No: "+(b.mrNo||"—"),pad,y,10);line("Date: "+fd(cust.billedDate||td()),W-pad,y,10,"normal","right");y+=10;
+  line("MR No: "+(b.mrNo||"—"),pad,y,10);line("Date: "+fd(td()),W-pad,y,10,"normal","right");y+=10;
   // Customer block
   const custRows=[["Customer Name",cust.name||""],["Father / Husband",cust.fatherName||""],["Address",cust.address||""],["Phone",cust.phone||""],["Aadhar",cust.aadhar||""],["PAN",cust.pan||""]];
   custRows.forEach(([l,v])=>{if(v){row(l,v,y);y+=7;}});
@@ -110,7 +110,7 @@ function makeCalcDoc(cust,b,c){
   function row(l,v,yy,bold){doc.setFontSize(bold?11:10);doc.setFont("helvetica",bold?"bold":"normal");doc.text(l,pad,yy);doc.text(v,W-pad,yy,{align:"right"});}
   line("NKD BAJAJ",W/2,y,18,"bold","center");y+=7;
   line("CALCULATION SHEET (INTERNAL — OFFICE COPY)",W/2,y,9,"normal","center");y+=5;hline(y);y+=6;
-  line("Customer: "+cust.name,pad,y,10,"bold");line("Date: "+fd(cust.billedDate||td()),W-pad,y,10,"normal","right");y+=7;
+  line("Customer: "+cust.name,pad,y,10,"bold");line("Date: "+fd(td()),W-pad,y,10,"normal","right");y+=7;
   line("Phone: "+cust.phone,pad,y,10);line("MR No: "+(b.mrNo||"—"),W-pad,y,10,"normal","right");y+=7;
   line("Model: "+(cust.model||"")+" ("+cust.modelCode+")",pad,y,10);y+=7;
   line("Chassis: "+(b.chassis||""),pad,y,10);line("Engine: "+(b.engine||""),W-pad,y,10,"normal","right");y+=7;
@@ -137,7 +137,7 @@ function makeCombinedDoc(cust,b,c){
   line("NKD BAJAJ",W/2,y,18,"bold","center");y+=7;
   line("Authorised Bajaj Dealer | Dhanbad",W/2,y,9,"normal","center");y+=5;hline(y);y+=6;
   line("MONEY RECEIPT",W/2,y,15,"bold","center");y+=8;hline(y);y+=6;
-  line("MR No: "+(b.mrNo||"—"),pad,y,10);line("Date: "+fd(cust.billedDate||td()),W-pad,y,10,"normal","right");y+=10;
+  line("MR No: "+(b.mrNo||"—"),pad,y,10);line("Date: "+fd(td()),W-pad,y,10,"normal","right");y+=10;
   [["Customer",cust.name||""],["Father / Husband",cust.fatherName||""],["Phone",cust.phone||""],["Model",cust.model||""],["Chassis No",b.chassis||""],["Colour",b.color||""]].forEach(([l,v])=>{if(v){row(l,v,y);y+=7;}});
   y+=2;hline(y);y+=6;
   line("AMOUNT DETAILS",pad,y,10,"bold");y+=7;
@@ -1291,7 +1291,7 @@ function BillingModal({cust,onClose,onSave,onDraft,notify,role,stockData,billedC
   const r=RC[cust.modelCode]||{};
   const isFin=cust.finance==="Finance";
   const eb=cust.billing||cust.billingDraft||{};
-  const [f,setF]=useState({...eb,billName:eb.billName||cust.name,exchName:cust.exchangeName||"",exchPhone:cust.exchangePhone||eb.details?.exchangePhone||"",exchModel:cust.exchangeAsked||"",exchRegNo:cust.exchangeRegNo||"",bkDate:(cust.booking&&cust.booking.date)||td(),fatherName:cust.fatherName||"",dob:cust.dob||"",aadhar:cust.aadhar||"",pan:cust.pan||"",nominee:cust.nominee||"",nomineeRel:cust.nomineeRel||"",hdl:eb.hdl!==undefined?eb.hdl:(r.hdl||600),ins:eb.ins!==undefined?eb.ins:(r.ins||0),reg:eb.reg!==undefined?eb.reg:(r.reg||0),acc:0,tef:isFin?500:0,hyp:isFin?500:0,addAmc:false,cof:0,sdis:0,corp:0,bk:(cust.booking&&cust.booking.amt)||0,exv:eb.exv!==undefined?eb.exv:0,loan:0,payments:eb.payments&&eb.payments.length?eb.payments:(eb.paid||eb.payMode?[{mode:eb.payMode||"Cash",amt:Number(eb.paid||0),date:td(),ref:""}]:[{mode:"Cash",amt:0,date:td(),ref:""}]),chassis:"",engine:"",color:"",deliveryDate:td(),financeBank:"",registrationNo:"",insuranceNo:""});
+  const [f,setF]=useState({...eb,billName:eb.billName||cust.name,exchName:cust.exchangeName||"",exchPhone:cust.exchangePhone||eb.details?.exchangePhone||"",exchModel:cust.exchangeAsked||"",exchRegNo:cust.exchangeRegNo||"",bkDate:(cust.booking&&cust.booking.date)||td(),fatherName:cust.fatherName||"",dob:cust.dob||"",aadhar:cust.aadhar||"",pan:cust.pan||"",nominee:cust.nominee||"",nomineeRel:cust.nomineeRel||"",hdl:eb.hdl!==undefined?eb.hdl:(r.hdl||600),ins:eb.ins!==undefined?eb.ins:(r.ins||0),reg:eb.reg!==undefined?eb.reg:(r.reg||0),acc:0,tef:isFin?500:0,hyp:isFin?500:0,addAmc:false,cof:0,sdis:0,corp:0,bk:cust.totalBooking||(cust.bookings&&cust.bookings.reduce((s,b)=>s+Number(b.amt||0),0))||(cust.booking&&cust.booking.amt)||0,exv:eb.exv!==undefined?eb.exv:0,loan:0,payments:eb.payments&&eb.payments.length?eb.payments:(eb.paid||eb.payMode?[{mode:eb.payMode||"Cash",amt:Number(eb.paid||0),date:td(),ref:""}]:[{mode:"Cash",amt:0,date:td(),ref:""}]),chassis:"",engine:"",color:"",deliveryDate:td(),financeBank:"",registrationNo:"",insuranceNo:""});
   const c=calcB(f,r);
   const [chk,setChk]=useState(eb.checklist||{pdi:false,helmet:false,docs:false,service:false});
   const VER_ALL=[["nameV","Customer name verified"],["fatherV","Father name verified"],["aadharV","Aadhar number verified"],["nomineeV","Nominee & relation added"],["chassisV","Chassis number verified"],["engineV","Engine number verified"],["colorV","Colour verified"]];
