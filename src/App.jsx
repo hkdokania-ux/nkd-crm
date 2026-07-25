@@ -1407,6 +1407,7 @@ function BillingModal({cust,onClose,onSave,onDraft,notify,role,stockData,billedC
   }
   function submit(){
     if(busy)return;
+    if(!mrSent){notify("⚠️ Generate & Send MR first before saving the calculation sheet","err");return;}
     if(!f.chassis){notify("Enter chassis number","err");return;}
     if(!f.aadhar||!f.fatherName||!f.nominee||!f.nomineeRel){notify("Fill KYC: Aadhar, Father name, Nominee & Relation","err");return;}
     if(c.C<0||c.E<0||c.G<0||c.I<0){alert("⚠️ Calculation error — a total has gone NEGATIVE.\nCheck discounts/booking/exchange amounts. No value can exceed the price above it.");return;}
@@ -1509,7 +1510,7 @@ function BillingModal({cust,onClose,onSave,onDraft,notify,role,stockData,billedC
             <Tot label="Deal Price E = C − D" val={c.E} col="#a78bfa"/>
             <div style={{height:8}}/>
             <Inp label="− Booking Amount" k="bk" f={f} setF={setF}/>
-            <div style={{display:"flex",alignItems:"center",padding:"4px 0",borderBottom:"1px solid #131820",gap:8}}><span style={{fontSize:12,color:"#64748b",flex:1}}>Booking Date</span><input type="date" value={f.bkDate||""} onChange={e=>setF(p=>({...p,bkDate:e.target.value}))} style={{width:130,background:"#f1f5f9",border:"1px solid #6b8fb5",borderRadius:8,padding:"5px 8px",fontSize:11,color:"#1e293b"}}/></div>
+            <div style={{display:"flex",alignItems:"center",padding:"4px 0",borderBottom:"1px solid #131820",gap:8}}><span style={{fontSize:12,color:"#64748b",flex:1}}>Booking Date</span><span style={{fontSize:11,color:"#1e293b",fontWeight:700}}>{fd(f.bkDate)||"—"}</span></div>
             <Inp label="− Exchange Value" k="exv" f={f} setF={setF}/>
             <Tot label="Net G = E − F" val={c.G} col="#60a5fa"/>
             {isFin&&<Inp label="− Loan / Disbursal" k="loan" f={f} setF={setF}/>}
