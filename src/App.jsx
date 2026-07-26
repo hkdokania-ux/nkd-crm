@@ -2323,7 +2323,7 @@ function CashBook({custs}){
     </div>
   );
 }
-function OwnerPortal({custs,stockData,billedChassis,statusData,role,user,mBr,saveStockData,saveStatusData,nkdUsers,onSaveUsers,notify,onUpd,onLogout,onMobile}){
+function OwnerPortal({custs,stockData,billedChassis,statusData,role,user,mBr,saveStockData,saveStatusData,nkdUsers,onSaveUsers,notify,onUpd,onApprove,onLogout,onMobile}){
   const [view,setView]=useState(role==="admin"?"uploads":"dashboard");
   const [custTableQ,setCustTableQ]=useState("");
   const billed=custs.filter(c=>c.billed);
@@ -2335,9 +2335,10 @@ function OwnerPortal({custs,stockData,billedChassis,statusData,role,user,mBr,sav
   const modelWise=Object.entries(modelMap).sort((a,b)=>b[1]-a[1]);
   const smMap={};custs.forEach(c=>{if(!smMap[c.salesman])smMap[c.salesman]={enq:0,book:0,bill:0,rev:0,branch:SM_BRANCH[c.salesman]||""};smMap[c.salesman].enq++;if(c.booking)smMap[c.salesman].book++;if(c.billed){smMap[c.salesman].bill++;smMap[c.salesman].rev+=((c.billing&&c.billing.calc&&c.billing.calc.E)||0);}});
   const smPerf=Object.entries(smMap).sort((a,b)=>b[1].bill-a[1].bill);
+  const pendingApprovals=custs.filter(c=>c.billing&&c.managerApproval===null);
   const navItems=role==="admin"
     ?[{id:"uploads",l:"Uploads & Data",ic:"📤"},{id:"vault",l:"Document Vault",ic:"📁"}]
-    :[{id:"dashboard",l:"Dashboard",ic:"📊"},{id:"customers",l:"All Customers",ic:"👥"},{id:"team",l:"Team Performance",ic:"👔"},{id:"cashbook",l:"Cash Book",ic:"💰"},{id:"exchdue",l:"Exchanger Due",ic:"🔄"},{id:"stock",l:"Stock & Ageing",ic:"🏍️"},{id:"uploads",l:"Uploads",ic:"📤"},{id:"rcstatus",l:"RC / HSRP",ic:"📋"},{id:"reports",l:"Reports",ic:"📄"},{id:"users",l:"User Accounts",ic:"👤"},{id:"vault",l:"Document Vault",ic:"📁"}];
+    :[{id:"dashboard",l:"Dashboard",ic:"📊"},{id:"customers",l:"All Customers",ic:"👥"},{id:"approvals",l:"Approvals",ic:"✅",badge:pendingApprovals.length},{id:"team",l:"Team Performance",ic:"👔"},{id:"cashbook",l:"Cash Book",ic:"💰"},{id:"exchdue",l:"Exchanger Due",ic:"🔄"},{id:"stock",l:"Stock & Ageing",ic:"🏍️"},{id:"uploads",l:"Uploads",ic:"📤"},{id:"rcstatus",l:"RC / HSRP",ic:"📋"},{id:"reports",l:"Reports",ic:"📄"},{id:"users",l:"User Accounts",ic:"👤"},{id:"vault",l:"Document Vault",ic:"📁"}];
   // tech = full owner powers
   const SB=({label})=>(<th style={{fontSize:11,color:"#64748b",fontWeight:700,textAlign:"left",padding:"7px 12px",borderBottom:"2px solid #6b8fb5",background:"#f8fafc"}}>{label}</th>);
   const TD=({v,col,bold})=>(<td style={{padding:"8px 12px",fontSize:13,color:col||"#1e293b",fontWeight:bold?700:400,borderBottom:"1px solid #e8eef8"}}>{v}</td>);
@@ -2355,8 +2356,9 @@ function OwnerPortal({custs,stockData,billedChassis,statusData,role,user,mBr,sav
         </div>
         <div style={{flex:1,padding:"12px 10px",overflowY:"auto"}}>
           {navItems.map(n=>(
-            <button key={n.id} onClick={()=>setView(n.id)} style={{width:"100%",display:"flex",alignItems:"center",gap:10,padding:"10px 12px",borderRadius:10,border:"none",cursor:"pointer",marginBottom:3,background:view===n.id?"#dbeafe":"transparent",color:view===n.id?"#1d4ed8":"#475569",fontWeight:view===n.id?700:500,fontSize:13,textAlign:"left",transition:"background .15s"}}>
+            <button key={n.id} onClick={()=>setView(n.id)} style={{width:"100%",display:"flex",alignItems:"center",gap:10,padding:"10px 12px",borderRadius:10,border:"none",cursor:"pointer",marginBottom:3,background:view===n.id?"#dbeafe":"transparent",color:view===n.id?"#1d4ed8":"#475569",fontWeight:view===n.id?700:500,fontSize:13,textAlign:"left",transition:"background .15s",position:"relative"}}>
               <span style={{fontSize:18,minWidth:22}}>{n.ic}</span>{n.l}
+              {n.badge>0&&<span style={{marginLeft:"auto",background:"#ef4444",color:"#fff",fontSize:10,fontWeight:800,borderRadius:10,padding:"1px 7px"}}>{n.badge}</span>}
             </button>
           ))}
         </div>
@@ -2507,6 +2509,9 @@ function OwnerPortal({custs,stockData,billedChassis,statusData,role,user,mBr,sav
 
         {/* ── USERS ── */}
         {view==="users"&&isOwner(role)&&<UserMgmt nkdUsers={nkdUsers||DEFAULT_USERS} onSave={onSaveUsers} notify={notify}/>}
+
+        {/* ── APPROVALS ── */}
+        {view==="approvals"&&<div style={{maxWidth:800}}><Approvals custs={pendingApprovals} onApprove={onApprove} onOpen={()=>{}} onEditCalc={()=>{}} allC={custs} canApprove={true}/></div>}
 
         {/* ── VAULT ── */}
         {view==="vault"&&<DocVault custs={custs} onImport={()=>{}}/>}
@@ -2678,7 +2683,7 @@ export default function App(){
       role={role} user={user} mBr={mBr}
       saveStockData={saveStockData} saveStatusData={saveStatusData}
       nkdUsers={nkdUsers} onSaveUsers={saveUsers}
-      notify={notify} onUpd={upd}
+      notify={notify} onUpd={upd} onApprove={approveBill}
       onLogout={()=>{sv("nkd_li",false);sv("nkd_portal",false);setPortalMode(false);setLi(false);}}
       onMobile={()=>togglePortal(false)}
     /></>;
