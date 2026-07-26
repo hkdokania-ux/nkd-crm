@@ -2509,7 +2509,7 @@ function OwnerPortal({custs,stockData,billedChassis,statusData,role,user,mBr,sav
 export default function App(){
   const [role,setRole]=useState(ld("nkd_r","salesman"));
   const [user,setUser]=useState(ld("nkd_u",SM[0]));
-  const [custs,setCusts]=useState(()=>{const saved=ld("nkd6",null);return(saved&&saved.length)?saved:seedData;});
+  const [custs,setCusts]=useState(seedData);
   const [fbReady,setFbReady]=useState(false);
   const [view,setView]=useState("dashboard");
   const [sel,setSel]=useState(null);
