@@ -199,6 +199,12 @@ function savePdfToDrive(doc,filename,customerName,docType){
     fetch(DRIVE_UPLOAD_URL,{method:"POST",body:JSON.stringify({fileName:filename,fileData:base64,mimeType:"application/pdf",customerName:(customerName||"Unknown").replace(/[<>:"/\\|?*]/g," ").trim()||"Unknown",docType:docType||"doc",monthFolder:monthFolder})}).catch(()=>{});
   }catch(e){}
 }
+function saveExcelToDrive(wb,filename,monthFolder){
+  try{
+    const base64=XLSX.write(wb,{type:"base64",bookType:"xlsx"});
+    fetch(DRIVE_UPLOAD_URL,{method:"POST",body:JSON.stringify({fileName:filename,fileData:"data:application/vnd.openxmlformats-officedocument.spreadsheetml.sheet;base64,"+base64,mimeType:"application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",customerName:"Monthly Report",docType:"Report",monthFolder:monthFolder||new Date().toLocaleDateString("en-IN",{month:"long",year:"numeric"})})}).catch(()=>{});
+  }catch(e){}
+}
 async function sharePdf(doc,filename,phone,msg,recipientLabel){
   const blob=doc.output("blob");
   const file=new File([blob],filename,{type:"application/pdf"});
@@ -1818,8 +1824,10 @@ function Reports({custs,onImportCust}){
           if(rows.length===0){alert("No billed customers for "+repMonth);return;}
           const wb=XLSX.utils.book_new();const ws=XLSX.utils.aoa_to_sheet([H,...rows]);
           ws["!cols"]=H.map(()=>({wch:16}));XLSX.utils.book_append_sheet(wb,ws,"Billing Team");
-          XLSX.writeFile(wb,"NKD_BillingTeam_"+repMonth+".xlsx");
-        }} style={{width:"100%",background:"rgba(52,211,153,0.1)",border:"1px solid rgba(52,211,153,0.35)",borderRadius:11,padding:"13px",color:"#34d399",fontWeight:700,fontSize:13,cursor:"pointer"}}>🧾 Export Billing Team Report — {repMonth}</button>
+          const fname1="NKD_BillingTeam_"+repMonth+".xlsx";
+          XLSX.writeFile(wb,fname1);
+          saveExcelToDrive(wb,fname1,repMonth);
+        }} style={{width:"100%",background:"rgba(52,211,153,0.1)",border:"1px solid rgba(52,211,153,0.35)",borderRadius:11,padding:"13px",color:"#34d399",fontWeight:700,fontSize:13,cursor:"pointer"}}>🧾 Export Billing Team Report — {repMonth} ☁️</button>
         <button onClick={()=>{
           const H=["Bill Date","Customer","Phone","Address","Father Name","Model","Code","Chassis","Engine","Delivery Date","MR No","Pay Mode","Financed By","Reg No","Ex-Showroom","Comp Acc","Handling","Insurance","Registration","Accessories","Teflon","Hypo","AMC","TOTAL ON-ROAD","Consumer Offer","Special Disc","Corporate","DEAL PRICE","Booking Amt","Exchange Vehicle","Exchange Value","NET AMT","Loan","BALANCE","PAID","DIFF","Salesman","Branch","Approved By","Enquiry Date","Last Modified"];
           const rows=billedForMonth.filter(c=>c.billing&&c.billing.calc).map(c=>{const b=c.billing,k=b.calc;
@@ -1828,8 +1836,10 @@ function Reports({custs,onImportCust}){
           if(rows.length===0){alert("No billed customers for "+repMonth);return;}
           const wb=XLSX.utils.book_new();const ws=XLSX.utils.aoa_to_sheet([H,...rows]);
           ws["!cols"]=H.map(()=>({wch:16}));XLSX.utils.book_append_sheet(wb,ws,"Accounts Team");
-          XLSX.writeFile(wb,"NKD_AccountsTeam_"+repMonth+".xlsx");
-        }} style={{width:"100%",background:"rgba(96,165,250,0.1)",border:"1px solid rgba(96,165,250,0.35)",borderRadius:11,padding:"13px",color:"#60a5fa",fontWeight:700,fontSize:13,cursor:"pointer"}}>💰 Export Accounts Team Report — {repMonth}</button>
+          const fname2="NKD_AccountsTeam_"+repMonth+".xlsx";
+          XLSX.writeFile(wb,fname2);
+          saveExcelToDrive(wb,fname2,repMonth);
+        }} style={{width:"100%",background:"rgba(96,165,250,0.1)",border:"1px solid rgba(96,165,250,0.35)",borderRadius:11,padding:"13px",color:"#60a5fa",fontWeight:700,fontSize:13,cursor:"pointer"}}>💰 Export Accounts Team Report — {repMonth} ☁️</button>
       </div>
       <div style={{display:"flex",gap:5,marginBottom:10,overflowX:"auto"}}>
         {["All",...BRANCHES].map(b=><button key={b} onClick={()=>setBrF(b)} style={{padding:"6px 12px",borderRadius:10,fontSize:11,fontWeight:700,cursor:"pointer",flexShrink:0,background:brF===b?"#dbeafe":"#6b8fb5",color:brF===b?"#60a5fa":"#8892a4",border:"none"}}>{b}</button>)}
