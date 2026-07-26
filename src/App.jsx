@@ -1415,13 +1415,15 @@ function BillingModal({cust,onClose,onSave,onDraft,notify,role,stockData,billedC
       const details={name:f.billName||cust.name,exchangeName:f.exchName,exchangePhone:f.exchPhone,exchangeAsked:f.exchModel,exchangeRegNo:f.exchRegNo,exchangeOffered:String(f.exv||""),fatherName:f.fatherName,address:cust.address,dob:f.dob,nominee:f.nominee,nomineeRel:f.nomineeRel,aadhar:f.aadhar,pan:f.pan};
       const tempBilling={...f,details,calc:c,paid:c.paid};
       const tempCust={...cust,...details,billing:tempBilling,billedDate:f.deliveryDate||td()};
-      // Send only MR to customer — no calc sheet here
+      // Send MR to customer and office (no calc sheet)
       const doc=makeMRDoc(tempCust,tempBilling,c);
       const mrFname="MR_"+cust.name.replace(/ /g,"_")+"_"+td()+".pdf";
       sharePdf(doc,mrFname,cust.phone,"Please find your Money Receipt from NKD Bajaj, Dhanbad.",cust.name+" (Customer)");
+      const offNum=ld("nkd_office_wa",OFFICE_WA)||OFFICE_WA;
+      sharePdf(doc,mrFname,offNum,"MR for "+cust.name+" — "+cust.model,"Office");
       savePdfToDrive(doc,mrFname,cust.name,"MR");
       setMrSent(true);
-      notify("✅ MR sent to customer");
+      notify("✅ MR sent to customer & office");
     }catch(e){notify("⚠️ Error generating MR: "+e.message,"err");}
   }
   function saveDraft(){
