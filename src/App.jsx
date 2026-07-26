@@ -419,7 +419,7 @@ function ExchDashGroup({exchName,list,onUpd,notify}){
   const [edits,setEdits]=useState({});
   function getExv(c){return Number(c.billing?.exv||c.billing?.calc?.exv||0);}
   function setE(id,field,val){setEdits(p=>({...p,[id]:{...(p[id]||{}),[ field]:val}}));}
-  function getE(c,field){return edits[c.id]?.[field]??c[field]??"";}
+  function getE(c,field){if(edits[c.id]?.[field]!==undefined)return edits[c.id][field];if(field==="exchAmtRec"&&c.exchMrIssued)return "";return c[field]??"";}
   function getPhone(c){return c.billing?.details?.exchangePhone||c.exchangePhone||"";}
   function receiveAndSend(){
     const rows=list.map(c=>({name:c.name,model:c.model||"",regNo:c.billing?.details?.exchangeRegNo||c.exchangeRegNo||"",exv:getExv(c),amtRec:Number(getE(c,"exchAmtRec")||0),comm:Number(getE(c,"exchComm")||0),disc:Number(getE(c,"exchDisc")||0)}));
@@ -545,14 +545,14 @@ function Dashboard({custs,role,onOpen,onNav,onNavF,onSvcDone,onTeamTap,onAddPaym
         if(exchPending.length===0)return null;
         const byExch={};
         exchPending.forEach(c=>{const n=c.billing?.details?.exchangeName||c.exchangeName||"Unknown";if(!byExch[n])byExch[n]=[];byExch[n].push(c);});
-        const totalExv=exchPending.reduce((s,c)=>s+Number(c.billing?.exv||c.billing?.calc?.exv||0),0);
+        const totalExv=exchPending.reduce((s,c)=>s+Math.max(0,Number(c.billing?.exv||c.billing?.calc?.exv||0)-Number(c.exchAmtRec||0)),0);
         return(
           <div style={{marginBottom:18}}>
             <div style={{fontSize:12,fontWeight:800,color:"#f59e0b",marginBottom:8}}>🔄 EXCHANGER DUE — PENDING SETTLEMENT ({exchPending.length})</div>
             {Object.entries(byExch).map(([name,list])=>(
               <ExchDashGroup key={name} exchName={name} list={list} onUpd={onUpd} notify={notify}/>
             ))}
-            <div style={{fontSize:10,color:"#94a3b8",textAlign:"right",marginTop:4}}>Total exch value pending: {fc(totalExv)}</div>
+            <div style={{fontSize:10,color:"#94a3b8",textAlign:"right",marginTop:4}}>Total balance pending: {fc(totalExv)}</div>
           </div>
         );
       })()}
