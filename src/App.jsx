@@ -2316,6 +2316,7 @@ function CashBook({custs}){
 }
 function OwnerPortal({custs,stockData,billedChassis,statusData,role,user,mBr,saveStockData,saveStatusData,nkdUsers,onSaveUsers,notify,onUpd,onLogout,onMobile}){
   const [view,setView]=useState(role==="admin"?"uploads":"dashboard");
+  const [custTableQ,setCustTableQ]=useState("");
   const billed=custs.filter(c=>c.billed);
   const thisM=td().slice(0,7);
   const billedThisM=billed.filter(c=>(c.billedDate||"").startsWith(thisM));
@@ -2520,7 +2521,6 @@ export default function App(){
   const [custF,setCustF]=useState("All");
   const [dtab,setDtab]=useState(null);
   const [fSM,setFSM]=useState("All");
-  const [custTableQ,setCustTableQ]=useState("");
   const [statusData,setStatusData]=useState(()=>ld("nkd_rcstatus",[]));
   function saveStatusData(data){setStatusData(data);sv("nkd_rcstatus",data);_dbSet("nkd_rcstatus",data);}
   const [stockData,setStockData]=useState(()=>ld("nkd_stock",[]));
