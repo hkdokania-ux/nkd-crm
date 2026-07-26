@@ -1415,15 +1415,13 @@ function BillingModal({cust,onClose,onSave,onDraft,notify,role,stockData,billedC
       const details={name:f.billName||cust.name,exchangeName:f.exchName,exchangePhone:f.exchPhone,exchangeAsked:f.exchModel,exchangeRegNo:f.exchRegNo,exchangeOffered:String(f.exv||""),fatherName:f.fatherName,address:cust.address,dob:f.dob,nominee:f.nominee,nomineeRel:f.nomineeRel,aadhar:f.aadhar,pan:f.pan};
       const tempBilling={...f,details,calc:c,paid:c.paid};
       const tempCust={...cust,...details,billing:tempBilling,billedDate:f.deliveryDate||td()};
+      // Send only MR to customer — no calc sheet here
       const doc=makeMRDoc(tempCust,tempBilling,c);
-      sharePdf(doc,"MR_"+cust.name.replace(/ /g,"_")+"_"+td()+".pdf",cust.phone,"Please find your Money Receipt from NKD Bajaj, Dhanbad.",cust.name+" (Customer)");
-      savePdfToDrive(doc,"MR_"+cust.name.replace(/ /g,"_")+"_"+td()+".pdf",cust.name,"MR");
-      const offNum=ld("nkd_office_wa",OFFICE_WA)||OFFICE_WA;
-      const doc2=makeCombinedDoc(tempCust,tempBilling,c);
-      sharePdf(doc2,"CalcMR_"+cust.name.replace(/ /g,"_")+"_"+td()+".pdf",offNum,"Calc+MR for "+cust.name+" — "+cust.model,"Office");
-      savePdfToDrive(doc2,"CalcMR_"+cust.name.replace(/ /g,"_")+"_"+td()+".pdf",cust.name,"CalcSheet");
+      const mrFname="MR_"+cust.name.replace(/ /g,"_")+"_"+td()+".pdf";
+      sharePdf(doc,mrFname,cust.phone,"Please find your Money Receipt from NKD Bajaj, Dhanbad.",cust.name+" (Customer)");
+      savePdfToDrive(doc,mrFname,cust.name,"MR");
       setMrSent(true);
-      notify("✅ MR sent to customer & office — now enter payment received");
+      notify("✅ MR sent to customer");
     }catch(e){notify("⚠️ Error generating MR: "+e.message,"err");}
   }
   function saveDraft(){
@@ -1559,11 +1557,10 @@ function BillingModal({cust,onClose,onSave,onDraft,notify,role,stockData,billedC
                 </div>
               ))}
               <button onClick={()=>setF(q=>({...q,payments:[...(q.payments||[]),{mode:"Cash",amt:"",date:td(),ref:""}]}))} style={{width:"100%",background:"rgba(96,165,250,0.07)",border:"1px dashed rgba(96,165,250,0.3)",borderRadius:8,padding:"6px",color:"#60a5fa",fontSize:11,cursor:"pointer",marginBottom:8}}>+ Add Payment Entry</button>
-              {!mrSent?(
-                <button onClick={generateAndSendMR} style={{width:"100%",background:"linear-gradient(135deg,#f97316,#ea580c)",border:"none",borderRadius:10,padding:"11px",color:"#fff",fontSize:13,fontWeight:700,cursor:"pointer",marginBottom:4}}>Generate MR &amp; Send to Customer + Office</button>
-              ):(
-                <div style={{background:"rgba(34,197,94,0.1)",border:"1px solid rgba(34,197,94,0.4)",borderRadius:8,padding:"6px 10px",marginBottom:4,fontSize:11,color:"#22c55e",fontWeight:700,textAlign:"center"}}>MR sent to customer &amp; office</div>
-              )}
+              <button onClick={generateAndSendMR} style={{width:"100%",background:mrSent?"linear-gradient(135deg,#059669,#10b981)":"linear-gradient(135deg,#f97316,#ea580c)",border:"none",borderRadius:10,padding:"11px",color:"#fff",fontSize:13,fontWeight:700,cursor:"pointer",marginBottom:4}}>
+                {mrSent?"📲 Send Updated MR to Customer":"📲 Generate MR & Send to Customer"}
+              </button>
+              {mrSent&&<div style={{fontSize:10,color:"#22c55e",textAlign:"center",marginBottom:4}}>✓ MR already sent — add more payments &amp; send again if needed</div>}
               <div style={{display:"flex",justifyContent:"space-between",padding:"5px 0",fontSize:12,fontWeight:700}}><span style={{color:"#64748b"}}>Total Received (J)</span><span style={{color:"#1e293b"}}>{fc(c.paid)}</span></div>
             </div>
             <div style={{background:c.K===0?"rgba(34,197,94,0.12)":"rgba(239,68,68,0.12)",border:"1px solid "+(c.K===0?"#22c55e":"#ef4444"),borderRadius:10,padding:"11px 12px",marginTop:6}}>
