@@ -2411,10 +2411,9 @@ function OwnerPortal({custs,stockData,billedChassis,statusData,role,user,mBr,sav
 
         {/* ── ALL CUSTOMERS TABLE ── */}
         {view==="customers"&&(()=>{
-          const [cq,setCq]=useState("");
-          const filt=cq.trim().length<2?custs:custs.filter(c=>(c.name+" "+c.phone+" "+(c.model||"")+" "+(c.salesman||"")).toLowerCase().includes(cq.toLowerCase()));
+          const filt=custTableQ.trim().length<2?custs:custs.filter(c=>(c.name+" "+c.phone+" "+(c.model||"")+" "+(c.salesman||"")).toLowerCase().includes(custTableQ.toLowerCase()));
           return(<>
-            <input placeholder="🔍 Search name, phone, model, salesman…" value={cq} onChange={e=>setCq(e.target.value)} style={{width:"100%",padding:"11px 16px",border:"2px solid #6b8fb5",borderRadius:10,fontSize:14,marginBottom:16,boxSizing:"border-box",outline:"none"}}/>
+            <input placeholder="🔍 Search name, phone, model, salesman…" value={custTableQ} onChange={e=>setCustTableQ(e.target.value)} style={{width:"100%",padding:"11px 16px",border:"2px solid #6b8fb5",borderRadius:10,fontSize:14,marginBottom:16,boxSizing:"border-box",outline:"none"}}/>
             <div style={{background:"#fff",border:"2px solid #6b8fb5",borderRadius:14,overflow:"auto"}}>
               <table style={{width:"100%",borderCollapse:"collapse",minWidth:900}}>
                 <thead><tr><SB label="Name"/><SB label="Phone"/><SB label="Model"/><SB label="Status"/><SB label="Salesman"/><SB label="Branch"/><SB label="Enquiry"/><SB label="Billed"/><SB label="Revenue"/></tr></thead>
@@ -2521,6 +2520,7 @@ export default function App(){
   const [custF,setCustF]=useState("All");
   const [dtab,setDtab]=useState(null);
   const [fSM,setFSM]=useState("All");
+  const [custTableQ,setCustTableQ]=useState("");
   const [statusData,setStatusData]=useState(()=>ld("nkd_rcstatus",[]));
   function saveStatusData(data){setStatusData(data);sv("nkd_rcstatus",data);_dbSet("nkd_rcstatus",data);}
   const [stockData,setStockData]=useState(()=>ld("nkd_stock",[]));
