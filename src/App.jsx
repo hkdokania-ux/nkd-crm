@@ -1156,7 +1156,7 @@ function Detail({cust,role,onBack,onUpd,onLog,onBill,onBook,notify,initTab,clear
         <div style={{background:"rgba(139,92,246,0.08)",border:"1px solid rgba(139,92,246,0.3)",borderRadius:14,padding:"12px 14px",marginTop:10}}>
           <div style={{fontSize:11,fontWeight:700,color:"#a78bfa",marginBottom:10}}>⏳ PENDING APPROVAL — Action Required</div>
           <div style={{display:"flex",gap:8}}>
-            <button onClick={()=>{onApprove(cust.id,true,"");notify("✅ Approved");}} style={{flex:1,background:"rgba(34,197,94,0.12)",border:"1px solid rgba(34,197,94,0.4)",borderRadius:10,padding:"11px 4px",color:"#22c55e",fontSize:13,fontWeight:700,cursor:"pointer"}}>✅ Approve</button>
+            <button onClick={()=>{const cl=cust.billing?.calc||{};if(cl.K>2000){notify("⚠️ Shortage K="+fc(cl.K)+" exceeds ₹2000 limit","err");return;}onApprove(cust.id,true,"");notify("✅ Approved");}} style={{flex:1,background:"rgba(34,197,94,0.12)",border:"1px solid rgba(34,197,94,0.4)",borderRadius:10,padding:"11px 4px",color:"#22c55e",fontSize:13,fontWeight:700,cursor:"pointer"}}>✅ Approve</button>
             <button onClick={()=>{onApprove(cust.id,false,"");notify("❌ Rejected");}} style={{flex:1,background:"rgba(239,68,68,0.1)",border:"1px solid rgba(239,68,68,0.3)",borderRadius:10,padding:"11px 4px",color:"#ef4444",fontSize:13,fontWeight:700,cursor:"pointer"}}>❌ Reject</button>
           </div>
         </div>
@@ -1330,7 +1330,7 @@ function BillingModal({cust,onClose,onSave,onDraft,notify,role,stockData,billedC
   const r=RC[cust.modelCode]||{};
   const isFin=cust.finance==="Finance";
   const eb=cust.billing||cust.billingDraft||{};
-  const [f,setF]=useState({...eb,billName:eb.billName||cust.name,exchName:cust.exchangeName||"",exchPhone:cust.exchangePhone||eb.details?.exchangePhone||"",exchModel:cust.exchangeAsked||"",exchRegNo:cust.exchangeRegNo||"",bkDate:(cust.booking&&cust.booking.date)||td(),fatherName:cust.fatherName||"",dob:cust.dob||"",aadhar:cust.aadhar||"",pan:cust.pan||"",nominee:cust.nominee||"",nomineeRel:cust.nomineeRel||"",hdl:eb.hdl!==undefined?eb.hdl:(r.hdl||600),ins:eb.ins!==undefined?eb.ins:(r.ins||0),reg:eb.reg!==undefined?eb.reg:(r.reg||0),acc:0,tef:isFin?500:0,hyp:isFin?500:0,addAmc:false,cof:0,sdis:0,corp:0,bk:cust.totalBooking||(cust.bookings&&cust.bookings.reduce((s,b)=>s+Number(b.amt||0),0))||(cust.booking&&cust.booking.amt)||0,exv:eb.exv!==undefined?eb.exv:0,loan:0,payments:eb.payments&&eb.payments.length?eb.payments:(eb.paid||eb.payMode?[{mode:eb.payMode||"Cash",amt:Number(eb.paid||0),date:td(),ref:""}]:[{mode:"Cash",amt:0,date:td(),ref:""}]),chassis:"",engine:"",color:"",deliveryDate:td(),financeBank:"",registrationNo:"",insuranceNo:""});
+  const [f,setF]=useState({...eb,billName:eb.billName||cust.name,exchName:cust.exchangeName||"",exchPhone:cust.exchangePhone||eb.details?.exchangePhone||"",exchModel:cust.exchangeAsked||"",exchRegNo:cust.exchangeRegNo||"",bkDate:(cust.booking&&cust.booking.date)||td(),fatherName:cust.fatherName||"",dob:cust.dob||"",aadhar:cust.aadhar||"",pan:cust.pan||"",nominee:cust.nominee||"",nomineeRel:cust.nomineeRel||"",hdl:eb.hdl!==undefined?eb.hdl:(r.hdl||600),ins:eb.ins!==undefined?eb.ins:(r.ins||0),reg:eb.reg!==undefined?eb.reg:(r.reg||0),acc:0,tef:isFin?500:0,hyp:isFin?500:0,addAmc:false,cof:0,sdis:0,corp:0,bk:cust.totalBooking||(cust.bookings&&cust.bookings.reduce((s,b)=>s+Number(b.amt||0),0))||(cust.booking&&cust.booking.amt)||0,exv:eb.exv!==undefined?eb.exv:0,loan:0,payments:eb.payments&&eb.payments.length?eb.payments:(eb.paid||eb.payMode?[{mode:eb.payMode||"Cash",amt:Number(eb.paid||0),date:td(),ref:""}]:[{mode:"Cash",amt:0,date:td(),ref:""}]),chassis:eb.chassis||"",engine:eb.engine||"",color:eb.color||"",deliveryDate:eb.deliveryDate||td(),financeBank:eb.financeBank||"",registrationNo:eb.registrationNo||"",insuranceNo:eb.insuranceNo||""});
   const c=calcB(f,r);
   const [chk,setChk]=useState(eb.checklist||{pdi:false,helmet:false,docs:false,service:false});
   const VER_ALL=[["nameV","Customer name verified"],["fatherV","Father name verified"],["aadharV","Aadhar number verified"],["nomineeV","Nominee & relation added"],["chassisV","Chassis number verified"],["engineV","Engine number verified"],["colorV","Colour verified"]];
@@ -1453,6 +1453,7 @@ function BillingModal({cust,onClose,onSave,onDraft,notify,role,stockData,billedC
     if(!f.aadhar||!f.fatherName||!f.nominee||!f.nomineeRel){notify("Fill KYC: Aadhar, Father name, Nominee & Relation","err");return;}
     if(c.C<0||c.E<0||c.G<0||c.I<0){alert("⚠️ Calculation error — a total has gone NEGATIVE.\nCheck discounts/booking/exchange amounts. No value can exceed the price above it.");return;}
     if(c.K<0){alert("⚠️ Payment Received ("+fc(c.paid)+") is MORE than balance due ("+fc(c.I)+").\nCorrect the Payment Received amount.");return;}
+    if(c.K>2000){alert("⚠️ Shortage K = "+fc(c.K)+" exceeds ₹2000 limit.\nCollect remaining amount before saving.");return;}
     const missing=VER_ALL.filter(([k])=>!ver[k]);
     if(missing.length>0){alert("⚠️ Cannot submit — verify these first:\n\n"+missing.map(([,l])=>"☐ "+l).join("\n"));return;}
     var html=buildReceipt();
@@ -1554,7 +1555,7 @@ function BillingModal({cust,onClose,onSave,onDraft,notify,role,stockData,billedC
             <div style={{display:"flex",alignItems:"center",padding:"4px 0",borderBottom:"1px solid #131820",gap:8}}><span style={{fontSize:12,color:"#64748b",flex:1}}>Booking Date</span><span style={{fontSize:11,color:"#1e293b",fontWeight:700}}>{fd(f.bkDate)||"—"}</span></div>
             <Inp label="− Exchange Value" k="exv" f={f} setF={setF}/>
             <Tot label="Net G = E − F" val={c.G} col="#60a5fa"/>
-            {isFin&&<Inp label="− Loan / Disbursal" k="loan" f={f} setF={setF}/>}
+            <Inp label="− Loan / Disbursement" k="loan" f={f} setF={setF}/>
             <div style={{display:"flex",justifyContent:"space-between",padding:"5px 0",borderBottom:"1px solid #131820",fontSize:11}}><span style={{color:"#64748b"}}>Balance from Customer (I)</span><span style={{color:"#1e293b",fontWeight:700}}>{fc(c.I)}</span></div>
             <div style={{borderTop:"1px solid #6b8fb5",paddingTop:8,marginTop:4}}>
               <div style={{fontSize:10,color:"#f97316",fontWeight:700,marginBottom:6}}>PAYMENT RECEIVED (J)</div>
@@ -1580,9 +1581,10 @@ function BillingModal({cust,onClose,onSave,onDraft,notify,role,stockData,billedC
               {mrSent&&<div style={{fontSize:10,color:"#22c55e",textAlign:"center",marginBottom:4}}>✓ MR already sent — add more payments &amp; send again if needed</div>}
               <div style={{display:"flex",justifyContent:"space-between",padding:"5px 0",fontSize:12,fontWeight:700}}><span style={{color:"#64748b"}}>Total Received (J)</span><span style={{color:"#1e293b"}}>{fc(c.paid)}</span></div>
             </div>
-            <div style={{background:c.K===0?"rgba(34,197,94,0.12)":"rgba(239,68,68,0.12)",border:"1px solid "+(c.K===0?"#22c55e":"#ef4444"),borderRadius:10,padding:"11px 12px",marginTop:6}}>
-              <div style={{display:"flex",justifyContent:"space-between",alignItems:"center"}}><span style={{fontWeight:700,fontSize:13,color:"#1e293b"}}>Difference K = I − J</span><span style={{fontWeight:900,fontSize:20,color:c.K===0?"#22c55e":"#ef4444"}}>{fc(c.K)}</span></div>
+            <div style={{background:c.K<=0?"rgba(34,197,94,0.12)":c.K<=2000?"rgba(245,158,11,0.12)":"rgba(239,68,68,0.12)",border:"1px solid "+(c.K<=0?"#22c55e":c.K<=2000?"#f59e0b":"#ef4444"),borderRadius:10,padding:"11px 12px",marginTop:6}}>
+              <div style={{display:"flex",justifyContent:"space-between",alignItems:"center"}}><span style={{fontWeight:700,fontSize:13,color:"#1e293b"}}>Difference K = I − J</span><span style={{fontWeight:900,fontSize:20,color:c.K<=0?"#22c55e":c.K<=2000?"#f59e0b":"#ef4444"}}>{fc(c.K)}</span></div>
               {c.K===0&&<div style={{fontSize:11,color:"#22c55e",marginTop:2}}>✓ Fully settled</div>}
+              {c.K>0&&c.K<=2000&&<div style={{fontSize:11,color:"#f59e0b",marginTop:2}}>⚠️ Shortage ≤ ₹2000 — allowed to save</div>}
             </div>
           </div>
         </div>
@@ -1745,11 +1747,12 @@ function Approvals({custs,onApprove,onOpen,onEditCalc,allC,canApprove}){
               </div>
               <button onClick={()=>onOpen(c)} style={{width:"100%",background:"#c2d6ec",border:"1px solid #6b8fb5",borderRadius:9,padding:8,color:"#64748b",fontSize:11,fontWeight:600,cursor:"pointer"}}>📂 View Documents</button>
             </div>
-            {cl.K!==0&&<div style={{margin:"0 14px 10px",background:"rgba(239,68,68,0.1)",border:"1px solid rgba(239,68,68,0.35)",borderRadius:9,padding:"8px 11px",fontSize:11,color:"#ef4444",fontWeight:700}}>⛔ Difference K = {fc(cl.K)} — approval blocked until fully settled (K must be ₹0)</div>}
+            {cl.K>2000&&<div style={{margin:"0 14px 10px",background:"rgba(239,68,68,0.1)",border:"1px solid rgba(239,68,68,0.35)",borderRadius:9,padding:"8px 11px",fontSize:11,color:"#ef4444",fontWeight:700}}>⛔ Shortage K = {fc(cl.K)} — approval blocked (must be ₹0 or ≤ ₹2000)</div>}
+            {cl.K>0&&cl.K<=2000&&<div style={{margin:"0 14px 10px",background:"rgba(245,158,11,0.1)",border:"1px solid rgba(245,158,11,0.35)",borderRadius:9,padding:"8px 11px",fontSize:11,color:"#f59e0b",fontWeight:700}}>⚠️ Shortage K = {fc(cl.K)} — within ₹2000 tolerance, approval allowed</div>}
             <div style={{padding:"0 14px 8px"}}><input placeholder="Manager remark (optional — saved to history)" value={rem[c.id]||""} onChange={e=>setRem(p=>({...p,[c.id]:e.target.value}))} style={{background:"#f8fafc",border:"1px solid #6b8fb5",borderRadius:10,padding:"9px 12px",fontSize:12,color:"#1e293b",width:"100%",boxSizing:"border-box",outline:"none"}}/></div>
             {cl.K!==0&&<div style={{margin:"0 14px 8px",fontSize:11,color:"#f59e0b",fontWeight:700}}>👉 Tap EDIT to correct the sheet yourself, then it auto-approves</div>}
             {canApprove&&(<div style={{display:"flex",gap:6,padding:"10px 14px",borderTop:"1px solid #6b8fb5"}}>
-              <button onClick={()=>cl.K===0&&onApprove(c.id,true,rem[c.id]||"")} disabled={cl.K!==0} style={{...btn(cl.K===0?"rgba(34,197,94,0.12)":"rgba(107,114,128,0.1)",cl.K===0?"#22c55e":"#374151"),flex:1,border:"1px solid "+(cl.K===0?"rgba(34,197,94,0.4)":"#6b8fb5"),cursor:cl.K===0?"pointer":"not-allowed",fontSize:12,padding:"11px 4px"}}>✅ Approve</button>
+              <button onClick={()=>cl.K<=2000&&cl.K>=0&&onApprove(c.id,true,rem[c.id]||"")} disabled={cl.K>2000||cl.K<0} style={{...btn(cl.K<=2000&&cl.K>=0?"rgba(34,197,94,0.12)":"rgba(107,114,128,0.1)",cl.K<=2000&&cl.K>=0?"#22c55e":"#374151"),flex:1,border:"1px solid "+(cl.K<=2000&&cl.K>=0?"rgba(34,197,94,0.4)":"#6b8fb5"),cursor:cl.K<=2000&&cl.K>=0?"pointer":"not-allowed",fontSize:12,padding:"11px 4px"}}>✅ Approve</button>
               <button onClick={()=>onEditCalc(c)} style={{...btn("rgba(245,158,11,0.15)","#f59e0b"),flex:1,border:"1px solid rgba(245,158,11,0.5)",fontSize:12,padding:"11px 4px"}}>✏️ EDIT</button>
               <button onClick={()=>onApprove(c.id,false,rem[c.id]||"")} style={{...btn("rgba(239,68,68,0.1)","#ef4444"),flex:1,border:"1px solid rgba(239,68,68,0.3)",fontSize:12,padding:"11px 4px"}}>❌ Reject</button>
             </div>)}
