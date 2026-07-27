@@ -191,18 +191,19 @@ function makeBookingPdf(cust,bkOvr){
   line("NKD Bajaj, Dhanbad",W-pad,y+22,8,"italic","right");
   return doc;
 }
-function savePdfToDrive(doc,filename,customerName,docType){
+function savePdfToDrive(doc,filename,customerName,docType,branch){
   try{
     const now=new Date();
     const monthFolder=now.toLocaleDateString("en-IN",{month:"long",year:"numeric"});
     const base64=doc.output("datauristring");
-    fetch(DRIVE_UPLOAD_URL,{method:"POST",body:JSON.stringify({fileName:filename,fileData:base64,mimeType:"application/pdf",customerName:(customerName||"Unknown").replace(/[<>:"/\\|?*]/g," ").trim()||"Unknown",docType:docType||"doc",monthFolder:monthFolder})}).catch(()=>{});
+    const safeName=(customerName||"Unknown").replace(/[<>:"/\\|?*]/g," ").trim()||"Unknown";
+    fetch(DRIVE_UPLOAD_URL,{method:"POST",body:JSON.stringify({fileName:filename,fileData:base64,mimeType:"application/pdf",customerName:safeName,docType:docType||"doc",monthFolder:monthFolder,branch:branch||""})}).catch(()=>{});
   }catch(e){}
 }
 function saveExcelToDrive(wb,filename,monthFolder){
   try{
     const base64=XLSX.write(wb,{type:"base64",bookType:"xlsx"});
-    fetch(DRIVE_UPLOAD_URL,{method:"POST",body:JSON.stringify({fileName:filename,fileData:"data:application/vnd.openxmlformats-officedocument.spreadsheetml.sheet;base64,"+base64,mimeType:"application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",customerName:"Monthly Report",docType:"Report",monthFolder:monthFolder||new Date().toLocaleDateString("en-IN",{month:"long",year:"numeric"})})}).catch(()=>{});
+    fetch(DRIVE_UPLOAD_URL,{method:"POST",body:JSON.stringify({fileName:filename,fileData:"data:application/vnd.openxmlformats-officedocument.spreadsheetml.sheet;base64,"+base64,mimeType:"application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",customerName:"_Reports",docType:"Report",monthFolder:monthFolder||new Date().toLocaleDateString("en-IN",{month:"long",year:"numeric"}),branch:""})}).catch(()=>{});
   }catch(e){}
 }
 async function sharePdf(doc,filename,phone,msg,recipientLabel){
@@ -1436,7 +1437,7 @@ function BillingModal({cust,onClose,onSave,onDraft,notify,role,stockData,billedC
       sharePdf(doc,mrFname,cust.phone,"Please find your Money Receipt from NKD Bajaj, Dhanbad.",cust.name+" (Customer)");
       const offNum=ld("nkd_office_wa",OFFICE_WA)||OFFICE_WA;
       sharePdf(doc,mrFname,offNum,"MR for "+cust.name+" — "+cust.model,"Office");
-      savePdfToDrive(doc,mrFname,cust.name,"MR");
+      savePdfToDrive(doc,mrFname,cust.name,"MR",cust.branch||SM_BRANCH[cust.salesman]||"");
       setMrSent(true);
       notify("✅ MR sent to customer & office");
     }catch(e){notify("⚠️ Error generating MR: "+e.message,"err");}
@@ -2613,11 +2614,12 @@ export default function App(){
     try{
       const doc=makeMRDoc(cust,billing,calc);
       sharePdf(doc,"MR_"+cust.name.replace(/ /g,"_")+"_"+td()+".pdf",cust.phone,"Please find your Money Receipt from NKD Bajaj, Dhanbad.");
-      savePdfToDrive(doc,"MR_"+cust.name.replace(/ /g,"_")+"_"+td()+".pdf",cust.name,"MR");
+      const br=cust.branch||SM_BRANCH[cust.salesman]||"";
+      savePdfToDrive(doc,"MR_"+cust.name.replace(/ /g,"_")+"_"+td()+".pdf",cust.name,"MR",br);
       const offNum=ld("nkd_office_wa",OFFICE_WA)||OFFICE_WA;
       const doc2=makeCombinedDoc(cust,billing,calc);
       sharePdf(doc2,"CalcMR_"+cust.name.replace(/ /g,"_")+"_"+td()+".pdf",offNum,"Calc Sheet + MR for "+cust.name+" ("+cust.model+") — Paid: "+fc(calc.paid)+" · Balance: "+fc(Math.max(calc.K,0)));
-      savePdfToDrive(doc2,"CalcMR_"+cust.name.replace(/ /g,"_")+"_"+td()+".pdf",cust.name,"CalcSheet");
+      savePdfToDrive(doc2,"CalcMR_"+cust.name.replace(/ /g,"_")+"_"+td()+".pdf",cust.name,"CalcSheet",br);
     }catch(e){}
   }
 
