@@ -1527,7 +1527,7 @@ function BillingModal({cust,onClose,onSave,onDraft,notify,role,stockData,billedC
   }
 
   const [busy,setBusy]=useState(false);
-  const [mrSent,setMrSent]=useState(false);
+  const [mrSent,setMrSent]=useState(!!(eb.receiptHtml||eb.mrNo||cust.billed));
   function generateAndSendMR(){
     const activePmts=(f.payments||[]).filter(p=>Number(p.amt||0)>0);
     if(activePmts.length===0){notify("⚠️ Enter at least one payment amount before generating MR","err");return;}
