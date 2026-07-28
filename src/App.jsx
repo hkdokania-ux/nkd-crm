@@ -1553,7 +1553,7 @@ function BillingModal({cust,onClose,onSave,onDraft,notify,role,stockData,billedC
   }
   function submit(){
     if(busy)return;
-    if(!mrSent){notify("⚠️ Generate & Send MR first before saving the calculation sheet","err");return;}
+    if(!mrSent&&!eb.receiptHtml&&!eb.mrNo&&!cust.billed){notify("⚠️ Generate & Send MR first before saving the calculation sheet","err");return;}
     if(!f.chassis){notify("Enter chassis number","err");return;}
     if(!f.aadhar||!f.fatherName||!f.nominee||!f.nomineeRel){notify("Fill KYC: Aadhar, Father name, Nominee & Relation","err");return;}
     if(c.C<0||c.E<0||c.G<0||c.I<0){alert("⚠️ Calculation error — a total has gone NEGATIVE.\nCheck discounts/booking/exchange amounts. No value can exceed the price above it.");return;}
@@ -1629,7 +1629,7 @@ function BillingModal({cust,onClose,onSave,onDraft,notify,role,stockData,billedC
                   return(<option key={i} value={ch}>{label}</option>);
                 })}</datalist>
               </div>
-              {[{k:"engine",l:"Engine No"},{k:"color",l:"Colour"},{k:"deliveryDate",l:"Delivery Date",t:"date"},...(isFin?[{k:"financeBank",l:"Finance Bank"}]:[]),{k:"registrationNo",l:"Reg No"},{k:"insuranceNo",l:"Insurance No"},{k:"mrNo",l:"MR No."}].map(({k,l,t})=>(
+              {[{k:"engine",l:"Engine No"},{k:"color",l:"Colour"},{k:"deliveryDate",l:"Delivery Date",t:"date"},...(isFin?[{k:"financeBank",l:"Finance Bank"}]:[]),{k:"registrationNo",l:"Reg No"},{k:"insuranceNo",l:"Insurance No"}].map(({k,l,t})=>(
                 <div key={k}><label style={{...lbl,fontSize:10}}>{l}</label><input type={t||"text"} value={f[k]||""} onChange={e=>setF(p=>({...p,[k]:e.target.value}))} onBlur={t!=="date"?e=>setF(p=>({...p,[k]:String(e.target.value).toUpperCase()})):undefined} style={{...inp,fontSize:12,padding:"8px 10px",textTransform:t==="date"?"none":"uppercase"}}/></div>
               ))}
             </div>
