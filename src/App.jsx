@@ -235,7 +235,7 @@ function calcB(f,r){
   const ins=Number(r?.ins||0),reg=Number(r?.reg||0),acc=Number(f.acc||0);
   const tef=Number(f.tef||0),hyp=Number(f.hyp||0),amcV=f.addAmc?(Number(r?.amc)||0):0;
   const B=hdl+ins+reg+ca+acc+tef+hyp+amcV,C=ex+B;
-  const cof=Number(f.cof||0),sdis=Number(f.sdis||0),corp=Number(f.corp||0),D=cof+sdis+corp,E=C-D;
+  const cof=Number(f.cof||0),sdis=Number(f.sdis||0),corp=Number(f.corp||0),discAmt=Number(f.discAmt||0),D=cof+sdis+corp+discAmt,E=C-D;
   const bk=Number(f.bk||0),exv=Number(f.exv||0),F=bk+exv,G=E-F;
   const loan=Number(f.loan||0),I=G-loan;
   const paid=f.payments&&f.payments.length?(f.payments.reduce((s,p)=>s+Number(p.amt||0),0)):Number(f.paid||0);
@@ -1070,7 +1070,7 @@ function RCHSRPSearch({statusData,role,onUpload,notify}){
     </div>
   );
 }
-function Detail({cust,role,onBack,onUpd,onLog,onBill,onBook,notify,initTab,clearInit,onAddPayment,onApprove}){
+function Detail({cust,role,onBack,onUpd,onLog,onBill,onBook,notify,initTab,clearInit,onAddPayment,onApprove,curUser,onTransferReq,onApproveTransfer}){
   const [tab,setTab]=useState(initTab||"info");
   useEffect(()=>{if(initTab){setTab(initTab);clearInit&&clearInit();}},[initTab]);
   const [edit,setEdit]=useState(false);
@@ -1112,6 +1112,46 @@ function Detail({cust,role,onBack,onUpd,onLog,onBill,onBook,notify,initTab,clear
         <div style={{fontSize:12,color:"#ef4444",fontWeight:800,marginBottom:3}}>❌ BILLING REJECTED BY MANAGER</div>
         <div style={{fontSize:12,color:"#1e293b",lineHeight:1.5}}>Correct the calculation sheet and tap 🏍️ Bill again. All uploaded documents are retained.</div>
       </div>}
+
+      {/* ── LEAD TRANSFER REQUEST (salesman viewing another's lead) ── */}
+      {role==="salesman"&&curUser&&cust.salesman&&cust.salesman!==curUser&&!cust.billed&&(()=>{
+        const tr=cust.transferReq;
+        if(tr&&tr.requestedBy===curUser&&tr.status==="pending")return(
+          <div style={{background:"rgba(245,158,11,0.08)",border:"1px solid rgba(245,158,11,0.4)",borderRadius:12,padding:"11px 13px",marginBottom:12}}>
+            <div style={{fontSize:12,color:"#f59e0b",fontWeight:800}}>⏳ Transfer Request Pending</div>
+            <div style={{fontSize:11,color:"#64748b",marginTop:3}}>Requested on {fd(tr.requestedAt)} · Awaiting manager approval</div>
+          </div>
+        );
+        if(tr&&tr.requestedBy===curUser&&tr.status==="rejected")return(
+          <div style={{background:"rgba(239,68,68,0.08)",border:"1px solid rgba(239,68,68,0.35)",borderRadius:12,padding:"11px 13px",marginBottom:12}}>
+            <div style={{fontSize:12,color:"#ef4444",fontWeight:800}}>❌ Transfer Request Rejected</div>
+            <div style={{fontSize:11,color:"#64748b",marginTop:3}}>Manager rejected your transfer request for this lead.</div>
+          </div>
+        );
+        if(!tr||tr.status!=="pending")return(
+          <div style={{background:"rgba(96,165,250,0.07)",border:"1px solid rgba(96,165,250,0.3)",borderRadius:12,padding:"11px 13px",marginBottom:12,display:"flex",alignItems:"center",gap:10}}>
+            <div style={{flex:1}}>
+              <div style={{fontSize:12,color:"#60a5fa",fontWeight:700}}>🔄 This lead belongs to {cust.salesman}</div>
+              <div style={{fontSize:11,color:"#64748b",marginTop:2}}>Request manager to transfer this lead to you</div>
+            </div>
+            <button onClick={()=>{if(onTransferReq)onTransferReq(cust.id,curUser);notify("📨 Transfer request sent to manager");}} style={{background:"linear-gradient(135deg,#3b82f6,#6366f1)",border:"none",borderRadius:10,padding:"9px 14px",color:"#fff",fontSize:12,fontWeight:700,cursor:"pointer",whiteSpace:"nowrap"}}>Request Transfer</button>
+          </div>
+        );
+        return null;
+      })()}
+
+      {/* ── MANAGER: approve / reject transfer request ── */}
+      {role!=="salesman"&&cust.transferReq&&cust.transferReq.status==="pending"&&(
+        <div style={{background:"rgba(96,165,250,0.08)",border:"1px solid rgba(96,165,250,0.4)",borderRadius:12,padding:"11px 13px",marginBottom:12}}>
+          <div style={{fontSize:12,color:"#3b82f6",fontWeight:800,marginBottom:6}}>🔄 Lead Transfer Request</div>
+          <div style={{fontSize:12,color:"#1e293b",marginBottom:8}}><b>{cust.transferReq.requestedBy}</b> is requesting this lead (currently: <b>{cust.salesman}</b>)</div>
+          <div style={{display:"flex",gap:8}}>
+            <button onClick={()=>{if(onApproveTransfer)onApproveTransfer(cust.id,true);notify("✅ Transfer approved");}} style={{flex:1,background:"rgba(34,197,94,0.12)",border:"1px solid rgba(34,197,94,0.4)",borderRadius:10,padding:"9px",color:"#22c55e",fontSize:12,fontWeight:700,cursor:"pointer"}}>✅ Approve</button>
+            <button onClick={()=>{if(onApproveTransfer)onApproveTransfer(cust.id,false);notify("❌ Transfer rejected");}} style={{flex:1,background:"rgba(239,68,68,0.1)",border:"1px solid rgba(239,68,68,0.3)",borderRadius:10,padding:"9px",color:"#ef4444",fontSize:12,fontWeight:700,cursor:"pointer"}}>❌ Reject</button>
+          </div>
+        </div>
+      )}
+
       {lastR&&<div style={{background:"rgba(249,115,22,0.07)",border:"1px solid rgba(249,115,22,0.22)",borderRadius:11,padding:"10px 12px",marginBottom:12}}><div style={{fontSize:9,color:"#f97316",fontWeight:800,letterSpacing:0.6,marginBottom:3}}>📋 LAST REMARK</div><div style={{fontSize:13,color:"#1e293b",lineHeight:1.5}}>{lastR.replace(/^\[.*?\]\s*/,"").replace(/^[A-Z_]+:\s*/,"")}</div></div>}
 
       {(()=>{const calls=(cust.callLog||[]).filter(l=>l.duration);const lastCall=calls.length?calls[calls.length-1]:null;
@@ -1342,7 +1382,7 @@ function AddModal({onClose,onSave,curUser,role,existing}){
             <input type="date" style={inp} value={f.dob||""} onChange={e=>setF(p=>({...p,dob:e.target.value}))} max={td()}/>
             {dobAge!==null&&dobAge<18&&<div style={{background:"rgba(239,68,68,0.1)",border:"1px solid #ef4444",borderRadius:7,padding:"5px 10px",marginTop:4,fontSize:11,color:"#ef4444",fontWeight:700}}>⚠️ Under 18 years — customer is a minor ({dobAge} yrs)</div>}
           </div>
-          <div><label style={lbl}>Lead Source</label><select style={inp} value={f.source||""} onChange={e=>setF(p=>({...p,source:e.target.value}))}><option value="">Select…</option><option>Walk-in</option><option>Via Phone Call</option><option>Reference</option><option>Old Customer</option><option>JustDial</option><option>Instagram/Facebook</option><option>Hoarding/Newspaper</option><option>Other</option></select></div>
+          <div><label style={lbl}>Lead Source</label><select style={inp} value={f.source||""} onChange={e=>setF(p=>({...p,source:e.target.value}))}><option value="">Select…</option><option>Field</option><option>Excellon</option><option>Outdoor Campaign</option><option>Walk-in</option><option>Via Phone Call</option><option>Reference</option><option>Old Customer</option><option>JustDial</option><option>Instagram/Facebook</option><option>Hoarding/Newspaper</option><option>Other</option></select></div>
           {f.source==="Reference"&&<div><label style={lbl}>Referred By (name / phone)</label><input style={{...inp,textTransform:"uppercase"}} value={f.refBy||""} onChange={e=>setF(p=>({...p,refBy:e.target.value}))} {...capBlur("refBy")}/></div>}
           <div><label style={lbl}>Enquiry Date</label><input type="date" style={inp} value={f.enquiryDate} max={td()} onChange={e=>setF(p=>({...p,enquiryDate:e.target.value}))}/></div>
           <div><label style={lbl}>Temperature</label><div style={{display:"flex",gap:7}}>{["Hot","Warm","Cold"].map(s=><button key={s} onClick={()=>setF(p=>({...p,status:s}))} style={{flex:1,background:f.status===s?ST_C[s]:"#6b8fb5",border:"none",borderRadius:10,padding:10,color:f.status===s?"#fff":"#5a6478",fontWeight:700,cursor:"pointer",fontSize:12}}>{s}</button>)}</div></div>
@@ -1383,11 +1423,17 @@ function Tot({label,val,col}){
     </div>
   );
 }
-function BillingModal({cust,onClose,onSave,onDraft,notify,role,stockData,billedChassis}){
+function BillingModal({cust,onClose,onSave,onDraft,notify,role,stockData,billedChassis,allCusts}){
   const r=RC[cust.modelCode]||{};
   const isFin=cust.finance==="Finance";
   const eb=cust.billing||cust.billingDraft||{};
-  const [f,setF]=useState({...eb,billName:eb.billName||cust.name,exchName:cust.exchangeName||"",exchPhone:cust.exchangePhone||eb.details?.exchangePhone||"",exchModel:cust.exchangeAsked||"",exchRegNo:cust.exchangeRegNo||"",bkDate:(cust.booking&&cust.booking.date)||td(),fatherName:eb.details?.fatherName||cust.fatherName||"",dob:eb.details?.dob||cust.dob||"",aadhar:eb.details?.aadhar||cust.aadhar||"",pan:eb.details?.pan||cust.pan||"",nominee:eb.details?.nominee||cust.nominee||"",nomineeRel:eb.details?.nomineeRel||cust.nomineeRel||"",hdl:eb.hdl!==undefined?eb.hdl:(r.hdl||600),ins:eb.ins!==undefined?eb.ins:(r.ins||0),reg:eb.reg!==undefined?eb.reg:(r.reg||0),acc:0,tef:isFin?500:0,hyp:isFin?500:0,addAmc:false,cof:0,sdis:0,discRem:eb.discRem||"",corp:0,bk:cust.totalBooking||(cust.bookings&&cust.bookings.reduce((s,b)=>s+Number(b.amt||0),0))||(cust.booking&&cust.booking.amt)||0,exv:eb.exv!==undefined?eb.exv:0,loan:0,payments:eb.payments&&eb.payments.length?eb.payments:(eb.paid||eb.payMode?[{mode:eb.payMode||"Cash",amt:Number(eb.paid||0),date:td(),ref:""}]:[{mode:"Cash",amt:0,date:td(),ref:""}]),chassis:eb.chassis||"",engine:eb.engine||"",color:eb.color||"",deliveryDate:eb.deliveryDate||td(),financeBank:eb.financeBank||"",registrationNo:eb.registrationNo||"",insuranceNo:eb.insuranceNo||"",excessAmt:eb.excessAmt||"",excessRem:eb.excessRem||""});
+  function nextMrNo(){
+    const all=allCusts||[];
+    const nums=all.map(c=>{const m=(c.billing||c.billingDraft||{}).mrNo||"";const n=parseInt(m.replace(/\D/g,""),10);return isNaN(n)?0:n;});
+    const max=nums.length?Math.max(...nums):0;
+    return String(max+1).padStart(4,"0");
+  }
+  const [f,setF]=useState({...eb,billName:eb.billName||cust.name,exchName:eb.exchName||cust.exchangeName||"",exchPhone:eb.exchPhone||cust.exchangePhone||eb.details?.exchangePhone||"",exchModel:eb.exchModel||cust.exchangeAsked||"",exchRegNo:eb.exchRegNo||cust.exchangeRegNo||"",bkDate:(cust.booking&&cust.booking.date)||td(),fatherName:eb.details?.fatherName||cust.fatherName||"",dob:eb.details?.dob||cust.dob||"",aadhar:eb.details?.aadhar||cust.aadhar||"",pan:eb.details?.pan||cust.pan||"",nominee:eb.details?.nominee||cust.nominee||"",nomineeRel:eb.details?.nomineeRel||cust.nomineeRel||"",hdl:eb.hdl!==undefined?eb.hdl:(r.hdl||600),ins:eb.ins!==undefined?eb.ins:(r.ins||0),reg:eb.reg!==undefined?eb.reg:(r.reg||0),acc:eb.acc||0,tef:eb.tef!==undefined?eb.tef:(isFin?500:0),hyp:eb.hyp!==undefined?eb.hyp:(isFin?500:0),addAmc:eb.addAmc||false,cof:eb.cof||0,sdis:eb.sdis||0,discRem:eb.discRem||"",discAmt:eb.discAmt||"",corp:eb.corp||0,bk:cust.totalBooking||(cust.bookings&&cust.bookings.reduce((s,b)=>s+Number(b.amt||0),0))||(cust.booking&&cust.booking.amt)||0,exv:eb.exv!==undefined?eb.exv:0,loan:eb.loan||0,payments:eb.payments&&eb.payments.length?eb.payments:(eb.paid||eb.payMode?[{mode:eb.payMode||"Cash",amt:Number(eb.paid||0),date:td(),ref:""}]:[{mode:"Cash",amt:0,date:td(),ref:""}]),chassis:eb.chassis||"",engine:eb.engine||"",color:eb.color||"",deliveryDate:eb.deliveryDate||td(),financeBank:eb.financeBank||"",registrationNo:eb.registrationNo||"",insuranceNo:eb.insuranceNo||"",mrNo:eb.mrNo||nextMrNo(),excessAmt:eb.excessAmt||"",excessRem:eb.excessRem||""});
   const c=calcB(f,r);
   const [chk,setChk]=useState(eb.checklist||{pdi:false,helmet:false,docs:false,service:false});
   const VER_ALL=[["nameV","Customer name verified"],["fatherV","Father name verified"],["aadharV","Aadhar number verified"],["nomineeV","Nominee & relation added"],["chassisV","Chassis number verified"],["engineV","Engine number verified"],["colorV","Colour verified"]];
@@ -1460,7 +1506,7 @@ function BillingModal({cust,onClose,onSave,onDraft,notify,role,stockData,billedC
     CALCROWS+="<div class=row><b>Total C=A+B</b><b>"+fc(c.C)+"</b></div>";
     if(c.cof)CALCROWS+="<div class=row><span>- Consumer Offer</span><span>"+fc(c.cof)+"</span></div>";
     if(c.sdis)CALCROWS+="<div class=row><span>- Special Discount</span><span>"+fc(c.sdis)+"</span></div>";
-    if(f.discRem)CALCROWS+="<div class=row><span style='color:#64748b;font-style:italic'>Remarks: "+f.discRem+"</span><span></span></div>";
+    if(f.discRem||Number(f.discAmt||0)!==0)CALCROWS+="<div class=row><span style='color:#64748b;font-style:italic'>Remarks"+(f.discRem?": "+f.discRem:"")+"</span><span>"+(Number(f.discAmt||0)!==0?fc(Number(f.discAmt)):"")+"</span></div>";
     CALCROWS+="<div class=row><b>Deal Price E</b><b>"+fc(c.E)+"</b></div>";
     if(c.bk)rows+="<div class=row><span>- Booking ("+fd(f.bkDate)+")</span><span>"+fc(c.bk)+"</span></div>";
     if(c.exv)rows+="<div class=row><span>- Exchange: "+(f.exchModel||"")+" "+(f.exchRegNo||"")+(f.exchName?" ("+f.exchName+")":"")+"</span><span>"+fc(c.exv)+"</span></div>";
@@ -1610,7 +1656,8 @@ function BillingModal({cust,onClose,onSave,onDraft,notify,role,stockData,billedC
             <Inp label="− Special Discount" k="sdis" f={f} setF={setF}/>
             <div style={{display:"flex",alignItems:"center",padding:"4px 0",borderBottom:"1px solid #131820",gap:6}}>
               <span style={{fontSize:12,color:"#64748b",whiteSpace:"nowrap"}}>Remarks</span>
-              <input value={f.discRem||""} onChange={e=>setF(p=>({...p,discRem:e.target.value}))} placeholder="excess / shortage note…" style={{flex:1,background:"#f1f5f9",border:"1px solid #6b8fb5",borderRadius:8,padding:"5px 8px",fontSize:11,color:"#1e293b",minWidth:0}}/>
+              <input value={f.discRem||""} onChange={e=>setF(p=>({...p,discRem:e.target.value}))} placeholder="note…" style={{flex:1,background:"#f1f5f9",border:"1px solid #6b8fb5",borderRadius:8,padding:"5px 8px",fontSize:11,color:"#1e293b",minWidth:0}}/>
+              <input type="number" value={f.discAmt||""} onChange={e=>setF(p=>({...p,discAmt:e.target.value}))} placeholder="±0" style={{width:88,background:"#f1f5f9",border:"1px solid "+(Number(f.discAmt||0)<0?"#ef4444":"#6b8fb5"),borderRadius:8,padding:"5px 8px",fontSize:12,color:Number(f.discAmt||0)<0?"#ef4444":"#1e293b",textAlign:"right",flexShrink:0}}/>
             </div>
             <Inp label="− Corporate Scheme" k="corp" f={f} setF={setF}/>
             <Tot label="Deal Price E = C − D" val={c.E} col="#a78bfa"/>
@@ -1900,9 +1947,9 @@ function Reports({custs,onImportCust}){
           saveExcelToDrive(wb,fname1,repMonth);
         }} style={{width:"100%",background:"rgba(52,211,153,0.1)",border:"1px solid rgba(52,211,153,0.35)",borderRadius:11,padding:"13px",color:"#34d399",fontWeight:700,fontSize:13,cursor:"pointer"}}>🧾 Export Billing Team Report — {repMonth} ☁️</button>
         <button onClick={()=>{
-          const H=["Bill Date","Customer","Phone","Address","Father Name","Model","Code","Chassis","Engine","Delivery Date","MR No","Pay Mode","Financed By","Reg No","Ex-Showroom","Comp Acc","Handling","Insurance","Registration","Accessories","Teflon","Hypo","AMC","TOTAL ON-ROAD","Consumer Offer","Special Disc","Disc Remarks","Corporate","DEAL PRICE","Booking Amt","Exchange Vehicle","Exchange Value","NET AMT","Loan","BALANCE","PAID","EXCESS","DIFF","Salesman","Branch","Approved By","Enquiry Date","Last Modified"];
+          const H=["Bill Date","Customer","Phone","Address","Father Name","Model","Code","Chassis","Engine","Delivery Date","MR No","Pay Mode","Financed By","Reg No","Ex-Showroom","Comp Acc","Handling","Insurance","Registration","Accessories","Teflon","Hypo","AMC","TOTAL ON-ROAD","Consumer Offer","Special Disc","Disc Remarks","Disc Adj Amt","Corporate","DEAL PRICE","Booking Amt","Exchange Vehicle","Exchange Value","NET AMT","Loan","BALANCE","PAID","EXCESS","DIFF","Salesman","Branch","Approved By","Enquiry Date","Last Modified"];
           const rows=billedForMonth.filter(c=>c.billing&&c.billing.calc).map(c=>{const b=c.billing,k=b.calc;
-            return[c.billedDate||"",c.name||"",c.phone||"",c.address||"",c.fatherName||"",c.model||"",c.modelCode||"",b.chassis||"",b.engine||"",b.deliveryDate||"",b.mrNo||"",b.payMode||"",b.financeBank||"Cash",b.registrationNo||"",k.ex,k.ca,k.hdl,k.ins,k.reg,k.acc,k.tef,k.hyp,k.amcV,k.C,k.cof,k.sdis,b.discRem||"",k.corp,k.E,k.bk,c.exchangeAsked||"",k.exv,k.G,k.loan,k.I,k.paid,k.excess||0,k.K,c.salesman||"",c.branch||"",c.approvedBy||"",c.enquiryDate||"",c.updatedAt||c.billedDate||""];
+            return[c.billedDate||"",c.name||"",c.phone||"",c.address||"",c.fatherName||"",c.model||"",c.modelCode||"",b.chassis||"",b.engine||"",b.deliveryDate||"",b.mrNo||"",b.payMode||"",b.financeBank||"Cash",b.registrationNo||"",k.ex,k.ca,k.hdl,k.ins,k.reg,k.acc,k.tef,k.hyp,k.amcV,k.C,k.cof,k.sdis,b.discRem||"",b.discAmt||0,k.corp,k.E,k.bk,c.exchangeAsked||"",k.exv,k.G,k.loan,k.I,k.paid,k.excess||0,k.K,c.salesman||"",c.branch||"",c.approvedBy||"",c.enquiryDate||"",c.updatedAt||c.billedDate||""];
           });
           if(rows.length===0){alert("No billed customers for "+repMonth);return;}
           const wb=XLSX.utils.book_new();const ws=XLSX.utils.aoa_to_sheet([H,...rows]);
@@ -2043,9 +2090,9 @@ function DocVault({custs,onImport}){
           XLSX.writeFile(wb,"NKD_BillingTeam_"+repMonth+".xlsx");
         }} style={{width:"100%",background:"rgba(52,211,153,0.1)",border:"1px solid rgba(52,211,153,0.35)",borderRadius:11,padding:"11px",color:"#34d399",fontWeight:700,fontSize:12,cursor:"pointer"}}>🧾 Billing Team — {repMonth}</button>
         <button onClick={()=>{
-          const H=["Bill Date","Customer","Phone","Address","Father Name","Model","Code","Chassis","Engine","Delivery Date","MR No","Pay Mode","Financed By","Reg No","Ex-Showroom","Comp Acc","Handling","Insurance","Registration","Accessories","Teflon","Hypo","AMC","TOTAL ON-ROAD","Consumer Offer","Special Disc","Disc Remarks","Corporate","DEAL PRICE","Booking Amt","Exchange Vehicle","Exchange Value","NET AMT","Loan","BALANCE","PAID","EXCESS","DIFF","Salesman","Branch","Approved By","Enquiry Date","Last Modified"];
+          const H=["Bill Date","Customer","Phone","Address","Father Name","Model","Code","Chassis","Engine","Delivery Date","MR No","Pay Mode","Financed By","Reg No","Ex-Showroom","Comp Acc","Handling","Insurance","Registration","Accessories","Teflon","Hypo","AMC","TOTAL ON-ROAD","Consumer Offer","Special Disc","Disc Remarks","Disc Adj Amt","Corporate","DEAL PRICE","Booking Amt","Exchange Vehicle","Exchange Value","NET AMT","Loan","BALANCE","PAID","EXCESS","DIFF","Salesman","Branch","Approved By","Enquiry Date","Last Modified"];
           const rows=billedForMonth.filter(c=>c.billing&&c.billing.calc).map(c=>{const b=c.billing,k=b.calc;
-            return[c.billedDate||"",c.name||"",c.phone||"",c.address||"",c.fatherName||"",c.model||"",c.modelCode||"",b.chassis||"",b.engine||"",b.deliveryDate||"",b.mrNo||"",b.payMode||"",b.financeBank||"Cash",b.registrationNo||"",k.ex,k.ca,k.hdl,k.ins,k.reg,k.acc,k.tef,k.hyp,k.amcV,k.C,k.cof,k.sdis,b.discRem||"",k.corp,k.E,k.bk,c.exchangeAsked||"",k.exv,k.G,k.loan,k.I,k.paid,k.excess||0,k.K,c.salesman||"",c.branch||"",c.approvedBy||"",c.enquiryDate||"",c.updatedAt||c.billedDate||""];
+            return[c.billedDate||"",c.name||"",c.phone||"",c.address||"",c.fatherName||"",c.model||"",c.modelCode||"",b.chassis||"",b.engine||"",b.deliveryDate||"",b.mrNo||"",b.payMode||"",b.financeBank||"Cash",b.registrationNo||"",k.ex,k.ca,k.hdl,k.ins,k.reg,k.acc,k.tef,k.hyp,k.amcV,k.C,k.cof,k.sdis,b.discRem||"",b.discAmt||0,k.corp,k.E,k.bk,c.exchangeAsked||"",k.exv,k.G,k.loan,k.I,k.paid,k.excess||0,k.K,c.salesman||"",c.branch||"",c.approvedBy||"",c.enquiryDate||"",c.updatedAt||c.billedDate||""];
           });
           if(rows.length===0){alert("No billed customers for "+repMonth);return;}
           const wb=XLSX.utils.book_new();const ws=XLSX.utils.aoa_to_sheet([H,...rows]);
@@ -2820,12 +2867,31 @@ export default function App(){
     if(ok){upd(id,{managerApproval:"approved",approvedBy:user,remarks:((cu&&cu.remarks)||"")+mr+"\n["+td()+"] APPROVED by "+user});notify("✅ Approved — record locked");}
     else{upd(id,{managerApproval:"rejected",billed:false,status:"Booked",billing:(cu&&cu.billing)?{...cu.billing,receiptHtml:null}:null,remarks:((cu&&cu.remarks)||"")+mr+"\n["+td()+"] BILLING REJECTED by Manager — correct and re-bill. All documents retained."});notify("❌ Rejected — sent back to executive");}
   }
+  function requestTransfer(id,requestedBy){
+    upd(id,{transferReq:{requestedBy,requestedAt:td(),status:"pending"}});
+    // Notify office WhatsApp
+    const cu=custs.find(c=>c.id===id);
+    const msg="🔄 Lead Transfer Request\nFrom: "+requestedBy+"\nLead: "+(cu?cu.name:"")+" ("+id+")\nCurrently with: "+(cu?cu.salesman:"")+"\nPlease approve/reject in CRM.";
+    fetch("https://wa.me/91"+OFFICE_WA+"?text="+encodeURIComponent(msg)).catch(()=>{});
+  }
+  function approveTransfer(id,ok){
+    const cu=custs.find(c=>c.id===id);
+    if(!cu||!cu.transferReq)return;
+    const prev=cu.salesman;
+    const next=cu.transferReq.requestedBy;
+    if(ok){
+      upd(id,{salesman:next,transferReq:{...cu.transferReq,status:"approved",approvedBy:user,approvedAt:td()},remarks:((cu.remarks)||"")+"\n["+td()+"] Lead transferred from "+prev+" to "+next+" by "+user});
+    }else{
+      upd(id,{transferReq:{...cu.transferReq,status:"rejected",approvedBy:user,approvedAt:td()}});
+    }
+  }
 
   const mBr=ld("nkd_br",BRANCHES[0]);
   const myC=role==="salesman"?custs.filter(c=>c.salesman===user):role==="manager"?custs.filter(c=>(c.branch||SM_BRANCH[c.salesman])===mBr):custs; // owner/tech/admin see all
   const due=[...myC.filter(c=>!c.billed&&!c.stopped&&c.followupDate<=td())].sort((a,b)=>{const o={Hot:0,Warm:1,Cold:2,Booked:3};return(o[a.status]??9)-(o[b.status]??9);});
   const pending=custs.filter(c=>c.billing&&c.managerApproval===null);
   const myPending=role==="salesman"?pending.filter(c=>c.salesman===user):pending;
+  const pendingTransfers=custs.filter(c=>c.transferReq&&c.transferReq.status==="pending");
   const revivable=custs.filter(c=>{if(c.billed)return false;const base=c.reactivatedAt||c.enquiryDate;return((new Date()-new Date(base))/(864e5*30))>=6;});
 
   function openD(c,tab){setSel(c);if(tab)setDtab(tab);nav("detail");window.scrollTo({top:0,behavior:"instant"});}
@@ -2859,7 +2925,7 @@ export default function App(){
     /></>;
   }
 
-  const navItems=role==="admin"?[{id:"vault",l:"Document Vault",ic:"📁"},{id:"uploads",l:"Uploads",ic:"📤"},{id:"stock",l:"Stock",ic:"🏍️"},{id:"rcstatus",l:"RC/HSRP",ic:"🔍"}]:[{id:"dashboard",l:"Home",ic:"🏠"},{id:"followups",l:"Followup",ic:"📞",badge:due.length},{id:"customers",l:"Customers",ic:"👥"},{id:"stock",l:"Stock",ic:"🏍️"},{id:"rcstatus",l:"RC/HSRP",ic:"🔍"},{id:"approvals",l:role==="salesman"?"My Pending":"Approve",ic:"✅",badge:myPending.length},...(role!=="salesman"?[{id:"revival",l:"Revival",ic:"🔄"}]:[]),...(isOwner(role)?[{id:"reports",l:"Reports",ic:"📊"}]:[]),...(isOwner(role)?[{id:"vault",l:"Vault",ic:"📁"}]:[]),...(isOwner(role)?[{id:"uploads",l:"Uploads",ic:"📤"}]:[]),...(role!=="salesman"&&alerts.length>0?[{id:"alerts",l:"Alerts",ic:"⚠️",badge:alerts.length}]:[])];
+  const navItems=role==="admin"?[{id:"vault",l:"Document Vault",ic:"📁"},{id:"uploads",l:"Uploads",ic:"📤"},{id:"stock",l:"Stock",ic:"🏍️"},{id:"rcstatus",l:"RC/HSRP",ic:"🔍"}]:[{id:"dashboard",l:"Home",ic:"🏠"},{id:"followups",l:"Followup",ic:"📞",badge:due.length},{id:"customers",l:"Customers",ic:"👥"},{id:"stock",l:"Stock",ic:"🏍️"},{id:"rcstatus",l:"RC/HSRP",ic:"🔍"},{id:"approvals",l:role==="salesman"?"My Pending":"Approve",ic:"✅",badge:myPending.length+(role!=="salesman"?pendingTransfers.length:0)},...(role!=="salesman"?[{id:"revival",l:"Revival",ic:"🔄"}]:[]),...(isOwner(role)?[{id:"reports",l:"Reports",ic:"📊"}]:[]),...(isOwner(role)?[{id:"vault",l:"Vault",ic:"📁"}]:[]),...(isOwner(role)?[{id:"uploads",l:"Uploads",ic:"📤"}]:[]),...(role!=="salesman"&&alerts.length>0?[{id:"alerts",l:"Alerts",ic:"⚠️",badge:alerts.length}]:[])];
 
   return(
     <div style={{minHeight:"100dvh",background:"linear-gradient(160deg,#f0f7ff 0%,#e8f4ff 40%,#f8fafc 100%)",color:"#1e293b",fontFamily:"'Inter',-apple-system,sans-serif",maxWidth:480,margin:"0 auto"}}>
@@ -2909,11 +2975,27 @@ export default function App(){
         {view==="dashboard"&&<Dashboard custs={myC} role={role} onOpen={openD} onNav={nav} onNavF={st=>{setCustF(st);nav("customers");}} onSvcDone={id=>{upd(id,{serviceDone:true});notify("Service marked done ✓");}} onTeamTap={s=>{setFSM(s);nav("followups");}} onAddPayment={addPayment} onUpd={upd} notify={notify}/>}
         {view==="followups"&&<Followups items={due} onOpen={openD} onLog={logF} onCallLog={logCall} showSMFilter={role!=="salesman"} initSM={fSM}/>}
         {view==="customers"&&<CustList custs={myC} onOpen={openD} initF={custF} showSM={role!=="salesman"}/>}
-        {view==="detail"&&sel&&<Detail cust={custs.find(c=>c.id===sel.id)||sel} role={role} onBack={goBack} onUpd={p=>upd(sel.id,p)} onLog={logF} onBill={()=>setBillOpen(true)} onBook={()=>setBookOpen(true)} notify={notify} initTab={dtab} clearInit={()=>setDtab(null)} onAddPayment={addPayment} onApprove={approveBill}/>}
+        {view==="detail"&&sel&&<Detail cust={custs.find(c=>c.id===sel.id)||sel} role={role} onBack={goBack} onUpd={p=>upd(sel.id,p)} onLog={logF} onBill={()=>setBillOpen(true)} onBook={()=>setBookOpen(true)} notify={notify} initTab={dtab} clearInit={()=>setDtab(null)} onAddPayment={addPayment} onApprove={approveBill} curUser={user} onTransferReq={requestTransfer} onApproveTransfer={approveTransfer}/>}
         {view==="uploads"&&<div style={{padding:"0 16px 80px"}}><UploadsHub stockData={stockData} statusData={statusData} onStockUpload={saveStockData} onStatusUpload={saveStatusData} notify={notify}/></div>}
         {view==="stock"&&<div style={{padding:"0 16px 80px"}}><StockView stockData={stockData} billedChassis={billedChassis} role={role} userBranch={role==="salesman"?(SM_BRANCH[user]||BRANCHES[0]):role==="manager"?mBr:null} onUpload={saveStockData} notify={notify}/></div>}
         {view==="rcstatus"&&<div style={{padding:"0 16px 80px"}}><RCHSRPSearch statusData={statusData} role={role} onUpload={saveStatusData} notify={notify}/></div>}
-        {view==="approvals"&&<Approvals custs={myPending} onApprove={approveBill} onOpen={openD} onEditCalc={c=>{setSel(c);setBillOpen(true);}} allC={myC} canApprove={role!=="salesman"}/>}
+        {view==="approvals"&&<>
+          {role!=="salesman"&&pendingTransfers.length>0&&<div style={{marginBottom:16}}>
+            <div style={{fontWeight:800,fontSize:14,color:"#3b82f6",marginBottom:8}}>🔄 Lead Transfer Requests ({pendingTransfers.length})</div>
+            {pendingTransfers.map(c=>(
+              <div key={c.id} style={{background:"#fff",border:"1px solid rgba(96,165,250,0.4)",borderRadius:12,padding:"12px 13px",marginBottom:8}}>
+                <div style={{fontWeight:700,fontSize:13,color:"#1e293b",marginBottom:2}}>{c.name} <span style={{fontSize:11,color:"#94a3b8"}}>· {c.modelCode}</span></div>
+                <div style={{fontSize:11,color:"#64748b",marginBottom:6}}>From <b>{c.salesman}</b> → To <b>{c.transferReq.requestedBy}</b> · Requested {fd(c.transferReq.requestedAt)}</div>
+                <div style={{display:"flex",gap:8}}>
+                  <button onClick={()=>{approveTransfer(c.id,true);notify("✅ Transfer approved");}} style={{flex:1,background:"rgba(34,197,94,0.12)",border:"1px solid rgba(34,197,94,0.4)",borderRadius:9,padding:"9px",color:"#22c55e",fontSize:12,fontWeight:700,cursor:"pointer"}}>✅ Approve</button>
+                  <button onClick={()=>{approveTransfer(c.id,false);notify("❌ Transfer rejected");}} style={{flex:1,background:"rgba(239,68,68,0.1)",border:"1px solid rgba(239,68,68,0.3)",borderRadius:9,padding:"9px",color:"#ef4444",fontSize:12,fontWeight:700,cursor:"pointer"}}>❌ Reject</button>
+                  <button onClick={()=>openD(c)} style={{background:"rgba(249,115,22,0.08)",border:"1px solid rgba(249,115,22,0.3)",borderRadius:9,padding:"9px 12px",color:"#f97316",fontSize:12,fontWeight:700,cursor:"pointer"}}>View</button>
+                </div>
+              </div>
+            ))}
+          </div>}
+          <Approvals custs={myPending} onApprove={approveBill} onOpen={openD} onEditCalc={c=>{setSel(c);setBillOpen(true);}} allC={myC} canApprove={role!=="salesman"}/>
+        </>}
         {view==="revival"&&<Revival items={revivable} onRevive={ids=>{let si=0;const perDay={};setCusts(p=>p.map(c=>{
           if(!ids.includes(c.id))return c;
           const sm2=SM[si++%SM.length];
@@ -2954,7 +3036,7 @@ export default function App(){
         upd(cu.id,updCu);
         try{const doc=makeBookingPdf(updCu,newBk);sharePdf(doc,"Booking"+allBks.length+"_"+cu.name.replace(/ /g,"_")+"_"+td()+".pdf",cu.phone,"Please find your Booking Receipt #"+allBks.length+" from NKD Bajaj, Dhanbad.");savePdfToDrive(doc,"Booking"+allBks.length+"_"+cu.name.replace(/ /g,"_")+"_"+td()+".pdf",cu.name,"Booking");}catch(e){}
         setBookOpen(false);setDtab("docs");notify("✅ Booking #"+allBks.length+" saved & MR sent to customer!");}}/>}
-      {billOpen&&sel&&<BillingModal cust={custs.find(c=>c.id===sel.id)||sel} onClose={()=>setBillOpen(false)} onSave={d=>{billC(custs.find(c=>c.id===sel.id)||sel,d);setBillOpen(false);}} onDraft={d=>{upd(sel.id,{billingDraft:d});setBillOpen(false);}} notify={notify} role={role} stockData={stockData} billedChassis={billedChassis}/>}
+      {billOpen&&sel&&<BillingModal cust={custs.find(c=>c.id===sel.id)||sel} onClose={()=>setBillOpen(false)} onSave={d=>{billC(custs.find(c=>c.id===sel.id)||sel,d);setBillOpen(false);}} onDraft={d=>{upd(sel.id,{billingDraft:d});setBillOpen(false);}} notify={notify} role={role} stockData={stockData} billedChassis={billedChassis} allCusts={custs}/>}
     </div>
   );
 }
