@@ -2862,12 +2862,12 @@ export default function App(){
   const navItems=role==="admin"?[{id:"vault",l:"Document Vault",ic:"📁"},{id:"uploads",l:"Uploads",ic:"📤"},{id:"stock",l:"Stock",ic:"🏍️"},{id:"rcstatus",l:"RC/HSRP",ic:"🔍"}]:[{id:"dashboard",l:"Home",ic:"🏠"},{id:"followups",l:"Followup",ic:"📞",badge:due.length},{id:"customers",l:"Customers",ic:"👥"},{id:"stock",l:"Stock",ic:"🏍️"},{id:"rcstatus",l:"RC/HSRP",ic:"🔍"},{id:"approvals",l:role==="salesman"?"My Pending":"Approve",ic:"✅",badge:myPending.length},...(role!=="salesman"?[{id:"revival",l:"Revival",ic:"🔄"}]:[]),...(isOwner(role)?[{id:"reports",l:"Reports",ic:"📊"}]:[]),...(isOwner(role)?[{id:"vault",l:"Vault",ic:"📁"}]:[]),...(isOwner(role)?[{id:"uploads",l:"Uploads",ic:"📤"}]:[]),...(role!=="salesman"&&alerts.length>0?[{id:"alerts",l:"Alerts",ic:"⚠️",badge:alerts.length}]:[])];
 
   return(
-    <div style={{minHeight:"100vh",background:"linear-gradient(160deg,#f0f7ff 0%,#e8f4ff 40%,#f8fafc 100%)",color:"#1e293b",fontFamily:"'Inter',-apple-system,sans-serif",maxWidth:480,margin:"0 auto"}}>
+    <div style={{minHeight:"100dvh",background:"linear-gradient(160deg,#f0f7ff 0%,#e8f4ff 40%,#f8fafc 100%)",color:"#1e293b",fontFamily:"'Inter',-apple-system,sans-serif",maxWidth:480,margin:"0 auto"}}>
       {notifPopup}
       <style>{`
         @import url('https://fonts.googleapis.com/css2?family=Sora:wght@400;600;700;800&display=swap');
         *{font-family:'Sora','Inter',-apple-system,sans-serif!important;-webkit-tap-highlight-color:transparent}
-        body{background:#f0f7ff}
+        body{background:#f0f7ff;-webkit-overflow-scrolling:touch}
         @keyframes fadeUp{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:none}}
         @keyframes glow{0%,100%{box-shadow:0 0 14px rgba(249,115,22,.3)}50%{box-shadow:0 0 26px rgba(249,115,22,.5)}}
         @keyframes shimmer{0%{background-position:-200% 0}100%{background-position:200% 0}}
@@ -2880,7 +2880,7 @@ export default function App(){
         ::-webkit-scrollbar{display:none}
         ::placeholder{color:#b0bec8}
       `}</style>
-      <div style={{background:"rgba(255,255,255,.97)",backdropFilter:"blur(16px)",borderBottom:"1px solid #6b8fb5",padding:"12px 16px",display:"flex",alignItems:"center",justifyContent:"space-between",position:"sticky",top:0,zIndex:100,boxShadow:"0 2px 16px rgba(15,23,42,.14)"}}>
+      <div style={{background:"rgba(255,255,255,.97)",backdropFilter:"blur(16px)",borderBottom:"1px solid #6b8fb5",padding:"12px 16px",paddingTop:"calc(12px + env(safe-area-inset-top))",display:"flex",alignItems:"center",justifyContent:"space-between",position:"sticky",top:0,zIndex:100,boxShadow:"0 2px 16px rgba(15,23,42,.14)"}}>
         <div style={{display:"flex",alignItems:"center",gap:10}}>
           <div style={{width:38,height:38,borderRadius:11,background:"linear-gradient(135deg,#f97316,#ef4444)",display:"flex",alignItems:"center",justifyContent:"center",fontWeight:900,fontSize:17,color:"#fff",animation:"glow 3s ease infinite"}}>B</div>
           <div><div style={{fontWeight:800,fontSize:13,color:"#1e293b"}}>NKD BAJAJ CRM</div><div style={{fontSize:10,color:"#94a3b8"}}>{user} · {role}{role==="manager"?" · "+mBr:""}</div></div>
