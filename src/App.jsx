@@ -16,7 +16,7 @@ const SM_BRANCH={"Amit Kumar":"Hirak Road","Ravi Singh":"Hirak Road","Suresh Yad
 const ST_C={Hot:"#ef4444",Warm:"#f97316",Cold:"#3b82f6",Booked:"#8b5cf6",Billed:"#10b981",Lost:"#6b7280"};
 const FU={Hot:1,Warm:3,Cold:7};
 const CATS=[...new Set(Object.values(RC).map(r=>r.cat))];
-const DEFAULT_USERS={manager:[{name:"Manager",pin:"1234"}],owner:[{name:"Owner",pin:"0000"}],admin:[{name:"Admin",pin:"9999"}],tech:[{name:"Tech",pin:"1111"}]};
+const DEFAULT_USERS={manager:[{name:"Manager",pin:"1234"}],owner:[{name:"Owner",pin:"0000"}],admin:[{name:"Admin",pin:"9999"}],tech:[{name:"Tech",pin:"1111"}],salesman:SM.map(n=>({name:n,phone:""}))};
 // role helpers
 function isOwner(r){return r==="owner"||r==="tech";}
 function isPortalRole(r){return r==="owner"||r==="admin"||r==="tech";}
@@ -231,16 +231,17 @@ function ld(k,d){try{const v=localStorage.getItem(k);return v?JSON.parse(v):d;}c
 try{Object.assign(RC,ld("nkd_rc",{}));}catch(e){}
 
 function calcB(f,r){
-  const ex=Number(r?.ex||0),ca=Number(r?.cAcc||0),hdl=Number(f.hdl||r?.hdl||600);
-  const ins=Number(f.ins||r?.ins||0),reg=Number(f.reg||r?.reg||0),acc=Number(f.acc||0);
+  const ex=Number(r?.ex||0),ca=Number(r?.cAcc||0),hdl=Number(r?.hdl||600);
+  const ins=Number(r?.ins||0),reg=Number(r?.reg||0),acc=Number(f.acc||0);
   const tef=Number(f.tef||0),hyp=Number(f.hyp||0),amcV=f.addAmc?(Number(r?.amc)||0):0;
   const B=hdl+ins+reg+ca+acc+tef+hyp+amcV,C=ex+B;
   const cof=Number(f.cof||0),sdis=Number(f.sdis||0),corp=Number(f.corp||0),D=cof+sdis+corp,E=C-D;
   const bk=Number(f.bk||0),exv=Number(f.exv||0),F=bk+exv,G=E-F;
   const loan=Number(f.loan||0),I=G-loan;
   const paid=f.payments&&f.payments.length?(f.payments.reduce((s,p)=>s+Number(p.amt||0),0)):Number(f.paid||0);
-  const K=I-paid;
-  return{ex,ca,hdl,ins,reg,acc,tef,hyp,amcV,B,C,cof,sdis,corp,D,E,bk,exv,F,G,loan,I,paid,K};
+  const excess=Number(f.excessAmt||0);
+  const K=I-paid-excess;
+  return{ex,ca,hdl,ins,reg,acc,tef,hyp,amcV,B,C,cof,sdis,corp,D,E,bk,exv,F,G,loan,I,paid,excess,K};
 }
 
 function seedData(){
@@ -293,32 +294,66 @@ function Card({c,onClick,showSM}){
 function Login({onLogin,nkdUsers}){
   const users=nkdUsers||DEFAULT_USERS;
   const [role,setRole]=useState("salesman");
-  const [user,setUser]=useState(SM[0]);
   const [uname,setUname]=useState("");
   const [pin,setPin]=useState("");
   const [br,setBr]=useState(BRANCHES[0]);
-  const [spw,setSpw]=useState("");
+  // Salesman-specific
+  const [smPass,setSmPass]=useState("");
   const [showPw,setShowPw]=useState(false);
   const [chg,setChg]=useState(false);
   const [npw1,setNpw1]=useState("");
   const [npw2,setNpw2]=useState("");
+  // OTP flow
+  const [otpStep,setOtpStep]=useState(false);
+  const [otp,setOtp]=useState("");
+  const [otpCode,setOtpCode]=useState("");
+  const [smRec,setSmRec]=useState(null);
+
+  function findSM(name){
+    const list=users.salesman||SM.map(n=>({name:n,phone:""}));
+    return list.find(u=>u.name.trim().toLowerCase()===name.trim().toLowerCase());
+  }
+  function sendOtp(phone,code){
+    const msg="Your NKD CRM login OTP is: *"+code+"*\nValid for 5 minutes. Do not share.";
+    window.open("https://wa.me/91"+phone+"?text="+encodeURIComponent(msg),"_blank");
+  }
   function go(){
     if(role==="salesman"){
-      const pws=ld("nkd_pw",{});
-      const rec=pws[user]||{pw:"1111",must:true,fails:0,locked:false};
-      if(rec.locked){alert("🔒 Account locked after 5 wrong attempts.\nAsk Admin/Owner to reset your password.");return;}
-      if(spw!==rec.pw){rec.fails=(rec.fails||0)+1;if(rec.fails>=5){rec.locked=true;alert("🔒 Account LOCKED (5 wrong attempts). Admin has been flagged.");}else{alert("Wrong password ("+rec.fails+"/5 attempts)");}pws[user]=rec;sv("nkd_pw",pws);_dbSet("passwords",pws);return;}
-      rec.fails=0;
-      if(rec.must&&!chg){setChg(true);pws[user]=rec;sv("nkd_pw",pws);_dbSet("passwords",pws);return;}
-      if(rec.must&&chg){
-        if(!npw1||npw1.length<4){alert("New password must be at least 4 characters");return;}
-        if(npw1!==npw2){alert("New passwords do not match");return;}
-        rec.pw=npw1;rec.must=false;
+      if(otpStep){
+        if(otp.trim()!==otpCode){alert("❌ Incorrect OTP. Please try again.");return;}
+        const pws=ld("nkd_pw",{});
+        const rec=pws[smRec.name]||{pw:"1111",must:false,fails:0,locked:false};
+        if(chg){
+          if(!npw1||npw1.length<4){alert("New password must be at least 4 characters");return;}
+          if(npw1!==npw2){alert("New passwords do not match");return;}
+          rec.pw=npw1;rec.must=false;pws[smRec.name]=rec;sv("nkd_pw",pws);_dbSet("passwords",pws);
+        }
+        onLogin("salesman",smRec.name,null);return;
       }
-      pws[user]=rec;sv("nkd_pw",pws);_dbSet("passwords",pws);
-      onLogin(role,user,null);return;
+      if(!uname.trim()){alert("Enter your username");return;}
+      const sm=findSM(uname);
+      if(!sm){alert("Username not found. Contact Admin.");return;}
+      const pws=ld("nkd_pw",{});
+      const rec=pws[sm.name]||{pw:"1111",must:true,fails:0,locked:false};
+      if(rec.locked){alert("🔒 Account locked after 5 wrong attempts.\nAsk Admin/Owner to reset your password.");return;}
+      if(smPass!==rec.pw){
+        rec.fails=(rec.fails||0)+1;
+        if(rec.fails>=5){rec.locked=true;alert("🔒 Account LOCKED (5 wrong attempts).");}
+        else{alert("Wrong password ("+rec.fails+"/5 attempts)");}
+        pws[sm.name]=rec;sv("nkd_pw",pws);_dbSet("passwords",pws);return;
+      }
+      rec.fails=0;pws[sm.name]=rec;sv("nkd_pw",pws);_dbSet("passwords",pws);
+      if(rec.must)setChg(true);
+      if(!sm.phone){
+        alert("⚠️ No phone number registered for your account.\nAsk Admin to add your phone number in User Accounts.\nLogging in without OTP for now.");
+        onLogin("salesman",sm.name,null);return;
+      }
+      const code=String(Math.floor(100000+Math.random()*900000));
+      setOtpCode(code);setSmRec(sm);
+      sendOtp(sm.phone,code);
+      setOtpStep(true);return;
     }
-    // manager / owner / admin — check against nkdUsers
+    // manager / owner / admin / tech
     const roleList=users[role]||[];
     const match=roleList.find(u=>u.name.trim().toLowerCase()===uname.trim().toLowerCase()&&u.pin===pin);
     if(!match){alert("Wrong username or PIN");return;}
@@ -333,27 +368,45 @@ function Login({onLogin,nkdUsers}){
           <div style={{color:"#94a3b8",fontSize:12,marginTop:3}}>Dhanbad · 3 Showrooms</div>
         </div>
         <div style={{display:"flex",flexDirection:"column",gap:12}}>
-          <div><label style={lbl}>Role</label><select style={inp} value={role} onChange={e=>{setRole(e.target.value);setUname("");setPin("");}}>
+          <div><label style={lbl}>Role</label><select style={inp} value={role} onChange={e=>{setRole(e.target.value);setUname("");setPin("");setSmPass("");setOtpStep(false);setOtp("");}}>
             <option value="salesman">Sales Executive</option>
             <option value="manager">Manager</option>
             <option value="owner">Owner</option>
             <option value="admin">Admin (Documents)</option>
             <option value="tech">Tech</option>
           </select></div>
-          {/* ── SALESMAN ── */}
-          {role==="salesman"&&<div><label style={lbl}>Your Name</label><select style={inp} value={user} onChange={e=>setUser(e.target.value)}>{SM.map(s=><option key={s}>{s}</option>)}</select></div>}
-          {role==="salesman"&&<div><label style={lbl}>Password <span style={{color:"#94a3b8",fontWeight:400}}>(first time: 1111)</span></label>
+
+          {/* ── SALESMAN: username + password ── */}
+          {role==="salesman"&&!otpStep&&<div>
+            <label style={lbl}>Username</label>
+            <input style={inp} value={uname} onChange={e=>setUname(e.target.value)} placeholder="Your name / username" autoComplete="off" onKeyDown={e=>e.key==="Enter"&&go()}/>
+          </div>}
+          {role==="salesman"&&!otpStep&&<div>
+            <label style={lbl}>Password <span style={{color:"#94a3b8",fontWeight:400}}>(first time: 1111)</span></label>
             <div style={{position:"relative"}}>
-              <input type={showPw?"text":"password"} style={inp} value={spw} onChange={e=>setSpw(e.target.value)} onKeyDown={e=>e.key==="Enter"&&go()}/>
+              <input type={showPw?"text":"password"} style={inp} value={smPass} onChange={e=>setSmPass(e.target.value)} onKeyDown={e=>e.key==="Enter"&&go()}/>
               <button onClick={()=>setShowPw(!showPw)} style={{position:"absolute",right:8,top:9,background:"transparent",border:"none",color:"#94a3b8",cursor:"pointer",fontSize:14}}>{showPw?"🙈":"👁️"}</button>
             </div>
           </div>}
-          {role==="salesman"&&chg&&<div style={{background:"rgba(249,115,22,0.08)",border:"1px solid rgba(249,115,22,0.35)",borderRadius:12,padding:12}}>
-            <div style={{fontSize:11,color:"#f97316",fontWeight:700,marginBottom:8}}>🔐 First login — set your own password</div>
-            <input type="password" placeholder="New password (min 4 chars)" style={{...inp,marginBottom:8}} value={npw1} onChange={e=>setNpw1(e.target.value)}/>
-            <input type="password" placeholder="Re-enter new password" style={inp} value={npw2} onChange={e=>setNpw2(e.target.value)} onKeyDown={e=>e.key==="Enter"&&go()}/>
-          </div>}
-          {/* ── MANAGER / OWNER / ADMIN ── */}
+
+          {/* ── SALESMAN: OTP step ── */}
+          {role==="salesman"&&otpStep&&(
+            <div style={{background:"rgba(34,197,94,0.06)",border:"1px solid rgba(34,197,94,0.4)",borderRadius:14,padding:14}}>
+              <div style={{fontSize:13,color:"#16a34a",fontWeight:700,marginBottom:4}}>📲 OTP sent via WhatsApp</div>
+              <div style={{fontSize:11,color:"#64748b",marginBottom:12}}>Enter the 6-digit OTP sent to your registered phone number.</div>
+              <input type="text" inputMode="numeric" maxLength={6} placeholder="● ● ● ● ● ●" style={{...inp,letterSpacing:8,fontSize:20,textAlign:"center",fontWeight:700,padding:"12px 10px"}} value={otp} onChange={e=>setOtp(e.target.value.replace(/\D/g,"").slice(0,6))} onKeyDown={e=>e.key==="Enter"&&go()} autoFocus/>
+              <button onClick={()=>{const code=String(Math.floor(100000+Math.random()*900000));setOtpCode(code);sendOtp(smRec.phone,code);setOtp("");}} style={{marginTop:8,background:"transparent",border:"none",color:"#f97316",fontSize:11,cursor:"pointer",textDecoration:"underline",padding:0}}>Resend OTP</button>
+            </div>
+          )}
+          {role==="salesman"&&otpStep&&chg&&(
+            <div style={{background:"rgba(249,115,22,0.08)",border:"1px solid rgba(249,115,22,0.35)",borderRadius:12,padding:12}}>
+              <div style={{fontSize:11,color:"#f97316",fontWeight:700,marginBottom:8}}>🔐 First login — set your own password</div>
+              <input type="password" placeholder="New password (min 4 chars)" style={{...inp,marginBottom:8}} value={npw1} onChange={e=>setNpw1(e.target.value)}/>
+              <input type="password" placeholder="Re-enter new password" style={inp} value={npw2} onChange={e=>setNpw2(e.target.value)} onKeyDown={e=>e.key==="Enter"&&go()}/>
+            </div>
+          )}
+
+          {/* ── MANAGER / OWNER / ADMIN / TECH ── */}
           {role!=="salesman"&&<div><label style={lbl}>Username</label><input style={inp} value={uname} onChange={e=>setUname(e.target.value)} placeholder={"Your "+role+" username"} autoComplete="off"/></div>}
           {role==="manager"&&<div><label style={lbl}>Your Branch</label><select style={inp} value={br} onChange={e=>setBr(e.target.value)}>{BRANCHES.map(b=><option key={b}>{b}</option>)}</select></div>}
           {role!=="salesman"&&<div><label style={lbl}>PIN</label><input type="password" style={inp} value={pin} onChange={e=>setPin(e.target.value)} onKeyDown={e=>e.key==="Enter"&&go()} placeholder="Enter PIN"/></div>}
@@ -369,7 +422,10 @@ function Login({onLogin,nkdUsers}){
               <div style={{marginTop:6,color:"#f97316",fontWeight:600}}>Change these from Owner / Tech portal → 👤 User Accounts</div>
             </div>
           )}
-          <button onClick={go} style={{...btn("linear-gradient(135deg,#f97316,#ef4444)"),padding:14,fontSize:15,borderRadius:13,marginTop:4}}>Login →</button>
+          <button onClick={go} style={{...btn("linear-gradient(135deg,#f97316,#ef4444)"),padding:14,fontSize:15,borderRadius:13,marginTop:4}}>
+            {role==="salesman"&&otpStep?"✅ Verify OTP & Login":"Login →"}
+          </button>
+          {role==="salesman"&&otpStep&&<button onClick={()=>{setOtpStep(false);setOtp("");setOtpCode("");}} style={{background:"transparent",border:"1px solid #6b8fb5",borderRadius:10,padding:"10px 14px",fontSize:13,color:"#64748b",cursor:"pointer"}}>← Back</button>}
         </div>
       </div>
     </div>
@@ -1331,7 +1387,7 @@ function BillingModal({cust,onClose,onSave,onDraft,notify,role,stockData,billedC
   const r=RC[cust.modelCode]||{};
   const isFin=cust.finance==="Finance";
   const eb=cust.billing||cust.billingDraft||{};
-  const [f,setF]=useState({...eb,billName:eb.billName||cust.name,exchName:cust.exchangeName||"",exchPhone:cust.exchangePhone||eb.details?.exchangePhone||"",exchModel:cust.exchangeAsked||"",exchRegNo:cust.exchangeRegNo||"",bkDate:(cust.booking&&cust.booking.date)||td(),fatherName:eb.details?.fatherName||cust.fatherName||"",dob:eb.details?.dob||cust.dob||"",aadhar:eb.details?.aadhar||cust.aadhar||"",pan:eb.details?.pan||cust.pan||"",nominee:eb.details?.nominee||cust.nominee||"",nomineeRel:eb.details?.nomineeRel||cust.nomineeRel||"",hdl:eb.hdl!==undefined?eb.hdl:(r.hdl||600),ins:eb.ins!==undefined?eb.ins:(r.ins||0),reg:eb.reg!==undefined?eb.reg:(r.reg||0),acc:0,tef:isFin?500:0,hyp:isFin?500:0,addAmc:false,cof:0,sdis:0,corp:0,bk:cust.totalBooking||(cust.bookings&&cust.bookings.reduce((s,b)=>s+Number(b.amt||0),0))||(cust.booking&&cust.booking.amt)||0,exv:eb.exv!==undefined?eb.exv:0,loan:0,payments:eb.payments&&eb.payments.length?eb.payments:(eb.paid||eb.payMode?[{mode:eb.payMode||"Cash",amt:Number(eb.paid||0),date:td(),ref:""}]:[{mode:"Cash",amt:0,date:td(),ref:""}]),chassis:eb.chassis||"",engine:eb.engine||"",color:eb.color||"",deliveryDate:eb.deliveryDate||td(),financeBank:eb.financeBank||"",registrationNo:eb.registrationNo||"",insuranceNo:eb.insuranceNo||""});
+  const [f,setF]=useState({...eb,billName:eb.billName||cust.name,exchName:cust.exchangeName||"",exchPhone:cust.exchangePhone||eb.details?.exchangePhone||"",exchModel:cust.exchangeAsked||"",exchRegNo:cust.exchangeRegNo||"",bkDate:(cust.booking&&cust.booking.date)||td(),fatherName:eb.details?.fatherName||cust.fatherName||"",dob:eb.details?.dob||cust.dob||"",aadhar:eb.details?.aadhar||cust.aadhar||"",pan:eb.details?.pan||cust.pan||"",nominee:eb.details?.nominee||cust.nominee||"",nomineeRel:eb.details?.nomineeRel||cust.nomineeRel||"",hdl:eb.hdl!==undefined?eb.hdl:(r.hdl||600),ins:eb.ins!==undefined?eb.ins:(r.ins||0),reg:eb.reg!==undefined?eb.reg:(r.reg||0),acc:0,tef:isFin?500:0,hyp:isFin?500:0,addAmc:false,cof:0,sdis:0,discRem:eb.discRem||"",corp:0,bk:cust.totalBooking||(cust.bookings&&cust.bookings.reduce((s,b)=>s+Number(b.amt||0),0))||(cust.booking&&cust.booking.amt)||0,exv:eb.exv!==undefined?eb.exv:0,loan:0,payments:eb.payments&&eb.payments.length?eb.payments:(eb.paid||eb.payMode?[{mode:eb.payMode||"Cash",amt:Number(eb.paid||0),date:td(),ref:""}]:[{mode:"Cash",amt:0,date:td(),ref:""}]),chassis:eb.chassis||"",engine:eb.engine||"",color:eb.color||"",deliveryDate:eb.deliveryDate||td(),financeBank:eb.financeBank||"",registrationNo:eb.registrationNo||"",insuranceNo:eb.insuranceNo||"",excessAmt:eb.excessAmt||"",excessRem:eb.excessRem||""});
   const c=calcB(f,r);
   const [chk,setChk]=useState(eb.checklist||{pdi:false,helmet:false,docs:false,service:false});
   const VER_ALL=[["nameV","Customer name verified"],["fatherV","Father name verified"],["aadharV","Aadhar number verified"],["nomineeV","Nominee & relation added"],["chassisV","Chassis number verified"],["engineV","Engine number verified"],["colorV","Colour verified"]];
@@ -1404,11 +1460,13 @@ function BillingModal({cust,onClose,onSave,onDraft,notify,role,stockData,billedC
     CALCROWS+="<div class=row><b>Total C=A+B</b><b>"+fc(c.C)+"</b></div>";
     if(c.cof)CALCROWS+="<div class=row><span>- Consumer Offer</span><span>"+fc(c.cof)+"</span></div>";
     if(c.sdis)CALCROWS+="<div class=row><span>- Special Discount</span><span>"+fc(c.sdis)+"</span></div>";
+    if(f.discRem)CALCROWS+="<div class=row><span style='color:#64748b;font-style:italic'>Remarks: "+f.discRem+"</span><span></span></div>";
     CALCROWS+="<div class=row><b>Deal Price E</b><b>"+fc(c.E)+"</b></div>";
     if(c.bk)rows+="<div class=row><span>- Booking ("+fd(f.bkDate)+")</span><span>"+fc(c.bk)+"</span></div>";
     if(c.exv)rows+="<div class=row><span>- Exchange: "+(f.exchModel||"")+" "+(f.exchRegNo||"")+(f.exchName?" ("+f.exchName+")":"")+"</span><span>"+fc(c.exv)+"</span></div>";
     if(c.loan)rows+="<div class=row><span>- Loan</span><span>"+fc(c.loan)+"</span></div>";
     rows+="<div class=total><span>AMOUNT RECEIVED</span><span>"+fc(c.paid)+"</span></div>";
+    if(c.excess)rows+="<div class=row><span>+ Excess Received"+(f.excessRem?" ("+f.excessRem+")":"")+"</span><span>"+fc(c.excess)+"</span></div>";
     rows+="<div class=row><span>Balance</span><span style='color:"+(c.K>0?"red":"green")+"'>"+fc(Math.max(c.K,0))+"</span></div>";
     window.__CG=CALCROWS;
     return "<!DOCTYPE html><html><head><title>Money Receipt</title><style>*{margin:0;padding:0;box-sizing:border-box}body{font-family:Arial,sans-serif;font-size:13px;padding:20px;color:#111}.logo{font-size:24px;font-weight:900;letter-spacing:2px;text-align:center}.hdr{text-align:center;border-bottom:2px solid #000;padding-bottom:10px;margin-bottom:14px}.hdr p{font-size:11px;color:#444;margin-top:2px}h2{text-align:center;font-size:17px;margin:10px 0 14px}.row{display:flex;justify-content:space-between;padding:4px 0;border-bottom:1px solid #eee}.v{font-weight:700}.total{display:flex;justify-content:space-between;padding:10px 0;border-top:2px solid #000;font-size:16px;font-weight:900}.sigs{display:flex;justify-content:space-between;margin-top:40px}.sigs div{text-align:center;font-size:11px}</style></head><body><div class=hdr><div class=logo>NKD BAJAJ</div><p>Authorised Main Dealer — Bajaj Auto Ltd.</p><p>Hirak Road, Near Kamal Katesaria School, Dhanbad</p><p>Ph: 7033099006 | info@nkdbajaj.com</p></div><h2>MONEY RECEIPT</h2>"+rows+"<div class=sigs><div>____________________<br/>Customer Sign</div><div>____________________<br/>For NKD Bajaj</div></div><p style='text-align:center;font-size:10px;margin-top:16px;color:#666'>Subject to realization of Cheque/Draft</p></body></html>";
@@ -1537,9 +1595,9 @@ function BillingModal({cust,onClose,onSave,onDraft,notify,role,stockData,billedC
           <div style={{background:"#ffffff",border:"1px solid #6b8fb5",borderRadius:12,padding:12}}>
             <Row label="(A) Ex-Showroom" val={c.ex} auto={true}/>
             <Row label="+ Comp. Accessories" val={c.ca} auto={true}/>
-            <Inp label="+ Handling" k="hdl" f={f} setF={setF}/>
-            <Inp label="+ Insurance (5yr)" k="ins" f={f} setF={setF}/>
-            <Inp label="+ Registration" k="reg" f={f} setF={setF}/>
+            <Row label="+ Handling" val={c.hdl} auto={true}/>
+            <Row label="+ Insurance (5yr)" val={c.ins} auto={true}/>
+            <Row label="+ Registration" val={c.reg} auto={true}/>
             <div style={{background:"rgba(249,115,22,0.06)",borderRadius:7,padding:"6px 8px",margin:"6px 0 2px"}}><div style={{fontSize:9,color:"#f97316",fontWeight:700,marginBottom:4}}>MANUAL ENTRY</div>
               <Inp label="+ Accessories" k="acc" f={f} setF={setF}/>
               <Inp label="+ Teflon Coating" k="tef" f={f} setF={setF}/>
@@ -1550,6 +1608,10 @@ function BillingModal({cust,onClose,onSave,onDraft,notify,role,stockData,billedC
             <div style={{height:8}}/>
             <Inp label="− Consumer Offer" k="cof" f={f} setF={setF}/>
             <Inp label="− Special Discount" k="sdis" f={f} setF={setF}/>
+            <div style={{display:"flex",alignItems:"center",padding:"4px 0",borderBottom:"1px solid #131820",gap:6}}>
+              <span style={{fontSize:12,color:"#64748b",whiteSpace:"nowrap"}}>Remarks</span>
+              <input value={f.discRem||""} onChange={e=>setF(p=>({...p,discRem:e.target.value}))} placeholder="excess / shortage note…" style={{flex:1,background:"#f1f5f9",border:"1px solid #6b8fb5",borderRadius:8,padding:"5px 8px",fontSize:11,color:"#1e293b",minWidth:0}}/>
+            </div>
             <Inp label="− Corporate Scheme" k="corp" f={f} setF={setF}/>
             <Tot label="Deal Price E = C − D" val={c.E} col="#a78bfa"/>
             <div style={{height:8}}/>
@@ -1583,9 +1645,15 @@ function BillingModal({cust,onClose,onSave,onDraft,notify,role,stockData,billedC
               {mrSent&&<div style={{fontSize:10,color:"#22c55e",textAlign:"center",marginBottom:4}}>✓ MR already sent — add more payments &amp; send again if needed</div>}
               <div style={{display:"flex",justifyContent:"space-between",padding:"5px 0",fontSize:12,fontWeight:700}}><span style={{color:"#64748b"}}>Total Received (J)</span><span style={{color:"#1e293b"}}>{fc(c.paid)}</span></div>
             </div>
+            <div style={{display:"flex",alignItems:"center",padding:"4px 0",borderBottom:"1px solid #131820",gap:6,marginTop:4}}>
+              <span style={{fontSize:12,color:"#64748b",whiteSpace:"nowrap"}}>+ Excess Received</span>
+              <input value={f.excessRem||""} onChange={e=>setF(p=>({...p,excessRem:e.target.value}))} placeholder="remarks…" style={{flex:1,background:"#f1f5f9",border:"1px solid #6b8fb5",borderRadius:8,padding:"5px 8px",fontSize:11,color:"#1e293b",minWidth:0}}/>
+              <input type="number" inputMode="numeric" min="0" value={f.excessAmt||""} onChange={e=>setF(p=>({...p,excessAmt:e.target.value.replace(/[^0-9]/g,"")}))} placeholder="0" style={{width:88,background:"#f1f5f9",border:"1px solid #6b8fb5",borderRadius:8,padding:"5px 8px",fontSize:12,color:"#1e293b",textAlign:"right",flexShrink:0}}/>
+            </div>
             <div style={{background:c.K<=0?"rgba(34,197,94,0.12)":c.K<=2000?"rgba(245,158,11,0.12)":"rgba(239,68,68,0.12)",border:"1px solid "+(c.K<=0?"#22c55e":c.K<=2000?"#f59e0b":"#ef4444"),borderRadius:10,padding:"11px 12px",marginTop:6}}>
               <div style={{display:"flex",justifyContent:"space-between",alignItems:"center"}}><span style={{fontWeight:700,fontSize:13,color:"#1e293b"}}>Difference K = I − J</span><span style={{fontWeight:900,fontSize:20,color:c.K<=0?"#22c55e":c.K<=2000?"#f59e0b":"#ef4444"}}>{fc(c.K)}</span></div>
               {c.K===0&&<div style={{fontSize:11,color:"#22c55e",marginTop:2}}>✓ Fully settled</div>}
+              {c.K<0&&<div style={{fontSize:11,color:"#22c55e",marginTop:2}}>↑ Excess of {fc(Math.abs(c.K))} collected</div>}
             </div>
           </div>
         </div>
@@ -1832,9 +1900,9 @@ function Reports({custs,onImportCust}){
           saveExcelToDrive(wb,fname1,repMonth);
         }} style={{width:"100%",background:"rgba(52,211,153,0.1)",border:"1px solid rgba(52,211,153,0.35)",borderRadius:11,padding:"13px",color:"#34d399",fontWeight:700,fontSize:13,cursor:"pointer"}}>🧾 Export Billing Team Report — {repMonth} ☁️</button>
         <button onClick={()=>{
-          const H=["Bill Date","Customer","Phone","Address","Father Name","Model","Code","Chassis","Engine","Delivery Date","MR No","Pay Mode","Financed By","Reg No","Ex-Showroom","Comp Acc","Handling","Insurance","Registration","Accessories","Teflon","Hypo","AMC","TOTAL ON-ROAD","Consumer Offer","Special Disc","Corporate","DEAL PRICE","Booking Amt","Exchange Vehicle","Exchange Value","NET AMT","Loan","BALANCE","PAID","DIFF","Salesman","Branch","Approved By","Enquiry Date","Last Modified"];
+          const H=["Bill Date","Customer","Phone","Address","Father Name","Model","Code","Chassis","Engine","Delivery Date","MR No","Pay Mode","Financed By","Reg No","Ex-Showroom","Comp Acc","Handling","Insurance","Registration","Accessories","Teflon","Hypo","AMC","TOTAL ON-ROAD","Consumer Offer","Special Disc","Disc Remarks","Corporate","DEAL PRICE","Booking Amt","Exchange Vehicle","Exchange Value","NET AMT","Loan","BALANCE","PAID","EXCESS","DIFF","Salesman","Branch","Approved By","Enquiry Date","Last Modified"];
           const rows=billedForMonth.filter(c=>c.billing&&c.billing.calc).map(c=>{const b=c.billing,k=b.calc;
-            return[c.billedDate||"",c.name||"",c.phone||"",c.address||"",c.fatherName||"",c.model||"",c.modelCode||"",b.chassis||"",b.engine||"",b.deliveryDate||"",b.mrNo||"",b.payMode||"",b.financeBank||"Cash",b.registrationNo||"",k.ex,k.ca,k.hdl,k.ins,k.reg,k.acc,k.tef,k.hyp,k.amcV,k.C,k.cof,k.sdis,k.corp,k.E,k.bk,c.exchangeAsked||"",k.exv,k.G,k.loan,k.I,k.paid,k.K,c.salesman||"",c.branch||"",c.approvedBy||"",c.enquiryDate||"",c.updatedAt||c.billedDate||""];
+            return[c.billedDate||"",c.name||"",c.phone||"",c.address||"",c.fatherName||"",c.model||"",c.modelCode||"",b.chassis||"",b.engine||"",b.deliveryDate||"",b.mrNo||"",b.payMode||"",b.financeBank||"Cash",b.registrationNo||"",k.ex,k.ca,k.hdl,k.ins,k.reg,k.acc,k.tef,k.hyp,k.amcV,k.C,k.cof,k.sdis,b.discRem||"",k.corp,k.E,k.bk,c.exchangeAsked||"",k.exv,k.G,k.loan,k.I,k.paid,k.excess||0,k.K,c.salesman||"",c.branch||"",c.approvedBy||"",c.enquiryDate||"",c.updatedAt||c.billedDate||""];
           });
           if(rows.length===0){alert("No billed customers for "+repMonth);return;}
           const wb=XLSX.utils.book_new();const ws=XLSX.utils.aoa_to_sheet([H,...rows]);
@@ -1975,9 +2043,9 @@ function DocVault({custs,onImport}){
           XLSX.writeFile(wb,"NKD_BillingTeam_"+repMonth+".xlsx");
         }} style={{width:"100%",background:"rgba(52,211,153,0.1)",border:"1px solid rgba(52,211,153,0.35)",borderRadius:11,padding:"11px",color:"#34d399",fontWeight:700,fontSize:12,cursor:"pointer"}}>🧾 Billing Team — {repMonth}</button>
         <button onClick={()=>{
-          const H=["Bill Date","Customer","Phone","Address","Father Name","Model","Code","Chassis","Engine","Delivery Date","MR No","Pay Mode","Financed By","Reg No","Ex-Showroom","Comp Acc","Handling","Insurance","Registration","Accessories","Teflon","Hypo","AMC","TOTAL ON-ROAD","Consumer Offer","Special Disc","Corporate","DEAL PRICE","Booking Amt","Exchange Vehicle","Exchange Value","NET AMT","Loan","BALANCE","PAID","DIFF","Salesman","Branch","Approved By","Enquiry Date","Last Modified"];
+          const H=["Bill Date","Customer","Phone","Address","Father Name","Model","Code","Chassis","Engine","Delivery Date","MR No","Pay Mode","Financed By","Reg No","Ex-Showroom","Comp Acc","Handling","Insurance","Registration","Accessories","Teflon","Hypo","AMC","TOTAL ON-ROAD","Consumer Offer","Special Disc","Disc Remarks","Corporate","DEAL PRICE","Booking Amt","Exchange Vehicle","Exchange Value","NET AMT","Loan","BALANCE","PAID","EXCESS","DIFF","Salesman","Branch","Approved By","Enquiry Date","Last Modified"];
           const rows=billedForMonth.filter(c=>c.billing&&c.billing.calc).map(c=>{const b=c.billing,k=b.calc;
-            return[c.billedDate||"",c.name||"",c.phone||"",c.address||"",c.fatherName||"",c.model||"",c.modelCode||"",b.chassis||"",b.engine||"",b.deliveryDate||"",b.mrNo||"",b.payMode||"",b.financeBank||"Cash",b.registrationNo||"",k.ex,k.ca,k.hdl,k.ins,k.reg,k.acc,k.tef,k.hyp,k.amcV,k.C,k.cof,k.sdis,k.corp,k.E,k.bk,c.exchangeAsked||"",k.exv,k.G,k.loan,k.I,k.paid,k.K,c.salesman||"",c.branch||"",c.approvedBy||"",c.enquiryDate||"",c.updatedAt||c.billedDate||""];
+            return[c.billedDate||"",c.name||"",c.phone||"",c.address||"",c.fatherName||"",c.model||"",c.modelCode||"",b.chassis||"",b.engine||"",b.deliveryDate||"",b.mrNo||"",b.payMode||"",b.financeBank||"Cash",b.registrationNo||"",k.ex,k.ca,k.hdl,k.ins,k.reg,k.acc,k.tef,k.hyp,k.amcV,k.C,k.cof,k.sdis,b.discRem||"",k.corp,k.E,k.bk,c.exchangeAsked||"",k.exv,k.G,k.loan,k.I,k.paid,k.excess||0,k.K,c.salesman||"",c.branch||"",c.approvedBy||"",c.enquiryDate||"",c.updatedAt||c.billedDate||""];
           });
           if(rows.length===0){alert("No billed customers for "+repMonth);return;}
           const wb=XLSX.utils.book_new();const ws=XLSX.utils.aoa_to_sheet([H,...rows]);
@@ -2023,35 +2091,92 @@ function DocVault({custs,onImport}){
 }
 
 function UserMgmt({nkdUsers,onSave,notify}){
-  const [users,setUsers]=useState(()=>({manager:[...(nkdUsers.manager||[])],owner:[...(nkdUsers.owner||[])],admin:[...(nkdUsers.admin||[])]}));
+  const [users,setUsers]=useState(()=>({
+    manager:[...(nkdUsers.manager||[])],
+    owner:[...(nkdUsers.owner||[])],
+    admin:[...(nkdUsers.admin||[])],
+    tech:[...(nkdUsers.tech||[])],
+    salesman:[...(nkdUsers.salesman||SM.map(n=>({name:n,phone:""})))]
+  }));
   const [newRole,setNewRole]=useState("manager");
   const [newName,setNewName]=useState("");
   const [newPin,setNewPin]=useState("");
+  // Salesman add form
+  const [newSmName,setNewSmName]=useState("");
+  const [newSmPhone,setNewSmPhone]=useState("");
   const ROLE_COLOR={manager:"#3b82f6",owner:"#f97316",admin:"#8b5cf6",tech:"#0ea5e9"};
   const ROLE_LABEL={manager:"Manager",owner:"Owner",admin:"Admin",tech:"Tech"};
+  function save(updated){setUsers(updated);onSave(updated);}
   function addUser(){
     if(!newName.trim()){notify("❌ Enter a name");return;}
     if(newPin.length<4){notify("❌ PIN must be at least 4 digits");return;}
     const already=(users[newRole]||[]).find(u=>u.name.toLowerCase()===newName.trim().toLowerCase());
     if(already){notify("❌ Name already exists for this role");return;}
-    const updated={...users,[newRole]:[...(users[newRole]||[]),{name:newName.trim(),pin:newPin}]};
-    setUsers(updated);onSave(updated);setNewName("");setNewPin("");notify("✅ "+ROLE_LABEL[newRole]+" account added");
+    save({...users,[newRole]:[...(users[newRole]||[]),{name:newName.trim(),pin:newPin}]});
+    setNewName("");setNewPin("");notify("✅ "+ROLE_LABEL[newRole]+" account added");
   }
   function removeUser(role,name){
     if((users[role]||[]).length<=1){notify("❌ Must keep at least one account per role");return;}
-    const updated={...users,[role]:(users[role]||[]).filter(u=>u.name!==name)};
-    setUsers(updated);onSave(updated);notify("Removed "+name);
+    save({...users,[role]:(users[role]||[]).filter(u=>u.name!==name)});notify("Removed "+name);
   }
   function changePin(role,name,pin){
     if(pin.length<4){notify("❌ PIN min 4 digits");return;}
-    const updated={...users,[role]:(users[role]||[]).map(u=>u.name===name?{...u,pin}:u)};
-    setUsers(updated);onSave(updated);notify("✅ PIN updated for "+name);
+    save({...users,[role]:(users[role]||[]).map(u=>u.name===name?{...u,pin}:u)});notify("✅ PIN updated for "+name);
+  }
+  function addSM(){
+    if(!newSmName.trim()){notify("❌ Enter salesman name");return;}
+    const phone=newSmPhone.replace(/\D/g,"");
+    if(phone&&phone.length!==10){notify("❌ Phone must be 10 digits");return;}
+    const already=(users.salesman||[]).find(u=>u.name.toLowerCase()===newSmName.trim().toLowerCase());
+    if(already){notify("❌ Name already exists");return;}
+    save({...users,salesman:[...(users.salesman||[]),{name:newSmName.trim(),phone}]});
+    setNewSmName("");setNewSmPhone("");notify("✅ Sales Executive added");
+  }
+  function removeSM(name){
+    if((users.salesman||[]).length<=1){notify("❌ Must keep at least one salesman");return;}
+    save({...users,salesman:(users.salesman||[]).filter(u=>u.name!==name)});notify("Removed "+name);
+    // Also clear their password record
+    const pws=ld("nkd_pw",{});delete pws[name];sv("nkd_pw",pws);_dbSet("passwords",pws);
+  }
+  function updateSMPhone(name,phone){
+    const p=phone.replace(/\D/g,"").slice(0,10);
+    save({...users,salesman:(users.salesman||[]).map(u=>u.name===name?{...u,phone:p}:u)});
+    notify("✅ Phone updated for "+name);
+  }
+  function resetSMPass(name){
+    const pws=ld("nkd_pw",{});
+    pws[name]={pw:"1111",must:true,fails:0,locked:false};
+    sv("nkd_pw",pws);_dbSet("passwords",pws);notify("🔁 Password reset to 1111 for "+name);
+  }
+  function unlockSM(name){
+    const pws=ld("nkd_pw",{});
+    if(pws[name])pws[name].locked=false;
+    sv("nkd_pw",pws);_dbSet("passwords",pws);notify("🔓 Account unlocked for "+name);
   }
   return(
-    <div style={{maxWidth:700}}>
+    <div style={{maxWidth:720}}>
       <div style={{fontWeight:800,fontSize:20,color:"#1e293b",marginBottom:4}}>👤 User Accounts</div>
-      <div style={{fontSize:12,color:"#94a3b8",marginBottom:20}}>Manage login credentials for Manager, Owner, and Admin roles.</div>
-      {/* Existing users by role */}
+      <div style={{fontSize:12,color:"#94a3b8",marginBottom:20}}>Manage login credentials for all roles.</div>
+
+      {/* ── SALES EXECUTIVES ── */}
+      <div style={{background:"#fff",border:"2px solid #22c55e",borderRadius:14,padding:"16px 18px",marginBottom:16}}>
+        <div style={{fontWeight:800,fontSize:13,color:"#16a34a",marginBottom:4,textTransform:"uppercase",letterSpacing:1}}>📱 Sales Executive Accounts</div>
+        <div style={{fontSize:11,color:"#64748b",marginBottom:12}}>Each salesman needs a phone number for OTP login. Password defaults to <b>1111</b> on first login.</div>
+        {(users.salesman||[]).map((u,i)=>(
+          <SMRow key={i} u={u} onRemove={()=>removeSM(u.name)} onPhone={(p)=>updateSMPhone(u.name,p)} onReset={()=>resetSMPass(u.name)} onUnlock={()=>unlockSM(u.name)}/>
+        ))}
+        <div style={{display:"grid",gridTemplateColumns:"1fr 1fr auto",gap:8,marginTop:12,alignItems:"end",borderTop:"1px solid #e8eef8",paddingTop:12}}>
+          <div><div style={{fontSize:11,color:"#64748b",fontWeight:600,marginBottom:4}}>Full Name</div>
+            <input style={{...inp,margin:0}} value={newSmName} onChange={e=>setNewSmName(e.target.value)} placeholder="Salesman name"/>
+          </div>
+          <div><div style={{fontSize:11,color:"#64748b",fontWeight:600,marginBottom:4}}>Phone (10 digits)</div>
+            <input type="tel" inputMode="numeric" style={{...inp,margin:0}} value={newSmPhone} onChange={e=>setNewSmPhone(e.target.value.replace(/\D/g,"").slice(0,10))} placeholder="9876543210"/>
+          </div>
+          <button onClick={addSM} style={{...btn("#16a34a"),padding:"10px 18px",borderRadius:10,whiteSpace:"nowrap"}}>Add</button>
+        </div>
+      </div>
+
+      {/* ── MANAGER / OWNER / ADMIN / TECH ── */}
       {["manager","owner","admin","tech"].map(r=>(
         <div key={r} style={{background:"#fff",border:"2px solid #6b8fb5",borderRadius:14,padding:"16px 18px",marginBottom:16}}>
           <div style={{fontWeight:800,fontSize:13,color:ROLE_COLOR[r],marginBottom:10,textTransform:"uppercase",letterSpacing:1}}>{ROLE_LABEL[r]} Accounts</div>
@@ -2060,9 +2185,9 @@ function UserMgmt({nkdUsers,onSave,notify}){
           ))}
         </div>
       ))}
-      {/* Add new user */}
+      {/* Add new non-salesman user */}
       <div style={{background:"rgba(249,115,22,0.05)",border:"2px dashed #f97316",borderRadius:14,padding:"16px 18px"}}>
-        <div style={{fontWeight:700,fontSize:13,color:"#f97316",marginBottom:12}}>➕ Add New Account</div>
+        <div style={{fontWeight:700,fontSize:13,color:"#f97316",marginBottom:12}}>➕ Add Manager / Owner / Admin / Tech Account</div>
         <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr auto",gap:10,alignItems:"end"}}>
           <div><div style={{fontSize:11,color:"#64748b",fontWeight:600,marginBottom:4}}>Role</div>
             <select style={{...inp,margin:0}} value={newRole} onChange={e=>setNewRole(e.target.value)}>
@@ -2078,6 +2203,37 @@ function UserMgmt({nkdUsers,onSave,notify}){
           <button onClick={addUser} style={{...btn("linear-gradient(135deg,#f97316,#ef4444)"),padding:"10px 18px",borderRadius:10,whiteSpace:"nowrap"}}>Add</button>
         </div>
       </div>
+    </div>
+  );
+}
+function SMRow({u,onRemove,onPhone,onReset,onUnlock}){
+  const [editing,setEditing]=useState(false);
+  const [p,setP]=useState(u.phone||"");
+  const pws=ld("nkd_pw",{});
+  const rec=pws[u.name]||{};
+  return(
+    <div style={{display:"flex",alignItems:"center",gap:8,padding:"9px 0",borderBottom:"1px solid #e8eef8",flexWrap:"wrap"}}>
+      <div style={{flex:1,minWidth:120}}>
+        <div style={{fontWeight:700,fontSize:13,color:"#1e293b"}}>{u.name}</div>
+        {rec.locked&&<div style={{fontSize:10,color:"#ef4444",fontWeight:700}}>🔒 LOCKED</div>}
+      </div>
+      {editing?(
+        <div style={{display:"flex",gap:6,alignItems:"center"}}>
+          <input type="tel" inputMode="numeric" placeholder="10-digit phone" value={p} onChange={e=>setP(e.target.value.replace(/\D/g,"").slice(0,10))} style={{...inp,margin:0,width:130,padding:"5px 8px",fontSize:12}}/>
+          <button onClick={()=>{onPhone(p);setEditing(false);}} style={{...btn("#16a34a"),padding:"5px 10px",borderRadius:7,fontSize:11}}>Save</button>
+          <button onClick={()=>{setEditing(false);setP(u.phone||"");}} style={{padding:"5px 8px",borderRadius:7,border:"1px solid #6b8fb5",background:"transparent",cursor:"pointer",fontSize:11,color:"#475569"}}>✕</button>
+        </div>
+      ):(
+        <div style={{fontSize:11,color:u.phone?"#16a34a":"#ef4444",background:u.phone?"rgba(34,197,94,0.08)":"rgba(239,68,68,0.08)",borderRadius:6,padding:"2px 8px",fontWeight:600}}>
+          {u.phone?"📱 "+u.phone:"⚠️ No phone"}
+        </div>
+      )}
+      {!editing&&<button onClick={()=>setEditing(true)} style={{padding:"4px 9px",borderRadius:7,border:"1px solid #6b8fb5",background:"transparent",cursor:"pointer",fontSize:11,color:"#475569",fontWeight:600}}>
+        {u.phone?"Edit Phone":"Add Phone"}
+      </button>}
+      <button onClick={onReset} style={{padding:"4px 9px",borderRadius:7,border:"1px solid #f9731655",background:"rgba(249,115,22,0.07)",cursor:"pointer",fontSize:11,color:"#f97316",fontWeight:600}}>Reset PW</button>
+      {rec.locked&&<button onClick={onUnlock} style={{padding:"4px 9px",borderRadius:7,border:"1px solid #22c55e55",background:"rgba(34,197,94,0.07)",cursor:"pointer",fontSize:11,color:"#16a34a",fontWeight:600}}>Unlock</button>}
+      <button onClick={onRemove} style={{padding:"4px 8px",borderRadius:7,border:"1px solid #ef444455",background:"rgba(239,68,68,0.07)",cursor:"pointer",fontSize:11,color:"#ef4444",fontWeight:700}}>Remove</button>
     </div>
   );
 }
