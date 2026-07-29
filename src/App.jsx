@@ -135,7 +135,7 @@ function makeCalcDoc(cust,b,c){
   line("CALCULATION",pad,y,11,"bold");y+=8;
   const calcPmts=(b.payments&&b.payments.length?b.payments:[{mode:b.payMode||"",amt:c.paid,ref:""}]).filter(p=>Number(p.amt||0)>0);
   const payItems=calcPmts.length>1?[["Payment Received (J)",fc(c.paid),"bold"],...calcPmts.map(p=>["  "+p.mode+(p.ref?" ["+p.ref+"]":""),fc(Number(p.amt))])]:[[("Payment Received"+(calcPmts[0]?(" — "+calcPmts[0].mode+(calcPmts[0].ref?" ("+calcPmts[0].ref+")":"")):"")+" (J)"),fc(c.paid)]];
-  const items=[["(A) Ex-Showroom",fc(c.ex)],["+ Comp. Accessories",fc(c.ca)],["+ Handling",fc(c.hdl)],["+ Insurance (5yr)",fc(c.ins)],["+ Registration",fc(c.reg)],["+ Accessories",fc(c.acc)],["+ Teflon",fc(c.tef)],["+ Hypothication",fc(c.hyp)],["+ AMC",fc(c.amcV)],["TOTAL ON-ROAD (C)",fc(c.C),"bold"],[""," "],["— Consumer Offer",c.cof?fc(c.cof):""],["— Special Discount",c.sdis?fc(c.sdis):""],["— Corporate",c.corp?fc(c.corp):""],["DEAL PRICE (E)",fc(c.E),"bold"],[""," "],["— Booking Amount",c.bk?fc(c.bk):""],["— Exchange Value",c.exv?fc(c.exv):""],["NET (G)",fc(c.G),"bold"],["— Loan / Disbursal",c.loan?fc(c.loan):""],["Balance from Customer (I)",fc(c.I),"bold"],...payItems,["DIFFERENCE (K)",fc(c.K),"bold"]];
+  const items=[["(A) Ex-Showroom",fc(c.ex)],["+ Comp. Accessories",fc(c.ca)],["+ Handling",fc(c.hdl)],["+ Insurance (5yr)",fc(c.ins)],["+ Registration",fc(c.reg)],["+ Accessories",fc(c.acc)],["+ Teflon",fc(c.tef)],["+ Hypothication",fc(c.hyp)],["+ ATW",fc(c.atw)],["+ RSA",fc(c.rsa)],["+ AMC",fc(c.amcV)],["TOTAL ON-ROAD (C)",fc(c.C),"bold"],[""," "],["— Consumer Offer",c.cof?fc(c.cof):""],["— Special Discount",c.sdis?fc(c.sdis):""],["— Corporate",c.corp?fc(c.corp):""],["DEAL PRICE (E)",fc(c.E),"bold"],[""," "],["— Booking Amount",c.bk?fc(c.bk):""],["— Exchange Value",c.exv?fc(c.exv):""],["NET (G)",fc(c.G),"bold"],["— Loan / Disbursal",c.loan?fc(c.loan):""],["Balance from Customer (I)",fc(c.I),"bold"],...payItems,["DIFFERENCE (K)",fc(c.K),"bold"]];
   items.forEach(([l,v,style])=>{if(l===""){y+=3;return;}if(!v||v==="₹0")return;row(l,v,y,style==="bold");y+=style==="bold"?8:6;});
   y+=4;hline(y);y+=6;
   line("Approved By: "+(cust.approvedBy||"—"),pad,y,10);line("Enquiry Date: "+fd(cust.enquiryDate),W-pad,y,10,"normal","right");
@@ -234,14 +234,15 @@ function calcB(f,r){
   const ex=Number(r?.ex||0),ca=Number(r?.cAcc||0),hdl=Number(r?.hdl||600);
   const ins=Number(r?.ins||0),reg=Number(r?.reg||0),acc=Number(f.acc||0);
   const tef=Number(f.tef||0),hyp=Number(f.hyp||0),amcV=f.addAmc?(Number(r?.amc)||0):0;
-  const B=hdl+ins+reg+ca+acc+tef+hyp+amcV,C=ex+B;
+  const atw=Number(f.atw||0),rsa=Number(f.rsa||0);
+  const B=hdl+ins+reg+ca+acc+tef+hyp+amcV+atw+rsa,C=ex+B;
   const cof=Number(f.cof||0),sdis=Number(f.sdis||0),corp=Number(f.corp||0),discAmt=Number(f.discAmt||0),D=cof+sdis+corp+discAmt,E=C-D;
   const bk=Number(f.bk||0),exv=Number(f.exv||0),F=bk+exv,G=E-F;
   const loan=Number(f.loan||0),I=G-loan;
   const paid=f.payments&&f.payments.length?(f.payments.reduce((s,p)=>s+Number(p.amt||0),0)):Number(f.paid||0);
   const excess=Number(f.excessAmt||0);
   const K=I-paid-excess;
-  return{ex,ca,hdl,ins,reg,acc,tef,hyp,amcV,B,C,cof,sdis,corp,D,E,bk,exv,F,G,loan,I,paid,excess,K};
+  return{ex,ca,hdl,ins,reg,acc,tef,hyp,atw,rsa,amcV,B,C,cof,sdis,corp,D,E,bk,exv,F,G,loan,I,paid,excess,K};
 }
 
 function seedData(){
@@ -786,8 +787,17 @@ function DocGrid({cust,onUpload,docs}){
           <div style={{padding:"10px 13px",display:"flex",justifyContent:"space-between",alignItems:"center"}}><div style={{display:"flex",alignItems:"center",gap:8}}><span style={{fontSize:18}}>{ic}</span><span style={{fontSize:13,color:"#334155"}}>{l}</span></div>{(cust.photos||{})[key]&&<span style={{fontSize:11,color:"#22c55e",fontWeight:700}}>✓</span>}</div>
           {(cust.photos||{})[key]&&<img src={cust.photos[key]} alt={l} style={{width:"100%",maxHeight:200,objectFit:"contain",background:"#000"}}/>}
           <div style={{padding:"0 13px 12px"}}>
-            <div style={{fontSize:11,color:"#64748b",marginBottom:4}}>{(cust.photos||{})[key]?"🔄 Replace photo:":"📷 Choose photo:"}</div>
-            <input type="file" accept="image/*" onChange={e=>{if(e.target.files&&e.target.files[0]){onUpload(key,e.target.files[0]);e.target.value="";}}} style={{width:"100%",background:"#c2d6ec",borderRadius:9,padding:8,fontSize:12,color:"#64748b",border:"1px dashed #2a3040"}}/>
+            <div style={{fontSize:11,color:"#64748b",marginBottom:6}}>{(cust.photos||{})[key]?"🔄 Replace:":"📎 Upload:"}</div>
+            <div style={{display:"flex",gap:6}}>
+              <label style={{flex:1,display:"flex",alignItems:"center",justifyContent:"center",gap:5,background:"linear-gradient(135deg,#1e3a5f,#2a4a7f)",border:"1px solid #3b5fa0",borderRadius:9,padding:"9px 6px",fontSize:12,color:"#93c5fd",cursor:"pointer",fontWeight:600}}>
+                📷 Camera
+                <input type="file" accept="image/*" capture="environment" onChange={e=>{if(e.target.files&&e.target.files[0]){onUpload(key,e.target.files[0]);e.target.value="";}}} style={{display:"none"}}/>
+              </label>
+              <label style={{flex:1,display:"flex",alignItems:"center",justifyContent:"center",gap:5,background:"rgba(203,213,225,0.08)",border:"1px dashed #4a6080",borderRadius:9,padding:"9px 6px",fontSize:12,color:"#94a3b8",cursor:"pointer",fontWeight:600}}>
+                📁 Gallery
+                <input type="file" accept="image/*" onChange={e=>{if(e.target.files&&e.target.files[0]){onUpload(key,e.target.files[0]);e.target.value="";}}} style={{display:"none"}}/>
+              </label>
+            </div>
           </div>
         </div>
       ))}
@@ -1330,7 +1340,14 @@ function BookingModal({cust,onClose,onSave}){
           <div><label style={lbl}>Notes</label><input style={inp} value={note} onChange={e=>setNote(e.target.value)} placeholder="e.g. balance on delivery"/></div>
           <div><label style={lbl}>Payment Proof (cheque / UPI screenshot)</label>
             {proof&&<img src={proof} alt="proof" style={{width:"100%",maxHeight:140,objectFit:"contain",background:"#000",borderRadius:9,marginBottom:6}}/>}
-            <input type="file" accept="image/*" onChange={e=>{if(e.target.files&&e.target.files[0]){pickProof(e.target.files[0]);e.target.value="";}}} style={{width:"100%",background:"#c2d6ec",borderRadius:9,padding:8,fontSize:12,color:"#64748b",border:"1px dashed #2a3040"}}/>
+            <div style={{display:"flex",gap:6,marginTop:4}}>
+              <label style={{flex:1,display:"flex",alignItems:"center",justifyContent:"center",gap:5,background:"linear-gradient(135deg,#1e3a5f,#2a4a7f)",border:"1px solid #3b5fa0",borderRadius:9,padding:"9px 6px",fontSize:12,color:"#93c5fd",cursor:"pointer",fontWeight:600}}>
+                📷 Camera<input type="file" accept="image/*" capture="environment" onChange={e=>{if(e.target.files&&e.target.files[0]){pickProof(e.target.files[0]);e.target.value="";}}} style={{display:"none"}}/>
+              </label>
+              <label style={{flex:1,display:"flex",alignItems:"center",justifyContent:"center",gap:5,background:"rgba(203,213,225,0.08)",border:"1px dashed #4a6080",borderRadius:9,padding:"9px 6px",fontSize:12,color:"#94a3b8",cursor:"pointer",fontWeight:600}}>
+                📁 Gallery<input type="file" accept="image/*" onChange={e=>{if(e.target.files&&e.target.files[0]){pickProof(e.target.files[0]);e.target.value="";}}} style={{display:"none"}}/>
+              </label>
+            </div>
           </div>
           <div style={{display:"flex",gap:8}}>
             <button onClick={onClose} style={{...btn("#6b8fb5","#8892a4"),flex:1,padding:14,borderRadius:13}}>← Go Back</button>
@@ -1433,7 +1450,7 @@ function BillingModal({cust,onClose,onSave,onDraft,notify,role,stockData,billedC
     const max=nums.length?Math.max(...nums):0;
     return String(max+1).padStart(4,"0");
   }
-  const [f,setF]=useState({...eb,billName:eb.billName||cust.name,exchName:eb.exchName||cust.exchangeName||"",exchPhone:eb.exchPhone||cust.exchangePhone||eb.details?.exchangePhone||"",exchModel:eb.exchModel||cust.exchangeAsked||"",exchRegNo:eb.exchRegNo||cust.exchangeRegNo||"",bkDate:(cust.booking&&cust.booking.date)||td(),fatherName:eb.details?.fatherName||cust.fatherName||"",dob:eb.details?.dob||cust.dob||"",aadhar:eb.details?.aadhar||cust.aadhar||"",pan:eb.details?.pan||cust.pan||"",nominee:eb.details?.nominee||cust.nominee||"",nomineeRel:eb.details?.nomineeRel||cust.nomineeRel||"",hdl:eb.hdl!==undefined?eb.hdl:(r.hdl||600),ins:eb.ins!==undefined?eb.ins:(r.ins||0),reg:eb.reg!==undefined?eb.reg:(r.reg||0),acc:eb.acc||0,tef:eb.tef!==undefined?eb.tef:(isFin?500:0),hyp:eb.hyp!==undefined?eb.hyp:(isFin?500:0),addAmc:eb.addAmc||false,cof:eb.cof||0,sdis:eb.sdis||0,discRem:eb.discRem||"",discAmt:eb.discAmt||"",corp:eb.corp||0,bk:cust.totalBooking||(cust.bookings&&cust.bookings.reduce((s,b)=>s+Number(b.amt||0),0))||(cust.booking&&cust.booking.amt)||0,exv:eb.exv!==undefined?eb.exv:0,loan:eb.loan||0,payments:eb.payments&&eb.payments.length?eb.payments:(eb.paid||eb.payMode?[{mode:eb.payMode||"Cash",amt:Number(eb.paid||0),date:td(),ref:""}]:[{mode:"Cash",amt:0,date:td(),ref:""}]),chassis:eb.chassis||"",engine:eb.engine||"",color:eb.color||"",deliveryDate:eb.deliveryDate||td(),financeBank:eb.financeBank||"",registrationNo:eb.registrationNo||"",insuranceNo:eb.insuranceNo||"",mrNo:eb.mrNo||nextMrNo(),excessAmt:eb.excessAmt||"",excessRem:eb.excessRem||""});
+  const [f,setF]=useState({...eb,billName:eb.billName||cust.name,exchName:eb.exchName||cust.exchangeName||"",exchPhone:eb.exchPhone||cust.exchangePhone||eb.details?.exchangePhone||"",exchModel:eb.exchModel||cust.exchangeAsked||"",exchRegNo:eb.exchRegNo||cust.exchangeRegNo||"",bkDate:(cust.booking&&cust.booking.date)||td(),fatherName:eb.details?.fatherName||cust.fatherName||"",dob:eb.details?.dob||cust.dob||"",aadhar:eb.details?.aadhar||cust.aadhar||"",pan:eb.details?.pan||cust.pan||"",nominee:eb.details?.nominee||cust.nominee||"",nomineeRel:eb.details?.nomineeRel||cust.nomineeRel||"",hdl:eb.hdl!==undefined?eb.hdl:(r.hdl||600),ins:eb.ins!==undefined?eb.ins:(r.ins||0),reg:eb.reg!==undefined?eb.reg:(r.reg||0),acc:eb.acc||0,tef:eb.tef!==undefined?eb.tef:(isFin?500:0),hyp:eb.hyp!==undefined?eb.hyp:(isFin?500:0),addAmc:eb.addAmc||false,atw:eb.atw||0,rsa:eb.rsa||0,cof:eb.cof||0,sdis:eb.sdis||0,discRem:eb.discRem||"",discAmt:eb.discAmt||"",corp:eb.corp||0,bk:cust.totalBooking||(cust.bookings&&cust.bookings.reduce((s,b)=>s+Number(b.amt||0),0))||(cust.booking&&cust.booking.amt)||0,exv:eb.exv!==undefined?eb.exv:0,loan:eb.loan||0,payments:eb.payments&&eb.payments.length?eb.payments:(eb.paid||eb.payMode?[{mode:eb.payMode||"Cash",amt:Number(eb.paid||0),date:td(),ref:""}]:[{mode:"Cash",amt:0,date:td(),ref:""}]),chassis:eb.chassis||"",engine:eb.engine||"",color:eb.color||"",deliveryDate:eb.deliveryDate||td(),financeBank:eb.financeBank||"",registrationNo:eb.registrationNo||"",insuranceNo:eb.insuranceNo||"",mrNo:eb.mrNo||nextMrNo(),excessAmt:eb.excessAmt||"",excessRem:eb.excessRem||""});
   const c=calcB(f,r);
   const [chk,setChk]=useState(eb.checklist||{pdi:false,helmet:false,docs:false,service:false});
   const VER_ALL=[["nameV","Customer name verified"],["fatherV","Father name verified"],["aadharV","Aadhar number verified"],["nomineeV","Nominee & relation added"],["chassisV","Chassis number verified"],["engineV","Engine number verified"],["colorV","Colour verified"]];
@@ -1502,6 +1519,8 @@ function BillingModal({cust,onClose,onSave,onDraft,notify,role,stockData,billedC
     if(c.acc)CALCROWS+="<div class=row><span>+ Accessories</span><span>"+fc(c.acc)+"</span></div>";
     if(c.tef)CALCROWS+="<div class=row><span>+ Teflon</span><span>"+fc(c.tef)+"</span></div>";
     if(c.hyp)CALCROWS+="<div class=row><span>+ Hypothication</span><span>"+fc(c.hyp)+"</span></div>";
+    if(c.atw)CALCROWS+="<div class=row><span>+ ATW</span><span>"+fc(c.atw)+"</span></div>";
+    if(c.rsa)CALCROWS+="<div class=row><span>+ RSA</span><span>"+fc(c.rsa)+"</span></div>";
     if(c.amcV)CALCROWS+="<div class=row><span>+ AMC</span><span>"+fc(c.amcV)+"</span></div>";
     CALCROWS+="<div class=row><b>Total C=A+B</b><b>"+fc(c.C)+"</b></div>";
     if(c.cof)CALCROWS+="<div class=row><span>- Consumer Offer</span><span>"+fc(c.cof)+"</span></div>";
@@ -1529,6 +1548,7 @@ function BillingModal({cust,onClose,onSave,onDraft,notify,role,stockData,billedC
   const [busy,setBusy]=useState(false);
   const [mrSent,setMrSent]=useState(!!(eb.receiptHtml||eb.mrNo||cust.billed));
   function generateAndSendMR(){
+    if(mrSent){notify("MR already sent to customer — cannot resend","err");return;}
     const activePmts=(f.payments||[]).filter(p=>Number(p.amt||0)>0);
     if(activePmts.length===0){notify("⚠️ Enter at least one payment amount before generating MR","err");return;}
     try{
@@ -1553,7 +1573,7 @@ function BillingModal({cust,onClose,onSave,onDraft,notify,role,stockData,billedC
   }
   function submit(){
     if(busy)return;
-    if(!mrSent&&!eb.receiptHtml&&!eb.mrNo&&!cust.billed){notify("⚠️ Generate & Send MR first before saving the calculation sheet","err");return;}
+    if(!mrSent&&!eb.receiptHtml&&!eb.mrNo&&!cust.billed&&c.K>0){notify("⚠️ Generate & Send MR first before saving the calculation sheet","err");return;}
     if(!f.chassis){notify("Enter chassis number","err");return;}
     if(!f.aadhar||!f.fatherName||!f.nominee||!f.nomineeRel){notify("Fill KYC: Aadhar, Father name, Nominee & Relation","err");return;}
     if(c.C<0||c.E<0||c.G<0||c.I<0){alert("⚠️ Calculation error — a total has gone NEGATIVE.\nCheck discounts/booking/exchange amounts. No value can exceed the price above it.");return;}
@@ -1648,6 +1668,8 @@ function BillingModal({cust,onClose,onSave,onDraft,notify,role,stockData,billedC
               <Inp label="+ Accessories" k="acc" f={f} setF={setF}/>
               <Inp label="+ Teflon Coating" k="tef" f={f} setF={setF}/>
               <Inp label="+ Hypothication" k="hyp" f={f} setF={setF}/>
+              <Inp label="+ ATW" k="atw" f={f} setF={setF}/>
+              <Inp label="+ RSA" k="rsa" f={f} setF={setF}/>
             </div>
             <div style={{display:"flex",alignItems:"center",gap:8,padding:"6px 0",borderBottom:"1px solid #131820"}}><input type="checkbox" id="amc" checked={f.addAmc} onChange={e=>setF(p=>({...p,addAmc:e.target.checked}))}/><label htmlFor="amc" style={{fontSize:12,color:"#64748b",cursor:"pointer"}}>Add AMC ({fc(r.amc||0)}/yr)</label></div>
             <Tot label="TOTAL C = A + B" val={c.C} col="#f97316"/>
@@ -1674,7 +1696,7 @@ function BillingModal({cust,onClose,onSave,onDraft,notify,role,stockData,billedC
                 <div key={i} style={{marginBottom:8,background:"rgba(249,115,22,0.04)",border:"1px solid rgba(249,115,22,0.2)",borderRadius:9,padding:"8px 10px"}}>
                   <div style={{display:"flex",gap:6,marginBottom:5,alignItems:"center"}}>
                     <select value={p.mode} onChange={e=>{const px=[...f.payments];px[i]={...px[i],mode:e.target.value};setF(q=>({...q,payments:px}));}} style={{background:"#f1f5f9",border:"1px solid #6b8fb5",borderRadius:8,padding:"5px 6px",fontSize:11,color:"#1e293b",width:90,flexShrink:0}}>
-                      {["Cash","Cheque","UPI","RTGS"].map(m=><option key={m}>{m}</option>)}
+                      {["Cash","Cheque","UPI","RTGS","Card"].map(m=><option key={m}>{m}</option>)}
                     </select>
                     <input type="number" value={p.amt||""} placeholder="Amount" onChange={e=>{const px=[...f.payments];px[i]={...px[i],amt:e.target.value};setF(q=>({...q,payments:px}));}} style={{flex:1,background:"#f1f5f9",border:"1px solid #6b8fb5",borderRadius:8,padding:"5px 8px",fontSize:11,color:"#1e293b"}}/>
                     {(f.payments||[]).length>1&&<button onClick={()=>setF(q=>({...q,payments:q.payments.filter((_,j)=>j!==i)}))} style={{background:"rgba(239,68,68,0.15)",border:"none",borderRadius:6,padding:"4px 8px",color:"#ef4444",cursor:"pointer",fontSize:13,flexShrink:0}}>✕</button>}
@@ -1686,10 +1708,8 @@ function BillingModal({cust,onClose,onSave,onDraft,notify,role,stockData,billedC
                 </div>
               ))}
               <button onClick={()=>setF(q=>({...q,payments:[...(q.payments||[]),{mode:"Cash",amt:"",date:td(),ref:""}]}))} style={{width:"100%",background:"rgba(96,165,250,0.07)",border:"1px dashed rgba(96,165,250,0.3)",borderRadius:8,padding:"6px",color:"#60a5fa",fontSize:11,cursor:"pointer",marginBottom:8}}>+ Add Payment Entry</button>
-              <button onClick={generateAndSendMR} style={{width:"100%",background:mrSent?"linear-gradient(135deg,#059669,#10b981)":"linear-gradient(135deg,#f97316,#ea580c)",border:"none",borderRadius:10,padding:"11px",color:"#fff",fontSize:13,fontWeight:700,cursor:"pointer",marginBottom:4}}>
-                {mrSent?"📲 Send Updated MR to Customer":"📲 Generate MR & Send to Customer"}
-              </button>
-              {mrSent&&<div style={{fontSize:10,color:"#22c55e",textAlign:"center",marginBottom:4}}>✓ MR already sent — add more payments &amp; send again if needed</div>}
+              {!mrSent&&<button onClick={generateAndSendMR} style={{width:"100%",background:"linear-gradient(135deg,#f97316,#ea580c)",border:"none",borderRadius:10,padding:"11px",color:"#fff",fontSize:13,fontWeight:700,cursor:"pointer",marginBottom:4}}>📲 Generate MR &amp; Send to Customer</button>}
+              {mrSent&&<div style={{fontSize:10,color:"#22c55e",textAlign:"center",marginBottom:4,padding:"8px",background:"rgba(34,197,94,0.08)",borderRadius:8,border:"1px solid rgba(34,197,94,0.2)"}}>✅ MR already sent to customer</div>}
               <div style={{display:"flex",justifyContent:"space-between",padding:"5px 0",fontSize:12,fontWeight:700}}><span style={{color:"#64748b"}}>Total Received (J)</span><span style={{color:"#1e293b"}}>{fc(c.paid)}</span></div>
             </div>
             <div style={{display:"flex",alignItems:"center",padding:"4px 0",borderBottom:"1px solid #131820",gap:6,marginTop:4}}>
@@ -1947,9 +1967,9 @@ function Reports({custs,onImportCust}){
           saveExcelToDrive(wb,fname1,repMonth);
         }} style={{width:"100%",background:"rgba(52,211,153,0.1)",border:"1px solid rgba(52,211,153,0.35)",borderRadius:11,padding:"13px",color:"#34d399",fontWeight:700,fontSize:13,cursor:"pointer"}}>🧾 Export Billing Team Report — {repMonth} ☁️</button>
         <button onClick={()=>{
-          const H=["Bill Date","Customer","Phone","Address","Father Name","Model","Code","Chassis","Engine","Delivery Date","MR No","Pay Mode","Financed By","Reg No","Ex-Showroom","Comp Acc","Handling","Insurance","Registration","Accessories","Teflon","Hypo","AMC","TOTAL ON-ROAD","Consumer Offer","Special Disc","Disc Remarks","Disc Adj Amt","Corporate","DEAL PRICE","Booking Amt","Exchange Vehicle","Exchange Value","NET AMT","Loan","BALANCE","PAID","EXCESS","DIFF","Salesman","Branch","Approved By","Enquiry Date","Last Modified"];
+          const H=["Bill Date","Customer","Phone","Address","Father Name","Model","Code","Chassis","Engine","Delivery Date","MR No","Pay Mode","Financed By","Reg No","Ex-Showroom","Comp Acc","Handling","Insurance","Registration","Accessories","Teflon","Hypo","ATW","RSA","AMC","TOTAL ON-ROAD","Consumer Offer","Special Disc","Disc Remarks","Disc Adj Amt","Corporate","DEAL PRICE","Booking Amt","Exchange Vehicle","Exchange Value","NET AMT","Loan","BALANCE","PAID","EXCESS","DIFF","Salesman","Branch","Approved By","Enquiry Date","Last Modified"];
           const rows=billedForMonth.filter(c=>c.billing&&c.billing.calc).map(c=>{const b=c.billing,k=b.calc;
-            return[c.billedDate||"",c.name||"",c.phone||"",c.address||"",c.fatherName||"",c.model||"",c.modelCode||"",b.chassis||"",b.engine||"",b.deliveryDate||"",b.mrNo||"",b.payMode||"",b.financeBank||"Cash",b.registrationNo||"",k.ex,k.ca,k.hdl,k.ins,k.reg,k.acc,k.tef,k.hyp,k.amcV,k.C,k.cof,k.sdis,b.discRem||"",b.discAmt||0,k.corp,k.E,k.bk,c.exchangeAsked||"",k.exv,k.G,k.loan,k.I,k.paid,k.excess||0,k.K,c.salesman||"",c.branch||"",c.approvedBy||"",c.enquiryDate||"",c.updatedAt||c.billedDate||""];
+            return[c.billedDate||"",c.name||"",c.phone||"",c.address||"",c.fatherName||"",c.model||"",c.modelCode||"",b.chassis||"",b.engine||"",b.deliveryDate||"",b.mrNo||"",b.payMode||"",b.financeBank||"Cash",b.registrationNo||"",k.ex,k.ca,k.hdl,k.ins,k.reg,k.acc,k.tef,k.hyp,k.atw||0,k.rsa||0,k.amcV,k.C,k.cof,k.sdis,b.discRem||"",b.discAmt||0,k.corp,k.E,k.bk,c.exchangeAsked||"",k.exv,k.G,k.loan,k.I,k.paid,k.excess||0,k.K,c.salesman||"",c.branch||"",c.approvedBy||"",c.enquiryDate||"",c.updatedAt||c.billedDate||""];
           });
           if(rows.length===0){alert("No billed customers for "+repMonth);return;}
           const wb=XLSX.utils.book_new();const ws=XLSX.utils.aoa_to_sheet([H,...rows]);
@@ -2090,9 +2110,9 @@ function DocVault({custs,onImport}){
           XLSX.writeFile(wb,"NKD_BillingTeam_"+repMonth+".xlsx");
         }} style={{width:"100%",background:"rgba(52,211,153,0.1)",border:"1px solid rgba(52,211,153,0.35)",borderRadius:11,padding:"11px",color:"#34d399",fontWeight:700,fontSize:12,cursor:"pointer"}}>🧾 Billing Team — {repMonth}</button>
         <button onClick={()=>{
-          const H=["Bill Date","Customer","Phone","Address","Father Name","Model","Code","Chassis","Engine","Delivery Date","MR No","Pay Mode","Financed By","Reg No","Ex-Showroom","Comp Acc","Handling","Insurance","Registration","Accessories","Teflon","Hypo","AMC","TOTAL ON-ROAD","Consumer Offer","Special Disc","Disc Remarks","Disc Adj Amt","Corporate","DEAL PRICE","Booking Amt","Exchange Vehicle","Exchange Value","NET AMT","Loan","BALANCE","PAID","EXCESS","DIFF","Salesman","Branch","Approved By","Enquiry Date","Last Modified"];
+          const H=["Bill Date","Customer","Phone","Address","Father Name","Model","Code","Chassis","Engine","Delivery Date","MR No","Pay Mode","Financed By","Reg No","Ex-Showroom","Comp Acc","Handling","Insurance","Registration","Accessories","Teflon","Hypo","ATW","RSA","AMC","TOTAL ON-ROAD","Consumer Offer","Special Disc","Disc Remarks","Disc Adj Amt","Corporate","DEAL PRICE","Booking Amt","Exchange Vehicle","Exchange Value","NET AMT","Loan","BALANCE","PAID","EXCESS","DIFF","Salesman","Branch","Approved By","Enquiry Date","Last Modified"];
           const rows=billedForMonth.filter(c=>c.billing&&c.billing.calc).map(c=>{const b=c.billing,k=b.calc;
-            return[c.billedDate||"",c.name||"",c.phone||"",c.address||"",c.fatherName||"",c.model||"",c.modelCode||"",b.chassis||"",b.engine||"",b.deliveryDate||"",b.mrNo||"",b.payMode||"",b.financeBank||"Cash",b.registrationNo||"",k.ex,k.ca,k.hdl,k.ins,k.reg,k.acc,k.tef,k.hyp,k.amcV,k.C,k.cof,k.sdis,b.discRem||"",b.discAmt||0,k.corp,k.E,k.bk,c.exchangeAsked||"",k.exv,k.G,k.loan,k.I,k.paid,k.excess||0,k.K,c.salesman||"",c.branch||"",c.approvedBy||"",c.enquiryDate||"",c.updatedAt||c.billedDate||""];
+            return[c.billedDate||"",c.name||"",c.phone||"",c.address||"",c.fatherName||"",c.model||"",c.modelCode||"",b.chassis||"",b.engine||"",b.deliveryDate||"",b.mrNo||"",b.payMode||"",b.financeBank||"Cash",b.registrationNo||"",k.ex,k.ca,k.hdl,k.ins,k.reg,k.acc,k.tef,k.hyp,k.atw||0,k.rsa||0,k.amcV,k.C,k.cof,k.sdis,b.discRem||"",b.discAmt||0,k.corp,k.E,k.bk,c.exchangeAsked||"",k.exv,k.G,k.loan,k.I,k.paid,k.excess||0,k.K,c.salesman||"",c.branch||"",c.approvedBy||"",c.enquiryDate||"",c.updatedAt||c.billedDate||""];
           });
           if(rows.length===0){alert("No billed customers for "+repMonth);return;}
           const wb=XLSX.utils.book_new();const ws=XLSX.utils.aoa_to_sheet([H,...rows]);
