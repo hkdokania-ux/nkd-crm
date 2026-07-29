@@ -1173,15 +1173,15 @@ function Detail({cust,role,onBack,onUpd,onLog,onBill,onBook,notify,initTab,clear
             </div>
           ))}
         </div>);})()}
-      <div style={{display:"flex",gap:4,overflowX:"auto",marginBottom:14,paddingBottom:2}}>
-        {tabs.map(t=><button key={t} onClick={()=>setTab(t)} style={{padding:"7px 14px",borderRadius:10,fontSize:12,fontWeight:600,cursor:"pointer",flexShrink:0,background:tab===t?"#f97316":"#6b8fb5",color:tab===t?"#fff":"#8892a4",border:"none",textTransform:"capitalize"}}>{t==="aftersale"?"After Sale":t}</button>)}
+      <div style={{display:"flex",gap:6,overflowX:"auto",marginBottom:14,paddingBottom:2}}>
+        {tabs.map(t=><button key={t} onClick={()=>setTab(t)} style={{padding:"9px 16px",borderRadius:10,fontSize:13,fontWeight:700,cursor:"pointer",flexShrink:0,background:tab===t?"#f97316":"#ffffff",color:tab===t?"#fff":"#334155",border:tab===t?"none":"2px solid #94a3b8",textTransform:"capitalize",boxShadow:tab===t?"0 2px 8px rgba(249,115,22,0.35)":"none"}}>{t==="aftersale"?"After Sale":t}</button>)}
       </div>
 
       {tab==="info"&&(
         <div>
           {edit?(
             <div style={{display:"flex",flexDirection:"column",gap:10}}>
-              {[{k:"name",l:"Name"},{k:"phone",l:"Phone"+(cust.billed&&role==="salesman"?" 🔒":""),t:"tel",lock:cust.billed&&role==="salesman"},{k:"fatherName",l:"Father/Mother"},{k:"address",l:"Address"},{k:"dob",l:"DOB",t:"date"},{k:"aadhar",l:"Aadhar"},{k:"pan",l:"PAN"},...(cust.billed?[{k:"nominee",l:"Nominee"},{k:"nomineeRel",l:"Nom. Relation"},{k:"exchangeName",l:"Exchanger Name"},{k:"exchangeAsked",l:"Exchange Bike Model"},{k:"exchangeRegNo",l:"Old Vehicle Reg No"},{k:"exchangeOffered",l:"Exchange Value ₹"}]:[])].map(({k,l,t,lock})=>(
+              {[{k:"name",l:"Name"},{k:"phone",l:"Phone"+(cust.billed&&role==="salesman"?" 🔒":""),t:"tel",lock:cust.billed&&role==="salesman"}].map(({k,l,t,lock})=>(
                 <div key={k}><label style={lbl}>{l}</label><input type={t||"text"} disabled={lock} style={{...inp,opacity:lock?0.5:1,borderColor:t==="tel"&&f[k]&&f[k].length!==10?"#ef4444":undefined}} value={f[k]||""} onChange={e=>{const v=t==="tel"?e.target.value.replace(/\D/g,"").slice(0,10):e.target.value;setF(p=>({...p,[k]:v}));}}/>{t==="tel"&&f[k]&&f[k].length>0&&f[k].length!==10&&<div style={{fontSize:10,color:"#ef4444",marginTop:2}}>⚠️ Must be 10 digits ({f[k].length} entered)</div>}{lock&&<div style={{fontSize:10,color:"#f59e0b",marginTop:3}}>Phone locked after billing — ask Manager to change</div>}</div>
               ))}
               <div><label style={lbl}>Model Code</label>
@@ -1191,6 +1191,9 @@ function Detail({cust,role,onBack,onUpd,onLog,onBill,onBook,notify,initTab,clear
                 </select>
                 {RC[f.modelCode]&&<div style={{fontSize:11,color:"#60a5fa",marginTop:4}}>On-Road: {fc(RC[f.modelCode].onRoad)}</div>}
               </div>
+              {[{k:"fatherName",l:"Father/Mother"},{k:"address",l:"Address"},{k:"dob",l:"DOB",t:"date"},{k:"aadhar",l:"Aadhar"},{k:"pan",l:"PAN"},...(cust.billed?[{k:"nominee",l:"Nominee"},{k:"nomineeRel",l:"Nom. Relation"},{k:"exchangeName",l:"Exchanger Name"},{k:"exchangeAsked",l:"Exchange Bike Model"},{k:"exchangeRegNo",l:"Old Vehicle Reg No"},{k:"exchangeOffered",l:"Exchange Value ₹"}]:[])].map(({k,l,t,lock})=>(
+                <div key={k}><label style={lbl}>{l}</label><input type={t||"text"} disabled={lock} style={{...inp,opacity:lock?0.5:1,borderColor:t==="tel"&&f[k]&&f[k].length!==10?"#ef4444":undefined}} value={f[k]||""} onChange={e=>{const v=t==="tel"?e.target.value.replace(/\D/g,"").slice(0,10):e.target.value;setF(p=>({...p,[k]:v}));}}/>{t==="tel"&&f[k]&&f[k].length>0&&f[k].length!==10&&<div style={{fontSize:10,color:"#ef4444",marginTop:2}}>⚠️ Must be 10 digits ({f[k].length} entered)</div>}{lock&&<div style={{fontSize:10,color:"#f59e0b",marginTop:3}}>Phone locked after billing — ask Manager to change</div>}</div>
+              ))}
               <div><label style={lbl}>Status</label><select style={inp} value={f.status} onChange={e=>setF(p=>({...p,status:e.target.value}))}>{["Hot","Warm","Cold","Booked","Lost"].map(s=><option key={s}>{s}</option>)}</select></div>
               <div><label style={lbl}>Finance/Cash</label><select style={inp} value={f.finance} onChange={e=>setF(p=>({...p,finance:e.target.value}))}><option>Cash</option><option>Finance</option></select></div>
               <div><label style={lbl}>Next Followup</label><input type="date" style={inp} value={f.followupDate||""} onChange={e=>setF(p=>({...p,followupDate:e.target.value}))}/></div>
@@ -1384,7 +1387,7 @@ function AddModal({onClose,onSave,curUser,role,existing}){
       <div style={{background:"#ffffff",width:"100%",borderRadius:"20px 20px 0 0",maxHeight:"94vh",overflowY:"auto",padding:"20px 16px 44px"}}>
         <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:16}}><div style={{fontWeight:800,fontSize:17,color:"#1e293b"}}>New Enquiry</div><button onClick={onClose} style={{background:"#c2d6ec",border:"none",borderRadius:8,width:32,height:32,cursor:"pointer",color:"#64748b",fontSize:18}}>✕</button></div>
         <div style={{display:"flex",flexDirection:"column",gap:10}}>
-          {[{k:"name",l:"Customer Name *"},{k:"phone",l:"Phone *",t:"tel"},{k:"address",l:"Address"}].map(({k,l,t})=>(
+          {[{k:"name",l:"Customer Name *"},{k:"phone",l:"Phone *",t:"tel"}].map(({k,l,t})=>(
             <div key={k}><label style={lbl}>{l}</label><input type={t||"text"} style={t!=="tel"?{...inp,textTransform:"uppercase"}:{...inp,borderColor:f[k]&&f[k].length!==10?"#ef4444":undefined}} value={f[k]||""} onChange={e=>{const v=t==="tel"?e.target.value.replace(/\D/g,"").slice(0,10):e.target.value;setF(p=>({...p,[k]:v}));}} {...(t!=="tel"?capBlur(k):{})}/>{t==="tel"&&f[k]&&f[k].length>0&&f[k].length!==10&&<div style={{fontSize:10,color:"#ef4444",marginTop:2}}>⚠️ Must be 10 digits ({f[k].length} entered)</div>}</div>
           ))}
           <div><label style={lbl}>Model — search by code or name</label>
@@ -1395,6 +1398,7 @@ function AddModal({onClose,onSave,curUser,role,existing}){
             {mSearch&&(()=>{const match=allModels.find(([c,m])=>mSearch===c+" — "+m.n||mSearch===c);if(match&&match[0]!==f.modelCode)pickM(match[0]);return null;})()}
             {r&&<div style={{background:"rgba(96,165,250,0.07)",border:"1px solid rgba(96,165,250,0.2)",borderRadius:8,padding:"8px 10px",marginTop:5,fontSize:11}}><span style={{color:"#60a5fa",fontWeight:700}}>{f.modelCode} — {r.n}</span><br/><span style={{color:"#64748b"}}>Ex-Showroom: </span><b style={{color:"#1e293b"}}>{fc(r.ex)}</b><span style={{color:"#64748b"}}> | On-Road: </span><b style={{color:"#34d399"}}>{fc(r.onRoad)}</b></div>}
           </div>
+          <div><label style={lbl}>Address</label><input style={{...inp,textTransform:"uppercase"}} value={f.address||""} onChange={e=>setF(p=>({...p,address:e.target.value}))} {...capBlur("address")}/></div>
           <div><label style={lbl}>DOB</label>
             <input type="date" style={inp} value={f.dob||""} onChange={e=>setF(p=>({...p,dob:e.target.value}))} max={td()}/>
             {dobAge!==null&&dobAge<18&&<div style={{background:"rgba(239,68,68,0.1)",border:"1px solid #ef4444",borderRadius:7,padding:"5px 10px",marginTop:4,fontSize:11,color:"#ef4444",fontWeight:700}}>⚠️ Under 18 years — customer is a minor ({dobAge} yrs)</div>}
