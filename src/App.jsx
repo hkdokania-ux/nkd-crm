@@ -1445,9 +1445,11 @@ function Tot({label,val,col}){
   );
 }
 function BillingModal({cust,onClose,onSave,onDraft,notify,role,stockData,billedChassis,allCusts}){
-  const r=RC[cust.modelCode]||{};
-  const isFin=cust.finance==="Finance";
   const eb=cust.billing||cust.billingDraft||{};
+  const [billModelCode,setBillModelCode]=useState(eb.billModelCode||cust.modelCode||"");
+  const [bmSearch,setBmSearch]=useState(billModelCode?(billModelCode+" — "+(RC[billModelCode]?.n||"")):"");
+  const r=RC[billModelCode]||RC[cust.modelCode]||{};
+  const isFin=cust.finance==="Finance";
   function nextMrNo(){
     const all=allCusts||[];
     const nums=all.map(c=>{const m=(c.billing||c.billingDraft||{}).mrNo||"";const n=parseInt(m.replace(/\D/g,""),10);return isNaN(n)?0:n;});
@@ -1474,8 +1476,8 @@ function BillingModal({cust,onClose,onSave,onDraft,notify,role,stockData,billedC
   const sAgeKey=findStockCol(sKeys,["age","days","ageing","aging"]);
   const sDateKey=findStockCol(sKeys,["date","invoice","inward","receipt","stock"]);
   const sBranchKey=findStockCol(sKeys,["branch","location","godown","showroom","store","place"]);
-  const modelStr=(cust.model||"").toLowerCase();
-  const modelCode=(cust.modelCode||"").toLowerCase();
+  const modelStr=(RC[billModelCode]?.n||cust.model||"").toLowerCase();
+  const modelCode=(billModelCode||cust.modelCode||"").toLowerCase();
   function rowMatchesModel(row){
     const allVals=Object.values(row).map(v=>String(v||"").toLowerCase()).join(" ");
     const words=modelStr.split(" ").filter(w=>w.length>2);
@@ -1495,14 +1497,22 @@ function BillingModal({cust,onClose,onSave,onDraft,notify,role,stockData,billedC
     const row=availableForModel.find(r=>String(r[sChassisKey]||"")===chassisVal);
     setF(p=>({...p,chassis:chassisVal,engine:row&&sEngineKey?String(row[sEngineKey]||""):p.engine,color:row&&sColorKey?String(row[sColorKey]||""):p.color}));
   }
+  function pickBillModel(code){
+    const m=RC[code];
+    setBillModelCode(code);
+    setBmSearch(code?(code+" — "+(m?m.n:"")):"");
+    setF(p=>({...p,chassis:"",engine:"",color:"",billModelCode:code,billModelName:m?m.n:""}));
+  }
+  const allBillModels=Object.entries(RC);
+  const filteredBillModels=bmSearch?allBillModels.filter(([code,m])=>code.toLowerCase().includes(bmSearch.toLowerCase())||m.n.toLowerCase().includes(bmSearch.toLowerCase())):allBillModels;
 
   function buildReceipt(){
     var rows="<div class=row><span>Date</span><span class=v>"+td()+"</span></div>";
     rows+="<div class=row><span>Customer</span><span class=v>"+(f.billName||cust.name)+"</span></div>";
     rows+="<div class=row><span>Father/Mother</span><span class=v>"+(f.fatherName||"—")+"</span></div>";rows+="<div class=row><span>Nominee</span><span class=v>"+(f.nominee||"—")+" ("+(f.nomineeRel||"—")+")</span></div>";rows+="<div class=row><span>Aadhar</span><span class=v>"+(f.aadhar||"—")+"</span></div>";
     rows+="<div class=row><span>Phone</span><span class=v>"+cust.phone+"</span></div>";
-    rows+="<div class=row><span>Model</span><span class=v>"+cust.model+"</span></div>";
-    rows+="<div class=row><span>Code</span><span class=v>"+cust.modelCode+"</span></div>";
+    rows+="<div class=row><span>Model</span><span class=v>"+(RC[billModelCode]?.n||cust.model)+"</span></div>";
+    rows+="<div class=row><span>Code</span><span class=v>"+(billModelCode||cust.modelCode)+"</span></div>";
     rows+="<div class=row><span>Colour</span><span class=v>"+f.color+"</span></div>";
     rows+="<div class=row><span>Chassis</span><span class=v>"+f.chassis+"</span></div>";
     rows+="<div class=row><span>Engine</span><span class=v>"+f.engine+"</span></div>";
@@ -1571,7 +1581,7 @@ function BillingModal({cust,onClose,onSave,onDraft,notify,role,stockData,billedC
     }catch(e){notify("⚠️ Error generating MR: "+e.message,"err");}
   }
   function saveDraft(){
-    onDraft({...f,payMode:(f.payments||[]).filter(p=>Number(p.amt||0)>0).map(p=>p.mode).join(" + ")||"—",paid:c.paid,calc:c,checklist:chk,verify:ver,details:{name:f.billName||cust.name,exchangeName:f.exchName,exchangePhone:f.exchPhone,exchangeAsked:f.exchModel,exchangeRegNo:f.exchRegNo,exchangeOffered:String(f.exv||""),fatherName:f.fatherName,address:cust.address,dob:f.dob,nominee:f.nominee,nomineeRel:f.nomineeRel,aadhar:f.aadhar,pan:f.pan}});
+    onDraft({...f,billModelCode,billModelName:RC[billModelCode]?.n||cust.model,payMode:(f.payments||[]).filter(p=>Number(p.amt||0)>0).map(p=>p.mode).join(" + ")||"—",paid:c.paid,calc:c,checklist:chk,verify:ver,details:{name:f.billName||cust.name,exchangeName:f.exchName,exchangePhone:f.exchPhone,exchangeAsked:f.exchModel,exchangeRegNo:f.exchRegNo,exchangeOffered:String(f.exv||""),fatherName:f.fatherName,address:cust.address,dob:f.dob,nominee:f.nominee,nomineeRel:f.nomineeRel,aadhar:f.aadhar,pan:f.pan}});
     notify("📋 Draft saved — reopen billing to continue");
     onClose();
   }
@@ -1591,7 +1601,7 @@ function BillingModal({cust,onClose,onSave,onDraft,notify,role,stockData,billedC
     var payModeSummary=activePmtsS.map(p=>p.mode+(p.ref?" ("+p.ref+")":"")).join(" + ")||"—";
     var payModeRows=activePmtsS.map(p=>"<div class=row><span>"+p.mode+(p.ref?" ("+p.ref+")":"")+"</span><span class=v>"+fc(Number(p.amt))+"</span></div>").join("");
     var calcHtml=html.replace("MONEY RECEIPT","CALCULATION SHEET (INTERNAL)").replace("</h2>","</h2>"+[payModeRows||("<div class=row><span>Payment Mode</span><span class=v>—</span></div>"),"<div class=row><span>MR No.</span><span class=v>"+(f.mrNo||"—")+"</span></div>","<div class=row><span>Financed By</span><span class=v>"+(f.financeBank||"Cash")+"</span></div>"].join("")+CALC_G);
-    onSave({...f,payMode:payModeSummary,paid:c.paid,calc:c,calcHtml:calcHtml,checklist:chk,verify:ver,verifyList:VER_ALL.map(([k,l])=>[k,l]),receiptHtml:html,details:{name:f.billName||cust.name,exchangeName:f.exchName,exchangePhone:f.exchPhone,exchangeAsked:f.exchModel,exchangeRegNo:f.exchRegNo,exchangeOffered:String(f.exv||""),fatherName:f.fatherName,address:cust.address,dob:f.dob,nominee:f.nominee,nomineeRel:f.nomineeRel,aadhar:f.aadhar,pan:f.pan}});
+    onSave({...f,billModelCode,billModelName:RC[billModelCode]?.n||cust.model,payMode:payModeSummary,paid:c.paid,calc:c,calcHtml:calcHtml,checklist:chk,verify:ver,verifyList:VER_ALL.map(([k,l])=>[k,l]),receiptHtml:html,details:{name:f.billName||cust.name,exchangeName:f.exchName,exchangePhone:f.exchPhone,exchangeAsked:f.exchModel,exchangeRegNo:f.exchRegNo,exchangeOffered:String(f.exv||""),fatherName:f.fatherName,address:cust.address,dob:f.dob,nominee:f.nominee,nomineeRel:f.nomineeRel,aadhar:f.aadhar,pan:f.pan}});
     setBusy(true);
     notify(role==="salesman"?"✅ Sent to Manager for approval — receipt saved in Billing tab":"✅ Billed & approved — receipt saved in Billing tab");
   }
@@ -1600,7 +1610,7 @@ function BillingModal({cust,onClose,onSave,onDraft,notify,role,stockData,billedC
     <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.93)",zIndex:150,display:"flex",alignItems:"flex-end"}}>
       <div style={{background:"#ffffff",width:"100%",borderRadius:"20px 20px 0 0",maxHeight:"97vh",overflowY:"auto",padding:"20px 16px 44px"}}>
         <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:4}}><div style={{fontWeight:800,fontSize:16,color:"#1e293b"}}>Bill Vehicle</div><button onClick={onClose} style={{background:"#c2d6ec",border:"none",borderRadius:8,width:32,height:32,cursor:"pointer",color:"#64748b",fontSize:18}}>✕</button></div>
-        <div style={{fontSize:12,color:"#94a3b8",marginBottom:14}}>{cust.name} · {cust.model} · <span style={{color:"#60a5fa",fontWeight:600}}>{cust.modelCode}</span></div>
+        <div style={{fontSize:12,color:"#94a3b8",marginBottom:14}}>{cust.name} · {RC[billModelCode]?.n||cust.model} · <span style={{color:"#60a5fa",fontWeight:600}}>{billModelCode||cust.modelCode}</span></div>
         <div style={{background:"rgba(96,165,250,0.07)",border:"1px solid rgba(96,165,250,0.22)",borderRadius:11,padding:"9px 12px",marginBottom:14,fontSize:11,color:"#64748b",lineHeight:1.7}}>✓ <b style={{color:"#60a5fa"}}>Auto-filled:</b> Ex-Showroom {fc(r.ex)}, Insurance {fc(r.ins||0)}, Registration {fc(r.reg||0)}. Fill <b style={{color:"#f97316"}}>Teflon/Accessories/Hypo</b> manually.</div>
 
         <div style={{marginBottom:14}}>
@@ -1633,6 +1643,13 @@ function BillingModal({cust,onClose,onSave,onDraft,notify,role,stockData,billedC
           <div style={{fontSize:10,fontWeight:700,color:"#475569",letterSpacing:0.8,marginBottom:6}}>VEHICLE DETAILS</div>
           <div style={{background:"#ffffff",border:"1px solid #6b8fb5",borderRadius:12,padding:12}}>
             <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:8}}>
+              <div style={{gridColumn:"1/-1",background:"rgba(249,115,22,0.05)",border:"1px solid rgba(249,115,22,0.25)",borderRadius:9,padding:"8px 10px"}}>
+                <label style={{...lbl,fontSize:10,color:"#f97316"}}>🏍️ Model (change if customer switches)</label>
+                <input style={{...inp,fontSize:12,padding:"8px 10px"}} value={bmSearch} onChange={e=>{setBmSearch(e.target.value);if(!e.target.value)pickBillModel("");}} placeholder="Type model code or name…" list="bill-model-list"/>
+                <datalist id="bill-model-list">{allBillModels.map(([code,m])=><option key={code} value={code+" — "+m.n}/>)}</datalist>
+                {bmSearch&&(()=>{const match=allBillModels.find(([c,m])=>bmSearch===c+" — "+m.n||bmSearch===c);if(match&&match[0]!==billModelCode){pickBillModel(match[0]);}return null;})()}
+                {r.ex&&<div style={{fontSize:11,marginTop:5,color:"#64748b"}}>Ex-Showroom: <b style={{color:"#1e293b"}}>{fc(r.ex)}</b> · Ins: <b>{fc(r.ins||0)}</b> · Reg: <b>{fc(r.reg||0)}</b></div>}
+              </div>
               <div style={{gridColumn:"1/-1"}}>
                 <label style={{...lbl,fontSize:10}}>Chassis No * {availableForModel.length>0&&<span style={{color:"#34d399",fontWeight:700}}>({availableForModel.length} in stock)</span>}{availableForModel.length===0&&sRows.length>0&&<span style={{color:"#f97316",fontWeight:700}}>(no stock for this model)</span>}</label>
                 <input list="chassis-list" value={f.chassis||""} onChange={e=>pickChassis(e.target.value)} placeholder="Type or search chassis no…" style={{...inp,fontSize:12,padding:"8px 10px",textTransform:"uppercase"}} onBlur={e=>setF(p=>({...p,chassis:String(e.target.value).toUpperCase()}))}/>
