@@ -1631,6 +1631,7 @@ function BillingModal({cust,onClose,onSave,onDraft,notify,role,stockData,billedC
 
   const [busy,setBusy]=useState(false);
   const [mrSent,setMrSent]=useState(!!(eb.receiptHtml||eb.mrNo||cust.billed));
+  const [mrPayCount,setMrPayCount]=useState(mrSent?(eb.payments||[]).length:0);
   function generateAndSendMR(){
     if(mrSent){notify("MR already sent to customer — cannot resend","err");return;}
     const activePmts=(f.payments||[]).filter(p=>Number(p.amt||0)>0);
@@ -1647,6 +1648,7 @@ function BillingModal({cust,onClose,onSave,onDraft,notify,role,stockData,billedC
       sharePdf(doc,mrFname,offNum,"MR for "+cust.name+" — "+cust.model,"Office");
       savePdfToDrive(doc,mrFname,cust.name,"MR",cust.branch||SM_BRANCH[cust.salesman]||"");
       setMrSent(true);
+      setMrPayCount(f.payments?f.payments.length:0);
       notify("✅ MR sent to customer & office");
     }catch(e){notify("⚠️ Error generating MR: "+e.message,"err");}
   }
@@ -1781,14 +1783,20 @@ function BillingModal({cust,onClose,onSave,onDraft,notify,role,stockData,billedC
             <div style={{height:8}}/>
             <div style={{display:"flex",alignItems:"center",padding:"4px 0",borderBottom:"1px solid #131820",gap:8}}><span style={{fontSize:12,color:"#64748b",flex:1}}>− Booking Amount</span><span style={{fontSize:11,color:"#1e293b",fontWeight:700}}>{fc(f.bk||0)}</span></div>
             <div style={{display:"flex",alignItems:"center",padding:"4px 0",borderBottom:"1px solid #131820",gap:8}}><span style={{fontSize:12,color:"#64748b",flex:1}}>Booking Date</span><span style={{fontSize:11,color:"#1e293b",fontWeight:700}}>{fd(f.bkDate)||"—"}</span></div>
-            <Inp label="− Exchange Value" k="exv" f={f} setF={setF}/>
+            <div style={{display:"flex",alignItems:"center",padding:"4px 0",borderBottom:"1px solid #131820",gap:8}}><span style={{fontSize:12,color:"#64748b",flex:1}}>− Exchange Value</span><span style={{fontSize:11,color:"#1e293b",fontWeight:700}}>{fc(f.exv||0)}</span><span style={{fontSize:9,color:"#94a3b8"}}>(from above)</span></div>
             <Tot label="Net G = E − F" val={c.G} col="#60a5fa"/>
             <Inp label="− Loan / Disbursement" k="loan" f={f} setF={setF}/>
             <div style={{display:"flex",justifyContent:"space-between",padding:"5px 0",borderBottom:"1px solid #131820",fontSize:11}}><span style={{color:"#64748b"}}>Balance from Customer (I)</span><span style={{color:"#1e293b",fontWeight:700}}>{fc(c.I)}</span></div>
             <div style={{borderTop:"1px solid #6b8fb5",paddingTop:8,marginTop:4}}>
-              <div style={{fontSize:10,color:"#f97316",fontWeight:700,marginBottom:6}}>PAYMENT RECEIVED (J)</div>
-              {(f.payments||[]).map((p,i)=>(
-                <div key={i} style={{marginBottom:8,background:"rgba(249,115,22,0.04)",border:"1px solid rgba(249,115,22,0.2)",borderRadius:9,padding:"8px 10px"}}>
+              <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:6}}>
+                <div style={{fontSize:10,color:"#f97316",fontWeight:700}}>PAYMENT RECEIVED (J)</div>
+                {mrSent&&<div style={{fontSize:9,color:"#ef4444",fontWeight:700,background:"rgba(239,68,68,0.1)",padding:"2px 8px",borderRadius:6}}>🔒 LOCKED — MR Issued</div>}
+              </div>
+              {(f.payments||[]).map((p,i)=>{
+                const locked=mrSent&&i<mrPayCount;
+                return(
+                <div key={i} style={{marginBottom:8,background:locked?"rgba(100,116,139,0.06)":"rgba(249,115,22,0.04)",border:"1px solid "+(locked?"rgba(100,116,139,0.3)":"rgba(249,115,22,0.2)"),borderRadius:9,padding:"8px 10px",pointerEvents:locked?"none":"auto",opacity:locked?0.6:1}}>
+                  {locked&&<div style={{fontSize:9,color:"#94a3b8",fontWeight:700,marginBottom:4}}>🔒 LOCKED — Included in MR</div>}
                   <div style={{display:"flex",gap:6,marginBottom:5,alignItems:"center"}}>
                     <select value={p.mode} onChange={e=>{const px=[...f.payments];px[i]={...px[i],mode:e.target.value};setF(q=>({...q,payments:px}));}} style={{background:"#f1f5f9",border:"1px solid #6b8fb5",borderRadius:8,padding:"5px 6px",fontSize:11,color:"#1e293b",width:90,flexShrink:0}}>
                       {["Cash","Cheque","UPI","RTGS","Card"].map(m=><option key={m}>{m}</option>)}
@@ -1801,7 +1809,7 @@ function BillingModal({cust,onClose,onSave,onDraft,notify,role,stockData,billedC
                     <input value={p.ref||""} placeholder="Cheque No / Ref" onChange={e=>{const px=[...f.payments];px[i]={...px[i],ref:e.target.value};setF(q=>({...q,payments:px}));}} style={{flex:1,background:"#f1f5f9",border:"1px solid #6b8fb5",borderRadius:8,padding:"5px 8px",fontSize:11,color:"#1e293b"}}/>
                   </div>
                 </div>
-              ))}
+              );})}
               <button onClick={()=>setF(q=>({...q,payments:[...(q.payments||[]),{mode:"Cash",amt:"",date:td(),ref:""}]}))} style={{width:"100%",background:"rgba(96,165,250,0.07)",border:"1px dashed rgba(96,165,250,0.3)",borderRadius:8,padding:"6px",color:"#60a5fa",fontSize:11,cursor:"pointer",marginBottom:8}}>+ Add Payment Entry</button>
               {!mrSent&&<button onClick={generateAndSendMR} style={{width:"100%",background:"linear-gradient(135deg,#f97316,#ea580c)",border:"none",borderRadius:10,padding:"11px",color:"#fff",fontSize:13,fontWeight:700,cursor:"pointer",marginBottom:4}}>📲 Generate MR &amp; Send to Customer</button>}
               {mrSent&&<div style={{fontSize:10,color:"#22c55e",textAlign:"center",marginBottom:4,padding:"8px",background:"rgba(34,197,94,0.08)",borderRadius:8,border:"1px solid rgba(34,197,94,0.2)"}}>✅ MR already sent to customer</div>}
