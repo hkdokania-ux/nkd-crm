@@ -2056,7 +2056,7 @@ function Reports({custs,onImportCust}){
   const allC=custs;
   const [brF,setBrF]=useState("All");
   const [repMonth,setRepMonth]=useState(new Date().toISOString().slice(0,7));
-  custs=brF==="All"?custs:custs.filter(c=>(c.branch||SM_BRANCH[c.salesman])===brF);
+  custs=brF==="All"?custs:custs.filter(c=>(c.branch||smBranchMap[c.salesman])===brF);
   const billed=custs.filter(c=>c.billed);
   const billedForMonth=allC.filter(c=>c.billed&&(c.billedDate||"").startsWith(repMonth));
   const conv=custs.length>0?((billed.length/custs.length)*100).toFixed(1):0;
@@ -2099,7 +2099,7 @@ function Reports({custs,onImportCust}){
         {["All",...BRANCHES].map(b=><button key={b} onClick={()=>setBrF(b)} style={{padding:"6px 12px",borderRadius:10,fontSize:11,fontWeight:700,cursor:"pointer",flexShrink:0,background:brF===b?"#dbeafe":"#6b8fb5",color:brF===b?"#60a5fa":"#8892a4",border:"none"}}>{b}</button>)}
       </div>
       <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:8,marginBottom:14}}>
-        {BRANCHES.map(b=>{const bc=allC.filter(c=>(c.branch||SM_BRANCH[c.salesman])===b);const bb=bc.filter(c=>c.billed);
+        {BRANCHES.map(b=>{const bc=allC.filter(c=>(c.branch||smBranchMap[c.salesman])===b);const bb=bc.filter(c=>c.billed);
           const rev=bb.reduce((s,c)=>s+((c.billing&&c.billing.calc&&c.billing.calc.E)||0),0);
           return(<div key={b} className="glass" style={{background:"#ffffff",borderRadius:14,padding:"11px 8px",textAlign:"center"}}>
             <div style={{fontSize:9,color:"#94a3b8",fontWeight:700}}>{b.toUpperCase()}</div>
@@ -2110,7 +2110,7 @@ function Reports({custs,onImportCust}){
       <button onClick={()=>{
         const rows=[["Salesman","Branch","Total Leads","Bookings","Test Rides","Docs Collected","Sold","Revenue"]];
         SM.forEach(s=>{const m=allC.filter(c=>c.salesman===s);
-          rows.push([s,SM_BRANCH[s],m.length,m.filter(c=>c.booking).length,m.filter(c=>c.testRide).length,m.filter(c=>c.photos&&Object.keys(c.photos).some(k=>c.photos[k])).length,m.filter(c=>c.billed).length,m.filter(c=>c.billed).reduce((x,c)=>x+((c.billing&&c.billing.calc&&c.billing.calc.E)||0),0)]);});
+          rows.push([s,smBranchMap[s],m.length,m.filter(c=>c.booking).length,m.filter(c=>c.testRide).length,m.filter(c=>c.photos&&Object.keys(c.photos).some(k=>c.photos[k])).length,m.filter(c=>c.billed).length,m.filter(c=>c.billed).reduce((x,c)=>x+((c.billing&&c.billing.calc&&c.billing.calc.E)||0),0)]);});
         dlFile(rows.map(r=>r.join(",")).join("\n"),"NKD_Branch_Report_"+td()+".csv","text/csv");
       }} style={{width:"100%",background:"rgba(52,211,153,0.1)",border:"1px solid rgba(52,211,153,0.35)",borderRadius:12,padding:11,color:"#34d399",fontWeight:700,fontSize:12,cursor:"pointer",marginBottom:10}}>📊 Export Branch Report (Excel/CSV)</button>
       <div className="glass" style={{background:"#ffffff",borderRadius:14,padding:12,marginBottom:14}}>
@@ -2287,6 +2287,7 @@ function UserMgmt({nkdUsers,onSave,notify}){
   // Salesman add form
   const [newSmName,setNewSmName]=useState("");
   const [newSmPhone,setNewSmPhone]=useState("");
+  const [newSmBranch,setNewSmBranch]=useState(BRANCHES[0]);
   const ROLE_COLOR={manager:"#3b82f6",owner:"#f97316",admin:"#8b5cf6",tech:"#0ea5e9"};
   const ROLE_LABEL={manager:"Manager",owner:"Owner",admin:"Admin",tech:"Tech"};
   function save(updated){setUsers(updated);onSave(updated);}
@@ -2312,8 +2313,8 @@ function UserMgmt({nkdUsers,onSave,notify}){
     if(phone&&phone.length!==10){notify("❌ Phone must be 10 digits");return;}
     const already=(users.salesman||[]).find(u=>u.name.toLowerCase()===newSmName.trim().toLowerCase());
     if(already){notify("❌ Name already exists");return;}
-    save({...users,salesman:[...(users.salesman||[]),{name:newSmName.trim(),phone}]});
-    setNewSmName("");setNewSmPhone("");notify("✅ Sales Executive added");
+    save({...users,salesman:[...(users.salesman||[]),{name:newSmName.trim(),phone,branch:newSmBranch}]});
+    setNewSmName("");setNewSmPhone("");setNewSmBranch(BRANCHES[0]);notify("✅ Sales Executive added");
   }
   function removeSM(name){
     if((users.salesman||[]).length<=1){notify("❌ Must keep at least one salesman");return;}
@@ -2325,6 +2326,10 @@ function UserMgmt({nkdUsers,onSave,notify}){
     const p=phone.replace(/\D/g,"").slice(0,10);
     save({...users,salesman:(users.salesman||[]).map(u=>u.name===name?{...u,phone:p}:u)});
     notify("✅ Phone updated for "+name);
+  }
+  function updateSMBranch(name,branch){
+    save({...users,salesman:(users.salesman||[]).map(u=>u.name===name?{...u,branch}:u)});
+    notify("✅ Branch updated for "+name);
   }
   function resetSMPass(name){
     const pws=ld("nkd_pw",{});
@@ -2346,14 +2351,19 @@ function UserMgmt({nkdUsers,onSave,notify}){
         <div style={{fontWeight:800,fontSize:13,color:"#16a34a",marginBottom:4,textTransform:"uppercase",letterSpacing:1}}>📱 Sales Executive Accounts</div>
         <div style={{fontSize:11,color:"#64748b",marginBottom:12}}>Each salesman needs a phone number for OTP login. Password defaults to <b>1111</b> on first login.</div>
         {(users.salesman||[]).map((u,i)=>(
-          <SMRow key={i} u={u} onRemove={()=>removeSM(u.name)} onPhone={(p)=>updateSMPhone(u.name,p)} onReset={()=>resetSMPass(u.name)} onUnlock={()=>unlockSM(u.name)}/>
+          <SMRow key={i} u={u} onRemove={()=>removeSM(u.name)} onPhone={(p)=>updateSMPhone(u.name,p)} onBranch={(b)=>updateSMBranch(u.name,b)} onReset={()=>resetSMPass(u.name)} onUnlock={()=>unlockSM(u.name)}/>
         ))}
-        <div style={{display:"grid",gridTemplateColumns:"1fr 1fr auto",gap:8,marginTop:12,alignItems:"end",borderTop:"1px solid #e8eef8",paddingTop:12}}>
+        <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr auto",gap:8,marginTop:12,alignItems:"end",borderTop:"1px solid #e8eef8",paddingTop:12}}>
           <div><div style={{fontSize:11,color:"#64748b",fontWeight:600,marginBottom:4}}>Full Name</div>
             <input style={{...inp,margin:0}} value={newSmName} onChange={e=>setNewSmName(e.target.value)} placeholder="Salesman name"/>
           </div>
           <div><div style={{fontSize:11,color:"#64748b",fontWeight:600,marginBottom:4}}>Phone (10 digits)</div>
             <input type="tel" inputMode="numeric" style={{...inp,margin:0}} value={newSmPhone} onChange={e=>setNewSmPhone(e.target.value.replace(/\D/g,"").slice(0,10))} placeholder="9876543210"/>
+          </div>
+          <div><div style={{fontSize:11,color:"#64748b",fontWeight:600,marginBottom:4}}>Branch</div>
+            <select style={{...inp,margin:0}} value={newSmBranch} onChange={e=>setNewSmBranch(e.target.value)}>
+              {BRANCHES.map(b=><option key={b} value={b}>{b}</option>)}
+            </select>
           </div>
           <button onClick={addSM} style={{...btn("#16a34a"),padding:"10px 18px",borderRadius:10,whiteSpace:"nowrap"}}>Add</button>
         </div>
@@ -2389,8 +2399,9 @@ function UserMgmt({nkdUsers,onSave,notify}){
     </div>
   );
 }
-function SMRow({u,onRemove,onPhone,onReset,onUnlock}){
+function SMRow({u,onRemove,onPhone,onBranch,onReset,onUnlock}){
   const [editing,setEditing]=useState(false);
+  const [editingBranch,setEditingBranch]=useState(false);
   const [p,setP]=useState(u.phone||"");
   const pws=ld("nkd_pw",{});
   const rec=pws[u.name]||{};
@@ -2400,6 +2411,26 @@ function SMRow({u,onRemove,onPhone,onReset,onUnlock}){
         <div style={{fontWeight:700,fontSize:13,color:"#1e293b"}}>{u.name}</div>
         {rec.locked&&<div style={{fontSize:10,color:"#ef4444",fontWeight:700}}>🔒 LOCKED</div>}
       </div>
+      {/* Branch badge / edit */}
+      {editingBranch?(
+        <div style={{display:"flex",gap:6,alignItems:"center"}}>
+          <select defaultValue={u.branch||""} onChange={e=>{onBranch(e.target.value);setEditingBranch(false);}} style={{...inp,margin:0,padding:"4px 8px",fontSize:12,minWidth:130}}>
+            <option value="">-- Select --</option>
+            {BRANCHES.map(b=><option key={b} value={b}>{b}</option>)}
+          </select>
+          <button onClick={()=>setEditingBranch(false)} style={{padding:"4px 8px",borderRadius:7,border:"1px solid #6b8fb5",background:"transparent",cursor:"pointer",fontSize:11,color:"#475569"}}>✕</button>
+        </div>
+      ):(
+        <>
+          <div style={{fontSize:11,color:u.branch?"#6366f1":"#ef4444",background:u.branch?"rgba(99,102,241,0.08)":"rgba(239,68,68,0.08)",borderRadius:6,padding:"2px 8px",fontWeight:600}}>
+            {u.branch?"🏢 "+u.branch:"⚠️ No Branch"}
+          </div>
+          <button onClick={()=>setEditingBranch(true)} style={{padding:"4px 9px",borderRadius:7,border:"1px solid #6366f155",background:"rgba(99,102,241,0.05)",cursor:"pointer",fontSize:11,color:"#6366f1",fontWeight:600}}>
+            {u.branch?"Move Branch":"Set Branch"}
+          </button>
+        </>
+      )}
+      {/* Phone */}
       {editing?(
         <div style={{display:"flex",gap:6,alignItems:"center"}}>
           <input type="tel" inputMode="numeric" placeholder="10-digit phone" value={p} onChange={e=>setP(e.target.value.replace(/\D/g,"").slice(0,10))} style={{...inp,margin:0,width:130,padding:"5px 8px",fontSize:12}}/>
@@ -2600,13 +2631,13 @@ function ExchangerDue({custs,onUpd,notify}){
     </div>
   );
 }
-function CashBook({custs}){
+function CashBook({custs,smBranchMap}){
   const [date,setDate]=useState(td());
   const [branch,setBranch]=useState("All");
   // Collect all payments for the selected date
   const entries=[];
   custs.forEach(c=>{
-    const br=SM_BRANCH[c.salesman]||c.branch||"—";
+    const br=c.branch||(smBranchMap&&smBranchMap[c.salesman])||SM_BRANCH[c.salesman]||"—";
     // Booking payments (multiple supported)
     const allBks=c.bookings||(c.booking?[c.booking]:[]);
     allBks.forEach((bk,bi)=>{if(bk&&bk.date===date){entries.push({type:"Booking #"+(bi+1),name:c.name,model:c.model||"",amt:Number(bk.amt||0),mode:bk.mode||"Cash",branch:br,salesman:c.salesman||"",time:""});}});
@@ -2678,14 +2709,15 @@ function CashBook({custs}){
 function OwnerPortal({custs,stockData,billedChassis,statusData,role,user,mBr,saveStockData,saveStatusData,nkdUsers,onSaveUsers,notify,onUpd,onApprove,onLogout,onMobile}){
   const [view,setView]=useState(role==="admin"?"uploads":"dashboard");
   const [custTableQ,setCustTableQ]=useState("");
+  const smBranchMap=useMemo(()=>{const m={...SM_BRANCH};(nkdUsers?.salesman||[]).forEach(s=>{if(s.name&&s.branch)m[s.name]=s.branch;});return m;},[nkdUsers]);
   const billed=custs.filter(c=>c.billed);
   const thisM=td().slice(0,7);
   const billedThisM=billed.filter(c=>(c.billedDate||"").startsWith(thisM));
   const revThisM=billedThisM.reduce((s,c)=>s+((c.billing&&c.billing.calc&&c.billing.calc.E)||0),0);
-  const branches=BRANCHES.map(b=>({name:b,enq:custs.filter(c=>(c.branch||SM_BRANCH[c.salesman])===b).length,book:custs.filter(c=>(c.branch||SM_BRANCH[c.salesman])===b&&c.booking).length,bill:billed.filter(c=>(c.branch||SM_BRANCH[c.salesman])===b).length,rev:billed.filter(c=>(c.branch||SM_BRANCH[c.salesman])===b).reduce((s,c)=>s+((c.billing&&c.billing.calc&&c.billing.calc.E)||0),0)}));
+  const branches=BRANCHES.map(b=>({name:b,enq:custs.filter(c=>(c.branch||smBranchMap[c.salesman])===b).length,book:custs.filter(c=>(c.branch||smBranchMap[c.salesman])===b&&c.booking).length,bill:billed.filter(c=>(c.branch||smBranchMap[c.salesman])===b).length,rev:billed.filter(c=>(c.branch||smBranchMap[c.salesman])===b).reduce((s,c)=>s+((c.billing&&c.billing.calc&&c.billing.calc.E)||0),0)}));
   const modelMap={};billed.forEach(c=>{const m=c.model||"Unknown";modelMap[m]=(modelMap[m]||0)+1;});
   const modelWise=Object.entries(modelMap).sort((a,b)=>b[1]-a[1]);
-  const smMap={};custs.forEach(c=>{if(!smMap[c.salesman])smMap[c.salesman]={enq:0,book:0,bill:0,rev:0,branch:SM_BRANCH[c.salesman]||""};smMap[c.salesman].enq++;if(c.booking)smMap[c.salesman].book++;if(c.billed){smMap[c.salesman].bill++;smMap[c.salesman].rev+=((c.billing&&c.billing.calc&&c.billing.calc.E)||0);}});
+  const smMap={};custs.forEach(c=>{if(!smMap[c.salesman])smMap[c.salesman]={enq:0,book:0,bill:0,rev:0,branch:smBranchMap[c.salesman]||""};smMap[c.salesman].enq++;if(c.booking)smMap[c.salesman].book++;if(c.billed){smMap[c.salesman].bill++;smMap[c.salesman].rev+=((c.billing&&c.billing.calc&&c.billing.calc.E)||0);}});
   const smPerf=Object.entries(smMap).sort((a,b)=>b[1].bill-a[1].bill);
   const pendingApprovals=custs.filter(c=>c.billing&&c.managerApproval===null);
   const navItems=role==="admin"
@@ -2781,7 +2813,7 @@ function OwnerPortal({custs,stockData,billedChassis,statusData,role,user,mBr,sav
             <div style={{background:"#fff",border:"2px solid #6b8fb5",borderRadius:14,overflow:"auto"}}>
               <table style={{width:"100%",borderCollapse:"collapse",minWidth:900}}>
                 <thead><tr><SB label="Name"/><SB label="Phone"/><SB label="Model"/><SB label="Status"/><SB label="Salesman"/><SB label="Branch"/><SB label="Enquiry"/><SB label="Billed"/><SB label="Revenue"/></tr></thead>
-                <tbody>{filt.slice(0,200).map(c=>{const b=c.billing;const cl=b&&b.calc?b.calc:null;return(<tr key={c.id} style={{cursor:"pointer"}} onClick={()=>{}}><TD v={c.name} bold/><TD v={c.phone} col="#64748b"/><TD v={c.model||"—"}/><TD v={<span style={{fontSize:10,fontWeight:800,background:({"Hot":"#ef4444","Warm":"#f97316","Billed":"#22c55e","Booked":"#8b5cf6","Cold":"#3b82f6","Lost":"#64748b"}[c.status]||"#374151")+"20",color:({"Hot":"#ef4444","Warm":"#f97316","Billed":"#22c55e","Booked":"#8b5cf6","Cold":"#3b82f6","Lost":"#64748b"}[c.status]||"#374151"),padding:"2px 8px",borderRadius:8}}>{c.status}</span>}/><TD v={c.salesman||"—"} col="#64748b"/><TD v={(c.branch||SM_BRANCH[c.salesman]||"—")} col="#64748b"/><TD v={fd(c.enquiryDate)} col="#94a3b8"/><TD v={c.billed?fd(c.billedDate):"—"} col={c.billed?"#22c55e":"#94a3b8"}/><TD v={cl?fc(cl.E):"—"} col="#f97316" bold/></tr>);})}</tbody>
+                <tbody>{filt.slice(0,200).map(c=>{const b=c.billing;const cl=b&&b.calc?b.calc:null;return(<tr key={c.id} style={{cursor:"pointer"}} onClick={()=>{}}><TD v={c.name} bold/><TD v={c.phone} col="#64748b"/><TD v={c.model||"—"}/><TD v={<span style={{fontSize:10,fontWeight:800,background:({"Hot":"#ef4444","Warm":"#f97316","Billed":"#22c55e","Booked":"#8b5cf6","Cold":"#3b82f6","Lost":"#64748b"}[c.status]||"#374151")+"20",color:({"Hot":"#ef4444","Warm":"#f97316","Billed":"#22c55e","Booked":"#8b5cf6","Cold":"#3b82f6","Lost":"#64748b"}[c.status]||"#374151"),padding:"2px 8px",borderRadius:8}}>{c.status}</span>}/><TD v={c.salesman||"—"} col="#64748b"/><TD v={(c.branch||smBranchMap[c.salesman]||"—")} col="#64748b"/><TD v={fd(c.enquiryDate)} col="#94a3b8"/><TD v={c.billed?fd(c.billedDate):"—"} col={c.billed?"#22c55e":"#94a3b8"}/><TD v={cl?fc(cl.E):"—"} col="#f97316" bold/></tr>);})}</tbody>
               </table>
               {filt.length>200&&<div style={{padding:"10px 16px",fontSize:12,color:"#94a3b8"}}>Showing 200 of {filt.length} — refine search</div>}
             </div>
@@ -2856,7 +2888,7 @@ function OwnerPortal({custs,stockData,billedChassis,statusData,role,user,mBr,sav
         {view==="reports"&&<div style={{maxWidth:800}}><Reports custs={custs} onImportCust={()=>{}}/></div>}
 
         {/* ── CASH BOOK ── */}
-        {view==="cashbook"&&<CashBook custs={custs}/>}
+        {view==="cashbook"&&<CashBook custs={custs} smBranchMap={smBranchMap}/>}
         {view==="exchdue"&&<ExchangerDue custs={custs} onUpd={onUpd} notify={notify}/>}
 
         {/* ── USERS ── */}
@@ -2893,6 +2925,7 @@ export default function App(){
   function saveStockData(data){setStockData(data);sv("nkd_stock",data);_dbSet("nkd_stock",data);}
   const [nkdUsers,setNkdUsers]=useState(()=>ld("nkd_users",DEFAULT_USERS));
   function saveUsers(data){setNkdUsers(data);sv("nkd_users",data);_dbSet("nkd_users",data);}
+  const smBranchMap=useMemo(()=>{const m={...SM_BRANCH};(nkdUsers.salesman||[]).forEach(s=>{if(s.name&&s.branch)m[s.name]=s.branch;});return m;},[nkdUsers]);
   const [payNotifs,setPayNotifs]=useState(()=>ld("nkd_pnotifs",[]));
   const billedChassis=useMemo(()=>custs.filter(c=>c.billed&&c.billing&&c.billing.chassis).map(c=>String(c.billing.chassis).trim().toUpperCase()),[custs]);
   const stack=useRef([]);
@@ -2931,7 +2964,7 @@ export default function App(){
   function upd(id,patch){setCusts(p=>p.map(c=>c.id===id?{...c,...patch,updatedAt:td()}:c));}
 
   function addC(data){
-    setCusts(p=>[{...data,branch:SM_BRANCH[data.salesman]||BRANCHES[0],id:"C"+Date.now(),attempts:0,stopped:false,billed:false,billedDate:null,photos:{},billing:null,managerApproval:null},...p]);
+    setCusts(p=>[{...data,branch:smBranchMap[data.salesman]||BRANCHES[0],id:"C"+Date.now(),attempts:0,stopped:false,billed:false,billedDate:null,photos:{},billing:null,managerApproval:null},...p]);
     notify("Customer added ✓");
   }
 
@@ -3023,7 +3056,7 @@ export default function App(){
   }
 
   const mBr=ld("nkd_br",BRANCHES[0]);
-  const myC=role==="salesman"?custs.filter(c=>c.salesman===user):role==="manager"?custs.filter(c=>(c.branch||SM_BRANCH[c.salesman])===mBr):custs; // owner/tech/admin see all
+  const myC=role==="salesman"?custs.filter(c=>c.salesman===user):role==="manager"?custs.filter(c=>(c.branch||smBranchMap[c.salesman])===mBr):custs; // owner/tech/admin see all
   const due=[...myC.filter(c=>!c.billed&&!c.stopped&&c.followupDate<=td())].sort((a,b)=>{const o={Hot:0,Warm:1,Cold:2,Booked:3};return(o[a.status]??9)-(o[b.status]??9);});
   const pending=custs.filter(c=>c.billing&&c.managerApproval===null);
   const myPending=role==="salesman"?pending.filter(c=>c.salesman===user):pending;
@@ -3113,7 +3146,7 @@ export default function App(){
         {view==="customers"&&<CustList custs={myC} onOpen={openD} initF={custF} showSM={role!=="salesman"}/>}
         {view==="detail"&&sel&&<Detail cust={custs.find(c=>c.id===sel.id)||sel} role={role} onBack={goBack} onUpd={p=>upd(sel.id,p)} onLog={logF} onBill={()=>setBillOpen(true)} onBook={()=>setBookOpen(true)} notify={notify} initTab={dtab} clearInit={()=>setDtab(null)} onAddPayment={addPayment} onApprove={approveBill} curUser={user} onTransferReq={requestTransfer} onApproveTransfer={approveTransfer}/>}
         {view==="uploads"&&<div style={{padding:"0 16px 80px"}}><UploadsHub stockData={stockData} statusData={statusData} onStockUpload={saveStockData} onStatusUpload={saveStatusData} notify={notify}/></div>}
-        {view==="stock"&&<div style={{padding:"0 16px 80px"}}><StockView stockData={stockData} billedChassis={billedChassis} role={role} userBranch={role==="salesman"?(SM_BRANCH[user]||BRANCHES[0]):role==="manager"?mBr:null} onUpload={saveStockData} notify={notify}/></div>}
+        {view==="stock"&&<div style={{padding:"0 16px 80px"}}><StockView stockData={stockData} billedChassis={billedChassis} role={role} userBranch={role==="salesman"?(smBranchMap[user]||BRANCHES[0]):role==="manager"?mBr:null} onUpload={saveStockData} notify={notify}/></div>}
         {view==="rcstatus"&&<div style={{padding:"0 16px 80px"}}><RCHSRPSearch statusData={statusData} role={role} onUpload={saveStatusData} notify={notify}/></div>}
         {view==="approvals"&&<>
           {role!=="salesman"&&pendingTransfers.length>0&&<div style={{marginBottom:16}}>
