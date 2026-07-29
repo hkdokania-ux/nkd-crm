@@ -1558,6 +1558,7 @@ function BillingModal({cust,onClose,onSave,onDraft,notify,role,stockData,billedC
     return allVals.includes(modelCode)||words.filter(w=>allVals.includes(w)).length>=2;
   }
   const availableColors=[...new Set(sRows.filter(r=>rowMatchesModel(r)).map(r=>sColorKey?String(r[sColorKey]||""):"").filter(Boolean))];
+  const custBranch=cust.branch||SM_BRANCH[cust.salesman]||"";
   const availableForModel=sRows.filter(row=>{
     return rowMatchesModel(row)&&!(billedChassis||[]).includes(String(row[sChassisKey]||"").trim().toUpperCase());
   }).sort((a,b)=>{
@@ -1566,6 +1567,11 @@ function BillingModal({cust,onClose,onSave,onDraft,notify,role,stockData,billedC
       if(sDateKey&&row[sDateKey]){const raw=row[sDateKey];let dt=typeof raw==="number"&&raw>40000?new Date(Math.round((raw-25569)*86400000)):new Date(raw);if(dt&&!isNaN(dt))return Math.floor((Date.now()-dt)/86400000);}
       return 0;
     }
+    const aBr=sBranchKey?cleanBranch(a[sBranchKey]):"";
+    const bBr=sBranchKey?cleanBranch(b[sBranchKey]):"";
+    const aOwn=custBranch&&aBr===custBranch?0:1;
+    const bOwn=custBranch&&bBr===custBranch?0:1;
+    if(aOwn!==bOwn)return aOwn-bOwn;
     return getAge(b)-getAge(a);
   });
   function pickChassis(chassisVal){
@@ -1728,7 +1734,7 @@ function BillingModal({cust,onClose,onSave,onDraft,notify,role,stockData,billedC
                 {r.ex&&<div style={{fontSize:11,marginTop:5,color:"#64748b"}}>Ex-Showroom: <b style={{color:"#1e293b"}}>{fc(r.ex)}</b> · Ins: <b>{fc(r.ins||0)}</b> · Reg: <b>{fc(r.reg||0)}</b></div>}
               </div>
               <div style={{gridColumn:"1/-1"}}>
-                <label style={{...lbl,fontSize:10}}>Chassis No * {availableForModel.length>0&&<span style={{color:"#34d399",fontWeight:700}}>({availableForModel.length} in stock)</span>}{availableForModel.length===0&&sRows.length>0&&<span style={{color:"#f97316",fontWeight:700}}>(no stock for this model)</span>}</label>
+                {(()=>{const ownCount=availableForModel.filter(r=>sBranchKey&&cleanBranch(r[sBranchKey])===custBranch).length;const otherCount=availableForModel.length-ownCount;return(<label style={{...lbl,fontSize:10}}>Chassis No * {availableForModel.length>0&&<span style={{color:"#34d399",fontWeight:700}}>({ownCount>0&&<span style={{color:"#3b82f6"}}>★{ownCount} {custBranch}</span>}{ownCount>0&&otherCount>0&&" + "}{otherCount>0&&otherCount+" other"})</span>}{availableForModel.length===0&&sRows.length>0&&<span style={{color:"#f97316",fontWeight:700}}>(no stock for this model)</span>}</label>);})()}
                 <input list="chassis-list" value={f.chassis||""} onChange={e=>pickChassis(e.target.value)} placeholder="Type or search chassis no…" style={{...inp,fontSize:12,padding:"8px 10px",textTransform:"uppercase"}} onBlur={e=>setF(p=>({...p,chassis:String(e.target.value).toUpperCase()}))}/>
                 <datalist id="chassis-list">{availableForModel.map((row,i)=>{
                   const ch=String(row[sChassisKey]||"");
@@ -1743,7 +1749,9 @@ function BillingModal({cust,onClose,onSave,onDraft,notify,role,stockData,billedC
                     if(dt&&!isNaN(dt)){age=Math.max(0,Math.floor((Date.now()-dt)/86400000))+" days";}
                   }
                   const br=sBranchKey?cleanBranch(row[sBranchKey]):"";
-                  const label=[col,age,br].filter(Boolean).join(" · ");
+                  const isOwn=custBranch&&br===custBranch;
+                  const brLabel=br?(isOwn?"★ "+br+" (YOUR BRANCH)":br):"";
+                  const label=[brLabel,col,age].filter(Boolean).join(" | ");
                   return(<option key={i} value={ch}>{label}</option>);
                 })}</datalist>
               </div>
