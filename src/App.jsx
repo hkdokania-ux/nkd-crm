@@ -779,29 +779,92 @@ function CustList({custs,onOpen,initF,showSM}){
   );
 }
 
-function DocGrid({cust,onUpload,docs}){
+function CropModal({imgSrc,onDone,onClose}){
+  const[box,setBox]=useState({x:0.05,y:0.05,w:0.9,h:0.9});
+  const[drag,setDrag]=useState(null);
+  const cRef=useRef(null);const imgRef=useRef(null);
+  function ptFrac(e){const r=cRef.current.getBoundingClientRect();const pt=e.touches?e.touches[0]:e;return[(pt.clientX-r.left)/r.width,(pt.clientY-r.top)/r.height];}
+  function startDrag(e,type){e.preventDefault();e.stopPropagation();const[px,py]=ptFrac(e);setDrag({type,sb:{...box},px,py});}
+  function doMove(e){
+    if(!drag)return;e.preventDefault();
+    const[px,py]=ptFrac(e);const dx=px-drag.px,dy=py-drag.py;const s=drag.sb,MIN=0.05;
+    let{x,y,w,h}=s;
+    if(drag.type==='mv'){x=Math.max(0,Math.min(1-w,s.x+dx));y=Math.max(0,Math.min(1-h,s.y+dy));}
+    else if(drag.type==='tl'){x=s.x+dx;w=s.w-dx;y=s.y+dy;h=s.h-dy;if(x<0){w+=x;x=0;}if(y<0){h+=y;y=0;}if(w<MIN){x=s.x+s.w-MIN;w=MIN;}if(h<MIN){y=s.y+s.h-MIN;h=MIN;}}
+    else if(drag.type==='tr'){w=Math.max(MIN,s.w+dx);y=s.y+dy;h=s.h-dy;if(x+w>1)w=1-x;if(y<0){h+=y;y=0;}if(h<MIN){y=s.y+s.h-MIN;h=MIN;}}
+    else if(drag.type==='bl'){x=s.x+dx;w=s.w-dx;h=Math.max(MIN,s.h+dy);if(x<0){w+=x;x=0;}if(w<MIN){x=s.x+s.w-MIN;w=MIN;}if(y+h>1)h=1-y;}
+    else if(drag.type==='br'){w=Math.max(MIN,s.w+dx);h=Math.max(MIN,s.h+dy);if(x+w>1)w=1-x;if(y+h>1)h=1-y;}
+    setBox({x,y,w,h});
+  }
+  function confirm(){const img=imgRef.current;if(!img)return;const c=document.createElement('canvas');const iw=img.naturalWidth,ih=img.naturalHeight;c.width=Math.round(box.w*iw);c.height=Math.round(box.h*ih);c.getContext('2d').drawImage(img,Math.round(box.x*iw),Math.round(box.y*ih),c.width,c.height,0,0,c.width,c.height);onDone(c.toDataURL('image/jpeg',0.88));}
+  const p=v=>(v*100).toFixed(2)+'%';
   return(
-    <div style={{display:"flex",flexDirection:"column",gap:10}}>
-      {docs.map(({key,l,ic})=>(
-        <div key={key} style={{background:"#ffffff",border:"1px solid #6b8fb5",borderRadius:12,overflow:"hidden"}}>
-          <div style={{padding:"10px 13px",display:"flex",justifyContent:"space-between",alignItems:"center"}}><div style={{display:"flex",alignItems:"center",gap:8}}><span style={{fontSize:18}}>{ic}</span><span style={{fontSize:13,color:"#334155"}}>{l}</span></div>{(cust.photos||{})[key]&&<span style={{fontSize:11,color:"#22c55e",fontWeight:700}}>✓</span>}</div>
-          {(cust.photos||{})[key]&&<img src={cust.photos[key]} alt={l} style={{width:"100%",maxHeight:200,objectFit:"contain",background:"#000"}}/>}
-          <div style={{padding:"0 13px 12px"}}>
-            <div style={{fontSize:11,color:"#64748b",marginBottom:6}}>{(cust.photos||{})[key]?"🔄 Replace:":"📎 Upload:"}</div>
-            <div style={{display:"flex",gap:6}}>
-              <label style={{flex:1,display:"flex",alignItems:"center",justifyContent:"center",gap:5,background:"linear-gradient(135deg,#1e3a5f,#2a4a7f)",border:"1px solid #3b5fa0",borderRadius:9,padding:"9px 6px",fontSize:12,color:"#93c5fd",cursor:"pointer",fontWeight:600}}>
-                📷 Camera
-                <input type="file" accept="image/*" capture="environment" onChange={e=>{if(e.target.files&&e.target.files[0]){onUpload(key,e.target.files[0]);e.target.value="";}}} style={{display:"none"}}/>
-              </label>
-              <label style={{flex:1,display:"flex",alignItems:"center",justifyContent:"center",gap:5,background:"rgba(203,213,225,0.08)",border:"1px dashed #4a6080",borderRadius:9,padding:"9px 6px",fontSize:12,color:"#94a3b8",cursor:"pointer",fontWeight:600}}>
-                📁 Gallery
-                <input type="file" accept="image/*" onChange={e=>{if(e.target.files&&e.target.files[0]){onUpload(key,e.target.files[0]);e.target.value="";}}} style={{display:"none"}}/>
-              </label>
-            </div>
-          </div>
+    <div style={{position:'fixed',inset:0,background:'#000',zIndex:500,display:'flex',flexDirection:'column'}}>
+      <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',padding:'13px 16px',background:'rgba(0,0,0,0.85)'}}>
+        <button onClick={onClose} style={{background:'transparent',border:'1px solid #555',borderRadius:8,padding:'7px 14px',color:'#aaa',fontSize:13,cursor:'pointer'}}>✕ Cancel</button>
+        <span style={{color:'#fff',fontWeight:700,fontSize:14}}>✂️ Crop Document</span>
+        <button onClick={confirm} style={{background:'#10b981',border:'none',borderRadius:8,padding:'7px 16px',color:'#fff',fontWeight:700,fontSize:13,cursor:'pointer'}}>✅ Use</button>
+      </div>
+      <div ref={cRef} style={{flex:1,position:'relative',overflow:'hidden',touchAction:'none'}}
+        onMouseMove={doMove} onMouseUp={()=>setDrag(null)}
+        onTouchMove={doMove} onTouchEnd={()=>setDrag(null)}>
+        <img ref={imgRef} src={imgSrc} style={{width:'100%',height:'100%',objectFit:'contain',display:'block',userSelect:'none'}} draggable={false}/>
+        <div style={{position:'absolute',inset:0,pointerEvents:'none'}}>
+          <svg style={{position:'absolute',inset:0,width:'100%',height:'100%'}}>
+            <defs><mask id="cmask"><rect width="100%" height="100%" fill="white"/><rect x={p(box.x)} y={p(box.y)} width={p(box.w)} height={p(box.h)} fill="black"/></mask></defs>
+            <rect width="100%" height="100%" fill="rgba(0,0,0,0.65)" mask="url(#cmask)"/>
+            <rect x={p(box.x)} y={p(box.y)} width={p(box.w)} height={p(box.h)} fill="none" stroke="#60a5fa" strokeWidth="2" strokeDasharray="6 3"/>
+          </svg>
         </div>
-      ))}
+        <div onMouseDown={e=>startDrag(e,'mv')} onTouchStart={e=>startDrag(e,'mv')}
+          style={{position:'absolute',left:p(box.x),top:p(box.y),width:p(box.w),height:p(box.h),cursor:'move',touchAction:'none'}}/>
+        {[['tl',box.x,box.y],['tr',box.x+box.w,box.y],['bl',box.x,box.y+box.h],['br',box.x+box.w,box.y+box.h]].map(([id,fx,fy])=>(
+          <div key={id} onMouseDown={e=>startDrag(e,id)} onTouchStart={e=>startDrag(e,id)}
+            style={{position:'absolute',left:p(fx),top:p(fy),width:32,height:32,background:'#60a5fa',borderRadius:'50%',transform:'translate(-50%,-50%)',cursor:'nwse-resize',touchAction:'none',border:'3px solid #fff',boxShadow:'0 2px 10px rgba(0,0,0,0.6)',zIndex:10}}/>
+        ))}
+      </div>
+      <div style={{padding:'8px 16px',background:'rgba(0,0,0,0.85)',color:'#888',fontSize:11,textAlign:'center'}}>Drag blue handles to resize · Drag inside to move</div>
     </div>
+  );
+}
+function DocGrid({cust,onUpload,docs}){
+  const[cropSt,setCropSt]=useState(null);
+  function pickFile(key,file){const rd=new FileReader();rd.onload=e=>setCropSt({key,src:e.target.result});rd.readAsDataURL(file);}
+  function onCropDone(dataUrl){if(cropSt)onUpload(cropSt.key,dataUrl);setCropSt(null);}
+  return(
+    <>
+      {cropSt&&<CropModal imgSrc={cropSt.src} onDone={onCropDone} onClose={()=>setCropSt(null)}/>}
+      <div style={{display:"flex",flexDirection:"column",gap:10}}>
+        {docs.map(({key,l,ic})=>{
+          const existing=(cust.photos||{})[key];
+          return(
+            <div key={key} style={{background:"#ffffff",border:"1px solid #6b8fb5",borderRadius:12,overflow:"hidden"}}>
+              <div style={{padding:"10px 13px",display:"flex",justifyContent:"space-between",alignItems:"center"}}>
+                <div style={{display:"flex",alignItems:"center",gap:8}}><span style={{fontSize:18}}>{ic}</span><span style={{fontSize:13,color:"#334155"}}>{l}</span></div>
+                {existing&&<span style={{fontSize:11,color:"#22c55e",fontWeight:700}}>✓ Saved</span>}
+              </div>
+              {existing&&(
+                <div style={{position:'relative'}}>
+                  <img src={existing} alt={l} style={{width:"100%",maxHeight:220,objectFit:"contain",background:"#000",display:"block"}}/>
+                  <button onClick={()=>setCropSt({key,src:existing})} style={{position:'absolute',top:8,right:8,background:'rgba(0,0,0,0.72)',border:'1px solid #60a5fa',borderRadius:8,padding:'6px 12px',color:'#60a5fa',fontSize:12,fontWeight:700,cursor:'pointer'}}>✏️ Edit / Crop</button>
+                </div>
+              )}
+              <div style={{padding:"8px 13px 12px"}}>
+                <div style={{fontSize:11,color:"#64748b",marginBottom:6}}>{existing?"🔄 Replace:":"📎 Upload:"}</div>
+                <div style={{display:"flex",gap:6}}>
+                  <label style={{flex:1,display:"flex",alignItems:"center",justifyContent:"center",gap:5,background:"linear-gradient(135deg,#1e3a5f,#2a4a7f)",border:"1px solid #3b5fa0",borderRadius:9,padding:"9px 6px",fontSize:12,color:"#93c5fd",cursor:"pointer",fontWeight:600}}>
+                    📷 Camera<input type="file" accept="image/*" capture="environment" onChange={e=>{if(e.target.files&&e.target.files[0]){pickFile(key,e.target.files[0]);e.target.value="";}}} style={{display:"none"}}/>
+                  </label>
+                  <label style={{flex:1,display:"flex",alignItems:"center",justifyContent:"center",gap:5,background:"rgba(203,213,225,0.08)",border:"1px dashed #4a6080",borderRadius:9,padding:"9px 6px",fontSize:12,color:"#94a3b8",cursor:"pointer",fontWeight:600}}>
+                    📁 Gallery<input type="file" accept="image/*" onChange={e=>{if(e.target.files&&e.target.files[0]){pickFile(key,e.target.files[0]);e.target.value="";}}} style={{display:"none"}}/>
+                  </label>
+                </div>
+              </div>
+            </div>
+          );
+        })}
+      </div>
+    </>
   );
 }
 function parseExcel(file,cb,errCb){
@@ -1093,11 +1156,15 @@ function Detail({cust,role,onBack,onUpd,onLog,onBill,onBook,notify,initTab,clear
     onUpd(f);setEdit(false);notify("Saved ✓");
   }
   function pickM(code){const m=RC[code];setF(p=>({...p,modelCode:code,model:m?m.n:"",cat:m?m.cat:""}));}
-  function uploadPhoto(key,file){compressImg(file,function(dataUrl){
-    onUpd({photos:{...(cust.photos||{}),[key]:dataUrl}});notify("Uploading to Drive…");
-    uploadToDrive(key+"_"+Date.now()+".jpg",dataUrl,file.type||"image/jpeg",cust.name,key,function(url){
-      onUpd({photos:{...(cust.photos||{}),[key]:url}});notify("✅ Saved to Google Drive");
-    });
+  function uploadPhoto(key,fileOrDataUrl){
+    function doUpload(dataUrl,mime){
+      onUpd({photos:{...(cust.photos||{}),[key]:dataUrl}});notify("Uploading to Drive…");
+      uploadToDrive(key+"_"+Date.now()+".jpg",dataUrl,mime||"image/jpeg",cust.name,key,function(url){
+        onUpd({photos:{...(cust.photos||{}),[key]:url}});notify("✅ Saved to Google Drive");
+      });
+    }
+    if(typeof fileOrDataUrl==="string"){doUpload(fileOrDataUrl,"image/jpeg");return;}
+    compressImg(fileOrDataUrl,function(dataUrl){doUpload(dataUrl,fileOrDataUrl.type||"image/jpeg");
   });}
 
   const tabs=["info","history","followup","docs",...(cust.billed?["billing"]:[])];
@@ -1380,7 +1447,7 @@ function AddModal({onClose,onSave,curUser,role,existing}){
   // DOB age check
   const dobAge=f.dob?(Math.floor((new Date()-new Date(f.dob))/31557600000)):null;
   const allModels=Object.entries(RC);
-  const filteredModels=mSearch?allModels.filter(([code,m])=>code.toLowerCase().includes(mSearch.toLowerCase())||m.n.toLowerCase().includes(mSearch.toLowerCase())):allModels;
+  const filteredModels=mSearch?allModels.filter(([code,m])=>code.toUpperCase().includes(mSearch)||m.n.toUpperCase().includes(mSearch)):allModels;
   const r=RC[f.modelCode];
   return(
     <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.88)",zIndex:150,display:"flex",alignItems:"flex-end"}}>
@@ -1391,7 +1458,7 @@ function AddModal({onClose,onSave,curUser,role,existing}){
             <div key={k}><label style={lbl}>{l}</label><input type={t||"text"} style={t!=="tel"?{...inp,textTransform:"uppercase"}:{...inp,borderColor:f[k]&&f[k].length!==10?"#ef4444":undefined}} value={f[k]||""} onChange={e=>{const v=t==="tel"?e.target.value.replace(/\D/g,"").slice(0,10):e.target.value;setF(p=>({...p,[k]:v}));}} {...(t!=="tel"?capBlur(k):{})}/>{t==="tel"&&f[k]&&f[k].length>0&&f[k].length!==10&&<div style={{fontSize:10,color:"#ef4444",marginTop:2}}>⚠️ Must be 10 digits ({f[k].length} entered)</div>}</div>
           ))}
           <div><label style={lbl}>Model — search by code or name</label>
-            <input style={inp} value={mSearch} onChange={e=>{setMSearch(e.target.value);if(!e.target.value){pickM("");}}} placeholder="Type model code or name…" list="model-list"/>
+            <input style={{...inp,textTransform:"uppercase"}} value={mSearch} onChange={e=>{const v=e.target.value.toUpperCase();setMSearch(v);if(!v){pickM("");}}} placeholder="TYPE MODEL CODE OR NAME…" list="model-list"/>
             <datalist id="model-list">{filteredModels.map(([code,m])=><option key={code} value={code+" — "+m.n}/>)}</datalist>
             {mSearch&&filteredModels.length===1&&filteredModels[0][0]!==f.modelCode&&(()=>{const [code]=filteredModels[0];setTimeout(()=>pickM(code),0);return null;})()}
             {/* also support selecting from the datalist */}
@@ -1483,6 +1550,7 @@ function BillingModal({cust,onClose,onSave,onDraft,notify,role,stockData,billedC
     const words=modelStr.split(" ").filter(w=>w.length>2);
     return allVals.includes(modelCode)||words.filter(w=>allVals.includes(w)).length>=2;
   }
+  const availableColors=[...new Set(sRows.filter(r=>rowMatchesModel(r)).map(r=>sColorKey?String(r[sColorKey]||""):"").filter(Boolean))];
   const availableForModel=sRows.filter(row=>{
     return rowMatchesModel(row)&&!(billedChassis||[]).includes(String(row[sChassisKey]||"").trim().toUpperCase());
   }).sort((a,b)=>{
@@ -1645,7 +1713,7 @@ function BillingModal({cust,onClose,onSave,onDraft,notify,role,stockData,billedC
             <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:8}}>
               <div style={{gridColumn:"1/-1",background:"rgba(249,115,22,0.05)",border:"1px solid rgba(249,115,22,0.25)",borderRadius:9,padding:"8px 10px"}}>
                 <label style={{...lbl,fontSize:10,color:"#f97316"}}>🏍️ Model (change if customer switches)</label>
-                <input style={{...inp,fontSize:12,padding:"8px 10px"}} value={bmSearch} onChange={e=>{setBmSearch(e.target.value);if(!e.target.value)pickBillModel("");}} placeholder="Type model code or name…" list="bill-model-list"/>
+                <input style={{...inp,fontSize:12,padding:"8px 10px",textTransform:"uppercase"}} value={bmSearch} onChange={e=>{const v=e.target.value.toUpperCase();setBmSearch(v);if(!v)pickBillModel("");}} placeholder="TYPE MODEL CODE OR NAME…" list="bill-model-list"/>
                 <datalist id="bill-model-list">{allBillModels.map(([code,m])=><option key={code} value={code+" — "+m.n}/>)}</datalist>
                 {bmSearch&&(()=>{const match=allBillModels.find(([c,m])=>bmSearch===c+" — "+m.n||bmSearch===c);if(match&&match[0]!==billModelCode){pickBillModel(match[0]);}return null;})()}
                 {r.ex&&<div style={{fontSize:11,marginTop:5,color:"#64748b"}}>Ex-Showroom: <b style={{color:"#1e293b"}}>{fc(r.ex)}</b> · Ins: <b>{fc(r.ins||0)}</b> · Reg: <b>{fc(r.reg||0)}</b></div>}
@@ -1671,7 +1739,11 @@ function BillingModal({cust,onClose,onSave,onDraft,notify,role,stockData,billedC
                 })}</datalist>
               </div>
               {[{k:"engine",l:"Engine No"},{k:"color",l:"Colour"},{k:"deliveryDate",l:"Delivery Date",t:"date"},...(isFin?[{k:"financeBank",l:"Finance Bank"}]:[]),{k:"registrationNo",l:"Reg No"},{k:"insuranceNo",l:"Insurance No"}].map(({k,l,t})=>(
-                <div key={k}><label style={{...lbl,fontSize:10}}>{l}</label><input type={t||"text"} value={f[k]||""} onChange={e=>setF(p=>({...p,[k]:e.target.value}))} onBlur={t!=="date"?e=>setF(p=>({...p,[k]:String(e.target.value).toUpperCase()})):undefined} style={{...inp,fontSize:12,padding:"8px 10px",textTransform:t==="date"?"none":"uppercase"}}/></div>
+                <div key={k}>
+                  <label style={{...lbl,fontSize:10}}>{l}{k==="color"&&f.color&&<span style={{fontSize:10,color:"#34d399",marginLeft:6}}>● {f.color}</span>}</label>
+                  <input type={t||"text"} value={f[k]||""} onChange={e=>setF(p=>({...p,[k]:e.target.value}))} onBlur={t!=="date"?e=>setF(p=>({...p,[k]:String(e.target.value).toUpperCase()})):undefined} style={{...inp,fontSize:12,padding:"8px 10px",textTransform:t==="date"?"none":"uppercase",borderColor:k==="color"&&f.color?"#34d399":undefined}} list={k==="color"?"color-list":undefined}/>
+                  {k==="color"&&availableColors.length>0&&<datalist id="color-list">{availableColors.map(c=><option key={c} value={c}/>)}</datalist>}
+                </div>
               ))}
             </div>
           </div>
