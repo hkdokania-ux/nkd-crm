@@ -1520,10 +1520,15 @@ function BillingModal({cust,onClose,onSave,onDraft,notify,role,stockData,billedC
   const r=RC[billModelCode]||RC[cust.modelCode]||{};
   const isFin=cust.finance==="Finance";
   function nextMrNo(){
+    const now=new Date();
+    const yr=now.getFullYear(),mo=now.getMonth();
+    const fyStart=mo>=3?yr:yr-1;
+    const fy=String(fyStart).slice(-2)+"-"+String(fyStart+1).slice(-2);
+    const prefix="MR/NKD/"+fy+"/";
     const all=allCusts||[];
-    const nums=all.map(c=>{const m=(c.billing||c.billingDraft||{}).mrNo||"";const n=parseInt(m.replace(/\D/g,""),10);return isNaN(n)?0:n;});
+    const nums=all.map(c=>{const m=(c.billing||c.billingDraft||{}).mrNo||"";if(!m.startsWith(prefix))return 0;const n=parseInt(m.slice(prefix.length),10);return isNaN(n)?0:n;});
     const max=nums.length?Math.max(...nums):0;
-    return String(max+1).padStart(4,"0");
+    return prefix+String(max+1).padStart(2,"0");
   }
   const [f,setF]=useState({...eb,billName:eb.billName||cust.name,exchName:eb.exchName||cust.exchangeName||"",exchPhone:eb.exchPhone||cust.exchangePhone||eb.details?.exchangePhone||"",exchModel:eb.exchModel||cust.exchangeAsked||"",exchRegNo:eb.exchRegNo||cust.exchangeRegNo||"",bkDate:(cust.booking&&cust.booking.date)||td(),fatherName:eb.details?.fatherName||cust.fatherName||"",dob:eb.details?.dob||cust.dob||"",aadhar:eb.details?.aadhar||cust.aadhar||"",pan:eb.details?.pan||cust.pan||"",nominee:eb.details?.nominee||cust.nominee||"",nomineeRel:eb.details?.nomineeRel||cust.nomineeRel||"",hdl:eb.hdl!==undefined?eb.hdl:(r.hdl||600),ins:eb.ins!==undefined?eb.ins:(r.ins||0),reg:eb.reg!==undefined?eb.reg:(r.reg||0),acc:eb.acc||0,tef:eb.tef!==undefined?eb.tef:(isFin?500:0),hyp:eb.hyp!==undefined?eb.hyp:(isFin?500:0),addAmc:eb.addAmc||false,atw:eb.atw||0,rsa:eb.rsa||0,cof:eb.cof||0,sdis:eb.sdis||0,discRem:eb.discRem||"",discAmt:eb.discAmt||"",corp:eb.corp||0,bk:cust.totalBooking||(cust.bookings&&cust.bookings.reduce((s,b)=>s+Number(b.amt||0),0))||(cust.booking&&cust.booking.amt)||0,exv:eb.exv!==undefined?eb.exv:0,loan:eb.loan||0,payments:eb.payments&&eb.payments.length?eb.payments:(eb.paid||eb.payMode?[{mode:eb.payMode||"Cash",amt:Number(eb.paid||0),date:td(),ref:""}]:[{mode:"Cash",amt:0,date:td(),ref:""}]),chassis:eb.chassis||"",engine:eb.engine||"",color:eb.color||"",deliveryDate:eb.deliveryDate||td(),financeBank:eb.financeBank||"",registrationNo:eb.registrationNo||"",insuranceNo:eb.insuranceNo||"",mrNo:eb.mrNo||nextMrNo(),excessAmt:eb.excessAmt||"",excessRem:eb.excessRem||""});
   const c=calcB(f,r);
