@@ -1148,6 +1148,7 @@ function Detail({cust,role,onBack,onUpd,onLog,onBill,onBook,notify,initTab,clear
   useEffect(()=>{if(initTab){setTab(initTab);clearInit&&clearInit();}},[initTab]);
   const [edit,setEdit]=useState(false);
   const [f,setF]=useState({...cust});
+  const [mSearch,setMSearch]=useState(cust.modelCode?(cust.modelCode+" — "+(RC[cust.modelCode]?.n||"")):"");
   const r=RC[cust.modelCode];
   const lastR=(cust.remarks||"").trim().split("\n").filter(Boolean).slice(-1)[0]||"";
 
@@ -1155,7 +1156,9 @@ function Detail({cust,role,onBack,onUpd,onLog,onBill,onBook,notify,initTab,clear
     if(f.phone&&!/^\d{10}$/.test(f.phone)){notify("⚠️ Phone must be exactly 10 digits","err");return;}
     onUpd(f);setEdit(false);notify("Saved ✓");
   }
-  function pickM(code){const m=RC[code];setF(p=>({...p,modelCode:code,model:m?m.n:"",cat:m?m.cat:""}));}
+  function pickM(code){const m=RC[code];setF(p=>({...p,modelCode:code,model:m?m.n:"",cat:m?m.cat:""}));setMSearch(code?(code+" — "+(m?m.n:"")):"");}
+  const allModels=Object.entries(RC);
+  const filteredModels=mSearch?allModels.filter(([code,m])=>code.toUpperCase().includes(mSearch.toUpperCase())||m.n.toUpperCase().includes(mSearch.toUpperCase())):allModels;
   function uploadPhoto(key,fileOrDataUrl){
     function doUpload(dataUrl,mime){
       onUpd({photos:{...(cust.photos||{}),[key]:dataUrl}});notify("Uploading to Drive…");
@@ -1251,12 +1254,11 @@ function Detail({cust,role,onBack,onUpd,onLog,onBill,onBook,notify,initTab,clear
               {[{k:"name",l:"Name"},{k:"phone",l:"Phone"+(cust.billed&&role==="salesman"?" 🔒":""),t:"tel",lock:cust.billed&&role==="salesman"}].map(({k,l,t,lock})=>(
                 <div key={k}><label style={lbl}>{l}</label><input type={t||"text"} disabled={lock} style={{...inp,opacity:lock?0.5:1,borderColor:t==="tel"&&f[k]&&f[k].length!==10?"#ef4444":undefined}} value={f[k]||""} onChange={e=>{const v=t==="tel"?e.target.value.replace(/\D/g,"").slice(0,10):e.target.value;setF(p=>({...p,[k]:v}));}}/>{t==="tel"&&f[k]&&f[k].length>0&&f[k].length!==10&&<div style={{fontSize:10,color:"#ef4444",marginTop:2}}>⚠️ Must be 10 digits ({f[k].length} entered)</div>}{lock&&<div style={{fontSize:10,color:"#f59e0b",marginTop:3}}>Phone locked after billing — ask Manager to change</div>}</div>
               ))}
-              <div><label style={lbl}>Model Code</label>
-                <select style={inp} value={f.modelCode||""} onChange={e=>pickM(e.target.value)}>
-                  <option value="">Select…</option>
-                  {CATS.map(cat=><optgroup key={cat} label={cat}>{Object.entries(RC).filter(([,m])=>m.cat===cat).map(([code,m])=><option key={code} value={code}>{code} — {m.n}</option>)}</optgroup>)}
-                </select>
-                {RC[f.modelCode]&&<div style={{fontSize:11,color:"#60a5fa",marginTop:4}}>On-Road: {fc(RC[f.modelCode].onRoad)}</div>}
+              <div><label style={lbl}>Model Code — type to search</label>
+                <input style={{...inp,textTransform:"uppercase"}} value={mSearch} onChange={e=>{const v=e.target.value.toUpperCase();setMSearch(v);if(!v)pickM("");}} placeholder="TYPE CODE OR MODEL NAME…" list="detail-model-list"/>
+                <datalist id="detail-model-list">{filteredModels.map(([code,m])=><option key={code} value={code+" — "+m.n}/>)}</datalist>
+                {mSearch&&(()=>{const match=allModels.find(([c,m])=>mSearch===c+" — "+m.n.toUpperCase()||mSearch===c||(c+" — "+m.n).toUpperCase()===mSearch);if(match&&match[0]!==f.modelCode){pickM(match[0]);}return null;})()}
+                {RC[f.modelCode]&&<div style={{fontSize:11,color:"#60a5fa",marginTop:4}}>{f.modelCode} · On-Road: {fc(RC[f.modelCode].onRoad)}</div>}
               </div>
               {[{k:"fatherName",l:"Father/Mother"},{k:"address",l:"Address"},{k:"dob",l:"DOB",t:"date"},{k:"aadhar",l:"Aadhar"},{k:"pan",l:"PAN"},...(cust.billed?[{k:"nominee",l:"Nominee"},{k:"nomineeRel",l:"Nom. Relation"},{k:"exchangeName",l:"Exchanger Name"},{k:"exchangeAsked",l:"Exchange Bike Model"},{k:"exchangeRegNo",l:"Old Vehicle Reg No"},{k:"exchangeOffered",l:"Exchange Value ₹"}]:[])].map(({k,l,t,lock})=>(
                 <div key={k}><label style={lbl}>{l}</label><input type={t||"text"} disabled={lock} style={{...inp,opacity:lock?0.5:1,borderColor:t==="tel"&&f[k]&&f[k].length!==10?"#ef4444":undefined}} value={f[k]||""} onChange={e=>{const v=t==="tel"?e.target.value.replace(/\D/g,"").slice(0,10):e.target.value;setF(p=>({...p,[k]:v}));}}/>{t==="tel"&&f[k]&&f[k].length>0&&f[k].length!==10&&<div style={{fontSize:10,color:"#ef4444",marginTop:2}}>⚠️ Must be 10 digits ({f[k].length} entered)</div>}{lock&&<div style={{fontSize:10,color:"#f59e0b",marginTop:3}}>Phone locked after billing — ask Manager to change</div>}</div>
@@ -1572,7 +1574,7 @@ function BillingModal({cust,onClose,onSave,onDraft,notify,role,stockData,billedC
     setF(p=>({...p,chassis:"",engine:"",color:"",billModelCode:code,billModelName:m?m.n:""}));
   }
   const allBillModels=Object.entries(RC);
-  const filteredBillModels=bmSearch?allBillModels.filter(([code,m])=>code.toLowerCase().includes(bmSearch.toLowerCase())||m.n.toLowerCase().includes(bmSearch.toLowerCase())):allBillModels;
+  const filteredBillModels=bmSearch?allBillModels.filter(([code,m])=>code.toUpperCase().includes(bmSearch)||m.n.toUpperCase().includes(bmSearch)):allBillModels;
 
   function buildReceipt(){
     var rows="<div class=row><span>Date</span><span class=v>"+td()+"</span></div>";
@@ -1715,7 +1717,7 @@ function BillingModal({cust,onClose,onSave,onDraft,notify,role,stockData,billedC
                 <label style={{...lbl,fontSize:10,color:"#f97316"}}>🏍️ Model (change if customer switches)</label>
                 <input style={{...inp,fontSize:12,padding:"8px 10px",textTransform:"uppercase"}} value={bmSearch} onChange={e=>{const v=e.target.value.toUpperCase();setBmSearch(v);if(!v)pickBillModel("");}} placeholder="TYPE MODEL CODE OR NAME…" list="bill-model-list"/>
                 <datalist id="bill-model-list">{allBillModels.map(([code,m])=><option key={code} value={code+" — "+m.n}/>)}</datalist>
-                {bmSearch&&(()=>{const match=allBillModels.find(([c,m])=>bmSearch===c+" — "+m.n||bmSearch===c);if(match&&match[0]!==billModelCode){pickBillModel(match[0]);}return null;})()}
+                {bmSearch&&(()=>{const match=allBillModels.find(([c,m])=>bmSearch===(c+" — "+m.n).toUpperCase()||bmSearch===c);if(match&&match[0]!==billModelCode){pickBillModel(match[0]);}return null;})()}
                 {r.ex&&<div style={{fontSize:11,marginTop:5,color:"#64748b"}}>Ex-Showroom: <b style={{color:"#1e293b"}}>{fc(r.ex)}</b> · Ins: <b>{fc(r.ins||0)}</b> · Reg: <b>{fc(r.reg||0)}</b></div>}
               </div>
               <div style={{gridColumn:"1/-1"}}>
