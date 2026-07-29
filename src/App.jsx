@@ -304,55 +304,40 @@ function Login({onLogin,nkdUsers}){
   const [chg,setChg]=useState(false);
   const [npw1,setNpw1]=useState("");
   const [npw2,setNpw2]=useState("");
-  // OTP flow
-  const [otpStep,setOtpStep]=useState(false);
-  const [otp,setOtp]=useState("");
-  const [otpCode,setOtpCode]=useState("");
-  const [smRec,setSmRec]=useState(null);
 
   function findSM(name){
     const list=users.salesman||SM.map(n=>({name:n,phone:""}));
     return list.find(u=>u.name.trim().toLowerCase()===name.trim().toLowerCase());
   }
-  function sendOtp(phone,code){
-    const msg="Your NKD CRM login OTP is: *"+code+"*\nValid for 5 minutes. Do not share.";
-    window.open("https://wa.me/91"+phone+"?text="+encodeURIComponent(msg),"_blank");
-  }
   function go(){
     if(role==="salesman"){
-      if(otpStep){
-        if(otp.trim()!==otpCode){alert("❌ Incorrect OTP. Please try again.");return;}
-        const pws=ld("nkd_pw",{});
-        const rec=pws[smRec.name]||{pw:"1111",must:false,fails:0,locked:false};
-        if(chg){
-          if(!npw1||npw1.length<4){alert("New password must be at least 4 characters");return;}
-          if(npw1!==npw2){alert("New passwords do not match");return;}
-          rec.pw=npw1;rec.must=false;pws[smRec.name]=rec;sv("nkd_pw",pws);_dbSet("passwords",pws);
-        }
-        onLogin("salesman",smRec.name,null);return;
-      }
       if(!uname.trim()){alert("Enter your username");return;}
       const sm=findSM(uname);
-      if(!sm){alert("Username not found. Contact Admin.");return;}
+      if(!sm){alert("❌ Username not found. Contact Admin.");return;}
       const pws=ld("nkd_pw",{});
       const rec=pws[sm.name]||{pw:"1111",must:true,fails:0,locked:false};
-      if(rec.locked){alert("🔒 Account locked after 5 wrong attempts.\nAsk Admin/Owner to reset your password.");return;}
-      if(smPass!==rec.pw){
-        rec.fails=(rec.fails||0)+1;
-        if(rec.fails>=5){rec.locked=true;alert("🔒 Account LOCKED (5 wrong attempts).");}
-        else{alert("Wrong password ("+rec.fails+"/5 attempts)");}
-        pws[sm.name]=rec;sv("nkd_pw",pws);_dbSet("passwords",pws);return;
-      }
-      rec.fails=0;pws[sm.name]=rec;sv("nkd_pw",pws);_dbSet("passwords",pws);
-      if(rec.must)setChg(true);
-      if(!sm.phone){
-        alert("⚠️ No phone number registered for your account.\nAsk Admin to add your phone number in User Accounts.\nLogging in without OTP for now.");
+      if(rec.locked){alert("🔒 Account locked — too many wrong attempts.\nAsk Admin/Owner to unlock your account.");return;}
+      if(chg){
+        // Password change step
+        if(!npw1||npw1.length<4){alert("New password must be at least 4 characters");return;}
+        if(npw1!==npw2){alert("Passwords do not match");return;}
+        rec.pw=npw1;rec.must=false;rec.fails=0;
+        rec.lastLogin=new Date().toISOString();
+        pws[sm.name]=rec;sv("nkd_pw",pws);_dbSet("passwords",pws);
         onLogin("salesman",sm.name,null);return;
       }
-      const code=String(Math.floor(100000+Math.random()*900000));
-      setOtpCode(code);setSmRec(sm);
-      sendOtp(sm.phone,code);
-      setOtpStep(true);return;
+      if(!smPass){alert("Enter your password");return;}
+      if(smPass!==rec.pw){
+        rec.fails=(rec.fails||0)+1;
+        if(rec.fails>=3){rec.locked=true;alert("🔒 Account LOCKED after 3 wrong attempts.\nContact Admin/Owner to unlock.");}
+        else{alert("❌ Wrong password. "+(3-rec.fails)+" attempt"+(3-rec.fails===1?"":"s")+" remaining before lockout.");}
+        pws[sm.name]=rec;sv("nkd_pw",pws);_dbSet("passwords",pws);return;
+      }
+      // Password correct
+      rec.fails=0;rec.lastLogin=new Date().toISOString();
+      pws[sm.name]=rec;sv("nkd_pw",pws);_dbSet("passwords",pws);
+      if(rec.must){setChg(true);return;}
+      onLogin("salesman",sm.name,null);return;
     }
     // manager / owner / admin / tech
     const roleList=users[role]||[];
@@ -369,7 +354,7 @@ function Login({onLogin,nkdUsers}){
           <div style={{color:"#94a3b8",fontSize:12,marginTop:3}}>Dhanbad · 3 Showrooms</div>
         </div>
         <div style={{display:"flex",flexDirection:"column",gap:12}}>
-          <div><label style={lbl}>Role</label><select style={inp} value={role} onChange={e=>{setRole(e.target.value);setUname("");setPin("");setSmPass("");setOtpStep(false);setOtp("");}}>
+          <div><label style={lbl}>Role</label><select style={inp} value={role} onChange={e=>{setRole(e.target.value);setUname("");setPin("");setSmPass("");setChg(false);}}>
             <option value="salesman">Sales Executive</option>
             <option value="manager">Manager</option>
             <option value="owner">Owner</option>
@@ -378,32 +363,25 @@ function Login({onLogin,nkdUsers}){
           </select></div>
 
           {/* ── SALESMAN: username + password ── */}
-          {role==="salesman"&&!otpStep&&<div>
+          {role==="salesman"&&!chg&&<div>
             <label style={lbl}>Username</label>
-            <input style={inp} value={uname} onChange={e=>setUname(e.target.value)} placeholder="Your name / username" autoComplete="off" onKeyDown={e=>e.key==="Enter"&&go()}/>
+            <input style={inp} value={uname} onChange={e=>setUname(e.target.value)} placeholder="Your name" autoComplete="off" onKeyDown={e=>e.key==="Enter"&&go()}/>
           </div>}
-          {role==="salesman"&&!otpStep&&<div>
-            <label style={lbl}>Password <span style={{color:"#94a3b8",fontWeight:400}}>(first time: 1111)</span></label>
+          {role==="salesman"&&!chg&&<div>
+            <label style={lbl}>Password <span style={{color:"#94a3b8",fontWeight:400}}>(default: 1111 on first login)</span></label>
             <div style={{position:"relative"}}>
-              <input type={showPw?"text":"password"} style={inp} value={smPass} onChange={e=>setSmPass(e.target.value)} onKeyDown={e=>e.key==="Enter"&&go()}/>
+              <input type={showPw?"text":"password"} style={inp} value={smPass} onChange={e=>setSmPass(e.target.value)} onKeyDown={e=>e.key==="Enter"&&go()} autoComplete="current-password"/>
               <button onClick={()=>setShowPw(!showPw)} style={{position:"absolute",right:8,top:9,background:"transparent",border:"none",color:"#94a3b8",cursor:"pointer",fontSize:14}}>{showPw?"🙈":"👁️"}</button>
             </div>
           </div>}
 
-          {/* ── SALESMAN: OTP step ── */}
-          {role==="salesman"&&otpStep&&(
-            <div style={{background:"rgba(34,197,94,0.06)",border:"1px solid rgba(34,197,94,0.4)",borderRadius:14,padding:14}}>
-              <div style={{fontSize:13,color:"#16a34a",fontWeight:700,marginBottom:4}}>📲 OTP sent via WhatsApp</div>
-              <div style={{fontSize:11,color:"#64748b",marginBottom:12}}>Enter the 6-digit OTP sent to your registered phone number.</div>
-              <input type="text" inputMode="numeric" maxLength={6} placeholder="● ● ● ● ● ●" style={{...inp,letterSpacing:8,fontSize:20,textAlign:"center",fontWeight:700,padding:"12px 10px"}} value={otp} onChange={e=>setOtp(e.target.value.replace(/\D/g,"").slice(0,6))} onKeyDown={e=>e.key==="Enter"&&go()} autoFocus/>
-              <button onClick={()=>{const code=String(Math.floor(100000+Math.random()*900000));setOtpCode(code);sendOtp(smRec.phone,code);setOtp("");}} style={{marginTop:8,background:"transparent",border:"none",color:"#f97316",fontSize:11,cursor:"pointer",textDecoration:"underline",padding:0}}>Resend OTP</button>
-            </div>
-          )}
-          {role==="salesman"&&otpStep&&chg&&(
-            <div style={{background:"rgba(249,115,22,0.08)",border:"1px solid rgba(249,115,22,0.35)",borderRadius:12,padding:12}}>
-              <div style={{fontSize:11,color:"#f97316",fontWeight:700,marginBottom:8}}>🔐 First login — set your own password</div>
-              <input type="password" placeholder="New password (min 4 chars)" style={{...inp,marginBottom:8}} value={npw1} onChange={e=>setNpw1(e.target.value)}/>
-              <input type="password" placeholder="Re-enter new password" style={inp} value={npw2} onChange={e=>setNpw2(e.target.value)} onKeyDown={e=>e.key==="Enter"&&go()}/>
+          {/* ── SALESMAN: mandatory password change on first login ── */}
+          {role==="salesman"&&chg&&(
+            <div style={{background:"rgba(249,115,22,0.08)",border:"1px solid rgba(249,115,22,0.35)",borderRadius:14,padding:14}}>
+              <div style={{fontSize:13,color:"#f97316",fontWeight:700,marginBottom:4}}>🔐 Set your own password</div>
+              <div style={{fontSize:11,color:"#64748b",marginBottom:10}}>First login detected. Create a personal password (min 4 characters) that only you know.</div>
+              <input type="password" placeholder="New password (min 4 chars)" style={{...inp,marginBottom:8}} value={npw1} onChange={e=>setNpw1(e.target.value)} autoComplete="new-password"/>
+              <input type="password" placeholder="Re-enter new password" style={inp} value={npw2} onChange={e=>setNpw2(e.target.value)} onKeyDown={e=>e.key==="Enter"&&go()} autoComplete="new-password"/>
             </div>
           )}
 
@@ -424,9 +402,9 @@ function Login({onLogin,nkdUsers}){
             </div>
           )}
           <button onClick={go} style={{...btn("linear-gradient(135deg,#f97316,#ef4444)"),padding:14,fontSize:15,borderRadius:13,marginTop:4}}>
-            {role==="salesman"&&otpStep?"✅ Verify OTP & Login":"Login →"}
+            {chg?"✅ Set Password & Login":"Login →"}
           </button>
-          {role==="salesman"&&otpStep&&<button onClick={()=>{setOtpStep(false);setOtp("");setOtpCode("");}} style={{background:"transparent",border:"1px solid #6b8fb5",borderRadius:10,padding:"10px 14px",fontSize:13,color:"#64748b",cursor:"pointer"}}>← Back</button>}
+          {chg&&<button onClick={()=>{setChg(false);setNpw1("");setNpw2("");}} style={{background:"transparent",border:"1px solid #6b8fb5",borderRadius:10,padding:"10px 14px",fontSize:13,color:"#64748b",cursor:"pointer"}}>← Back</button>}
         </div>
       </div>
     </div>
@@ -2338,7 +2316,7 @@ function UserMgmt({nkdUsers,onSave,notify}){
   }
   function unlockSM(name){
     const pws=ld("nkd_pw",{});
-    if(pws[name])pws[name].locked=false;
+    if(pws[name]){pws[name].locked=false;pws[name].fails=0;}
     sv("nkd_pw",pws);_dbSet("passwords",pws);notify("🔓 Account unlocked for "+name);
   }
   return(
@@ -2409,7 +2387,9 @@ function SMRow({u,onRemove,onPhone,onBranch,onReset,onUnlock}){
     <div style={{display:"flex",alignItems:"center",gap:8,padding:"9px 0",borderBottom:"1px solid #e8eef8",flexWrap:"wrap"}}>
       <div style={{flex:1,minWidth:120}}>
         <div style={{fontWeight:700,fontSize:13,color:"#1e293b"}}>{u.name}</div>
-        {rec.locked&&<div style={{fontSize:10,color:"#ef4444",fontWeight:700}}>🔒 LOCKED</div>}
+        {rec.locked?<div style={{fontSize:10,color:"#ef4444",fontWeight:700}}>🔒 LOCKED</div>
+          :rec.lastLogin?<div style={{fontSize:10,color:"#94a3b8"}}>Last login: {new Date(rec.lastLogin).toLocaleString("en-IN",{day:"2-digit",month:"short",hour:"2-digit",minute:"2-digit"})}</div>
+          :<div style={{fontSize:10,color:"#94a3b8"}}>Never logged in</div>}
       </div>
       {/* Branch badge / edit */}
       {editingBranch?(
