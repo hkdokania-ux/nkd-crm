@@ -1581,10 +1581,10 @@ function BillingModal({cust,onClose,onSave,onDraft,notify,role,stockData,billedC
     const max=nums.length?Math.max(...nums):0;
     return prefix+String(max+1).padStart(2,"0");
   }
-  const [f,setF]=useState({...eb,billName:eb.billName||cust.name,exchName:eb.exchName||cust.exchangeName||"",exchPhone:eb.exchPhone||cust.exchangePhone||eb.details?.exchangePhone||"",exchModel:eb.exchModel||cust.exchangeAsked||"",exchRegNo:eb.exchRegNo||cust.exchangeRegNo||"",bkDate:(cust.booking&&cust.booking.date)||td(),fatherName:eb.details?.fatherName||cust.fatherName||"",dob:eb.details?.dob||cust.dob||"",aadhar:eb.details?.aadhar||cust.aadhar||"",pan:eb.details?.pan||cust.pan||"",nominee:eb.details?.nominee||cust.nominee||"",nomineeRel:eb.details?.nomineeRel||cust.nomineeRel||"",hdl:eb.hdl!==undefined?eb.hdl:(r.hdl||600),ins:eb.ins!==undefined?eb.ins:(r.ins||0),reg:eb.reg!==undefined?eb.reg:(r.reg||0),acc:eb.acc||0,tef:eb.tef!==undefined?eb.tef:(isFin?500:0),hyp:eb.hyp!==undefined?eb.hyp:(isFin?500:0),addAmc:eb.addAmc||false,atw:eb.atw||0,rsa:eb.rsa||0,cof:eb.cof||0,sdis:eb.sdis||0,discRem:eb.discRem||"",discAmt:eb.discAmt||"",corp:eb.corp||0,bk:cust.totalBooking||(cust.bookings&&cust.bookings.reduce((s,b)=>s+Number(b.amt||0),0))||(cust.booking&&cust.booking.amt)||0,exv:eb.exv!==undefined?eb.exv:0,loan:eb.loan||0,payments:eb.payments&&eb.payments.length?eb.payments:(eb.paid||eb.payMode?[{mode:eb.payMode||"Cash",amt:Number(eb.paid||0),date:td(),ref:""}]:[{mode:"Cash",amt:0,date:td(),ref:""}]),chassis:eb.chassis||"",engine:eb.engine||"",color:eb.color||"",deliveryDate:eb.deliveryDate||td(),financeBank:eb.financeBank||"",registrationNo:eb.registrationNo||"",insuranceNo:eb.insuranceNo||"",mrNo:eb.mrNo||nextMrNo(),excessAmt:eb.excessAmt||"",excessRem:eb.excessRem||""});
+  const [f,setF]=useState({...eb,billName:eb.billName||cust.name,exchName:eb.exchName||cust.exchangeName||"",exchPhone:eb.exchPhone||cust.exchangePhone||eb.details?.exchangePhone||"",exchModel:eb.exchModel||cust.exchangeAsked||"",exchRegNo:eb.exchRegNo||cust.exchangeRegNo||"",bkDate:(cust.booking&&cust.booking.date)||td(),fatherName:eb.details?.fatherName||cust.fatherName||"",fatherRel:eb.details?.fatherRel||cust.fatherRel||"Father",dob:eb.details?.dob||cust.dob||"",aadhar:eb.details?.aadhar||cust.aadhar||"",pan:eb.details?.pan||cust.pan||"",nominee:eb.details?.nominee||cust.nominee||"",nomineeRel:eb.details?.nomineeRel||cust.nomineeRel||"",hdl:eb.hdl!==undefined?eb.hdl:(r.hdl||600),ins:eb.ins!==undefined?eb.ins:(r.ins||0),reg:eb.reg!==undefined?eb.reg:(r.reg||0),acc:eb.acc||0,tef:eb.tef!==undefined?eb.tef:(isFin?500:0),hyp:eb.hyp!==undefined?eb.hyp:(isFin?500:0),addAmc:eb.addAmc||false,atw:eb.atw||0,rsa:eb.rsa||0,cof:eb.cof||0,sdis:eb.sdis||0,discRem:eb.discRem||"",discAmt:eb.discAmt||"",corp:eb.corp||0,bk:cust.totalBooking||(cust.bookings&&cust.bookings.reduce((s,b)=>s+Number(b.amt||0),0))||(cust.booking&&cust.booking.amt)||0,exv:eb.exv!==undefined?eb.exv:0,loan:eb.loan||0,payments:eb.payments&&eb.payments.length?eb.payments:(eb.paid||eb.payMode?[{mode:eb.payMode||"Cash",amt:Number(eb.paid||0),date:td(),ref:""}]:[{mode:"Cash",amt:0,date:td(),ref:""}]),chassis:eb.chassis||"",engine:eb.engine||"",color:eb.color||"",deliveryDate:eb.deliveryDate||td(),financeBank:eb.financeBank||"",registrationNo:eb.registrationNo||"",insuranceNo:eb.insuranceNo||"",mrNo:eb.mrNo||nextMrNo(),excessAmt:eb.excessAmt||"",excessRem:eb.excessRem||""});
   const c=calcB(f,r);
   const [chk,setChk]=useState(eb.checklist||{pdi:false,helmet:false,docs:false,service:false});
-  const VER_ALL=[["nameV","Customer name verified"],["fatherV","Father name verified"],["aadharV","Aadhar number verified"],["nomineeV","Nominee & relation added"],["chassisV","Chassis number verified"],["engineV","Engine number verified"],["colorV","Colour verified"]];
+  const VER_ALL=[["nameV","Customer name verified"],["fatherV",(f.fatherRel||"Father")+" name verified"],["aadharV","Aadhar number verified"],["nomineeV","Nominee & relation added"],["chassisV","Chassis number verified"],["engineV","Engine number verified"],["colorV","Colour verified"]];
   const [ver,setVer]=useState(eb.verify||{});
   const [chassisCustom,setChassisCustom]=useState("");
   useEffect(()=>{setVer(p=>({...p,
@@ -1641,7 +1641,7 @@ function BillingModal({cust,onClose,onSave,onDraft,notify,role,stockData,billedC
   function buildReceipt(){
     var rows="<div class=row><span>Date</span><span class=v>"+td()+"</span></div>";
     rows+="<div class=row><span>Customer</span><span class=v>"+(f.billName||cust.name)+"</span></div>";
-    rows+="<div class=row><span>Father/Mother</span><span class=v>"+(f.fatherName||"—")+"</span></div>";rows+="<div class=row><span>Nominee</span><span class=v>"+(f.nominee||"—")+" ("+(f.nomineeRel||"—")+")</span></div>";rows+="<div class=row><span>Aadhar</span><span class=v>"+(f.aadhar||"—")+"</span></div>";
+    rows+="<div class=row><span>"+(f.fatherRel||"Father")+"</span><span class=v>"+(f.fatherName||"—")+"</span></div>";rows+="<div class=row><span>Nominee</span><span class=v>"+(f.nominee||"—")+" ("+(f.nomineeRel||"—")+")</span></div>";rows+="<div class=row><span>Aadhar</span><span class=v>"+(f.aadhar||"—")+"</span></div>";
     rows+="<div class=row><span>Phone</span><span class=v>"+cust.phone+"</span></div>";
     rows+="<div class=row><span>Model</span><span class=v>"+(RC[billModelCode]?.n||cust.model)+"</span></div>";
     rows+="<div class=row><span>Code</span><span class=v>"+(billModelCode||cust.modelCode)+"</span></div>";
@@ -1701,7 +1701,7 @@ function BillingModal({cust,onClose,onSave,onDraft,notify,role,stockData,billedC
     const activePmts=(f.payments||[]).filter(p=>Number(p.amt||0)>0);
     if(activePmts.length===0){notify("⚠️ Enter at least one payment amount before generating MR","err");return;}
     try{
-      const details={name:f.billName||cust.name,exchangeName:f.exchName,exchangePhone:f.exchPhone,exchangeAsked:f.exchModel,exchangeRegNo:f.exchRegNo,exchangeOffered:String(f.exv||""),fatherName:f.fatherName,address:cust.address,dob:f.dob,nominee:f.nominee,nomineeRel:f.nomineeRel,aadhar:f.aadhar,pan:f.pan};
+      const details={name:f.billName||cust.name,exchangeName:f.exchName,exchangePhone:f.exchPhone,exchangeAsked:f.exchModel,exchangeRegNo:f.exchRegNo,exchangeOffered:String(f.exv||""),fatherName:f.fatherName,fatherRel:f.fatherRel||"Father",address:cust.address,dob:f.dob,nominee:f.nominee,nomineeRel:f.nomineeRel,aadhar:f.aadhar,pan:f.pan};
       const tempBilling={...f,details,calc:c,paid:c.paid};
       const tempCust={...cust,...details,billing:tempBilling,billedDate:f.deliveryDate||td()};
       // Send MR to customer and office (no calc sheet)
@@ -1717,7 +1717,7 @@ function BillingModal({cust,onClose,onSave,onDraft,notify,role,stockData,billedC
     }catch(e){notify("⚠️ Error generating MR: "+e.message,"err");}
   }
   function saveDraft(){
-    onDraft({...f,billModelCode,billModelName:RC[billModelCode]?.n||cust.model,payMode:(f.payments||[]).filter(p=>Number(p.amt||0)>0).map(p=>p.mode).join(" + ")||"—",paid:c.paid,calc:c,checklist:chk,verify:ver,details:{name:f.billName||cust.name,exchangeName:f.exchName,exchangePhone:f.exchPhone,exchangeAsked:f.exchModel,exchangeRegNo:f.exchRegNo,exchangeOffered:String(f.exv||""),fatherName:f.fatherName,address:cust.address,dob:f.dob,nominee:f.nominee,nomineeRel:f.nomineeRel,aadhar:f.aadhar,pan:f.pan}});
+    onDraft({...f,billModelCode,billModelName:RC[billModelCode]?.n||cust.model,payMode:(f.payments||[]).filter(p=>Number(p.amt||0)>0).map(p=>p.mode).join(" + ")||"—",paid:c.paid,calc:c,checklist:chk,verify:ver,details:{name:f.billName||cust.name,exchangeName:f.exchName,exchangePhone:f.exchPhone,exchangeAsked:f.exchModel,exchangeRegNo:f.exchRegNo,exchangeOffered:String(f.exv||""),fatherName:f.fatherName,fatherRel:f.fatherRel||"Father",address:cust.address,dob:f.dob,nominee:f.nominee,nomineeRel:f.nomineeRel,aadhar:f.aadhar,pan:f.pan}});
     notify("📋 Draft saved — reopen billing to continue");
     onClose();
   }
@@ -1741,7 +1741,7 @@ function BillingModal({cust,onClose,onSave,onDraft,notify,role,stockData,billedC
     var payModeSummary=activePmtsS.map(p=>p.mode+(p.ref?" ("+p.ref+")":"")).join(" + ")||"—";
     var payModeRows=activePmtsS.map(p=>"<div class=row><span>"+p.mode+(p.ref?" ("+p.ref+")":"")+"</span><span class=v>"+fc(Number(p.amt))+"</span></div>").join("");
     var calcHtml=html.replace("MONEY RECEIPT","CALCULATION SHEET (INTERNAL)").replace("</h2>","</h2>"+[payModeRows||("<div class=row><span>Payment Mode</span><span class=v>—</span></div>"),"<div class=row><span>MR No.</span><span class=v>"+(f.mrNo||"—")+"</span></div>","<div class=row><span>Financed By</span><span class=v>"+(f.financeBank||"Cash")+"</span></div>"].join("")+CALC_G);
-    onSave({...f,billModelCode,billModelName:RC[billModelCode]?.n||cust.model,payMode:payModeSummary,paid:c.paid,calc:c,calcHtml:calcHtml,checklist:chk,verify:ver,verifyList:VER_ALL.map(([k,l])=>[k,l]),receiptHtml:html,amtDiff:amtDiff||null,details:{name:f.billName||cust.name,exchangeName:f.exchName,exchangePhone:f.exchPhone,exchangeAsked:f.exchModel,exchangeRegNo:f.exchRegNo,exchangeOffered:String(f.exv||""),fatherName:f.fatherName,address:cust.address,dob:f.dob,nominee:f.nominee,nomineeRel:f.nomineeRel,aadhar:f.aadhar,pan:f.pan}});
+    onSave({...f,billModelCode,billModelName:RC[billModelCode]?.n||cust.model,payMode:payModeSummary,paid:c.paid,calc:c,calcHtml:calcHtml,checklist:chk,verify:ver,verifyList:VER_ALL.map(([k,l])=>[k,l]),receiptHtml:html,amtDiff:amtDiff||null,details:{name:f.billName||cust.name,exchangeName:f.exchName,exchangePhone:f.exchPhone,exchangeAsked:f.exchModel,exchangeRegNo:f.exchRegNo,exchangeOffered:String(f.exv||""),fatherName:f.fatherName,fatherRel:f.fatherRel||"Father",address:cust.address,dob:f.dob,nominee:f.nominee,nomineeRel:f.nomineeRel,aadhar:f.aadhar,pan:f.pan}});
     setBusy(true);
     notify(role==="salesman"?"✅ Sent to Manager for approval — receipt saved in Billing tab":"✅ Billed & approved — receipt saved in Billing tab");
   }
@@ -1757,7 +1757,20 @@ function BillingModal({cust,onClose,onSave,onDraft,notify,role,stockData,billedC
           <div style={{fontSize:10,fontWeight:700,color:"#475569",letterSpacing:0.8,marginBottom:6}}>CUSTOMER KYC (required for billing)</div>
           <div style={{background:"#ffffff",border:"1px solid #6b8fb5",borderRadius:12,padding:12}}>
             <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:8}}>
-              {[{k:"billName",l:"Customer Name (as on bill) *"},{k:"fatherName",l:"Father/Mother Name *"},{k:"dob",l:"Date of Birth",t:"date"},{k:"aadhar",l:"Aadhar No * (12 digits)",t:"aadhar"},{k:"pan",l:"PAN No"},{k:"nominee",l:"Nominee Name *"},{k:"nomineeRel",l:"Nominee Relation *"}].map(({k,l,t})=>{
+              {/* Father/Mother/Husband — spans full width */}
+              <div style={{gridColumn:"1 / -1"}}>
+                <label style={{...lbl,fontSize:10}}>{f.fatherRel||"Father"} Name *</label>
+                <div style={{display:"flex",gap:4,marginBottom:6}}>
+                  {["Father","Mother","Husband"].map(rel=>(
+                    <button key={rel} onClick={()=>setF(p=>({...p,fatherRel:rel}))}
+                      style={{flex:1,padding:"5px 4px",fontSize:11,fontWeight:700,borderRadius:8,border:"1px solid "+(f.fatherRel===rel?"#6366f1":"#6b8fb5"),background:f.fatherRel===rel?"#6366f1":"#f8fafc",color:f.fatherRel===rel?"#fff":"#475569",cursor:"pointer"}}>
+                      {rel}
+                    </button>
+                  ))}
+                </div>
+                <input type="text" value={f.fatherName||""} onChange={e=>setF(p=>({...p,fatherName:e.target.value}))} onBlur={e=>setF(p=>({...p,fatherName:String(e.target.value).toUpperCase()}))} placeholder={(f.fatherRel||"Father")+"'s name"} style={{...inp,fontSize:12,padding:"8px 10px",textTransform:"uppercase"}}/>
+              </div>
+              {[{k:"billName",l:"Customer Name (as on bill) *"},{k:"dob",l:"Date of Birth",t:"date"},{k:"aadhar",l:"Aadhar No * (12 digits)",t:"aadhar"},{k:"pan",l:"PAN No"},{k:"nominee",l:"Nominee Name *"},{k:"nomineeRel",l:"Nominee Relation *"}].map(({k,l,t})=>{
                 const age=k==="dob"&&f.dob?Math.floor((new Date()-new Date(f.dob))/31557600000):null;
                 if(t==="aadhar")return(<div key={k}><label style={{...lbl,fontSize:10}}>{l}</label><input type="text" inputMode="numeric" value={f[k]||""} maxLength={12} onChange={e=>{const v=e.target.value.replace(/\D/g,"").slice(0,12);setF(p=>({...p,[k]:v}));}} style={{...inp,fontSize:12,padding:"8px 10px",borderColor:f[k]&&f[k].length!==12?"#ef4444":undefined}}/>{f[k]&&f[k].length>0&&f[k].length!==12&&<div style={{fontSize:10,color:"#ef4444",marginTop:2}}>⚠️ Must be exactly 12 digits ({f[k].length}/12)</div>}</div>);
                 return(<div key={k}><label style={{...lbl,fontSize:10}}>{l}</label><input type={t||"text"} value={f[k]||""} max={t==="date"?td():undefined} onChange={e=>setF(p=>({...p,[k]:e.target.value}))} onBlur={t!=="date"?e=>setF(p=>({...p,[k]:String(e.target.value).toUpperCase()})):undefined} style={{...inp,fontSize:12,padding:"8px 10px",textTransform:t==="date"?"none":"uppercase"}}/>
@@ -2211,15 +2224,57 @@ function Reports({custs,onImportCust}){
         dlFile(rows.map(r=>r.join(",")).join("\n"),"NKD_Branch_Report_"+td()+".csv","text/csv");
       }} style={{width:"100%",background:"rgba(52,211,153,0.1)",border:"1px solid rgba(52,211,153,0.35)",borderRadius:12,padding:11,color:"#34d399",fontWeight:700,fontSize:12,cursor:"pointer",marginBottom:10}}>📊 Export Branch Report (Excel/CSV)</button>
       <div className="glass" style={{background:"#ffffff",borderRadius:14,padding:12,marginBottom:14}}>
-        <div style={{fontSize:11,fontWeight:800,color:"#60a5fa",marginBottom:8}}>⬆️ BULK UPLOADS (save Excel as .CSV first: File → Save As → CSV)</div>
-        <div style={{fontSize:10,color:"#94a3b8",marginBottom:4}}>1. New Rate Chart — columns: code,name,cat,ex,cAcc,hdl,ins,reg,onRoad,amc</div>
-        <input type="file" accept=".csv" onChange={e=>{const fl=e.target.files[0];if(!fl)return;const rd=new FileReader();rd.onload=ev=>{
-          try{const lines=ev.target.result.split(/\r?\n/).filter(x=>x.trim());const hd=lines[0].toLowerCase().split(",").map(x=>x.trim());
-          const gi=n=>hd.indexOf(n);const obj={};
-          for(let i=1;i<lines.length;i++){const c2=lines[i].split(",");const cd=(c2[gi("code")]||"").trim().toUpperCase();if(!cd)continue;
-            obj[cd]={n:c2[gi("name")]||cd,cat:c2[gi("cat")]||"OTHER",ex:+c2[gi("ex")]||0,cAcc:+c2[gi("cacc")]||0,hdl:+c2[gi("hdl")]||600,ins:+c2[gi("ins")]||0,reg:+c2[gi("reg")]||0,onRoad:+c2[gi("onroad")]||0,amc:+c2[gi("amc")]||0};}
-          sv("nkd_rc",obj);_dbSet("rate_chart",obj);Object.assign(RC,obj);alert("✅ Rate chart updated: "+Object.keys(obj).length+" models. New rates apply to all new billings.");}catch(err){alert("Could not read file — check column names");}
-        };rd.readAsText(fl);e.target.value="";}} style={{width:"100%",background:"#c2d6ec",borderRadius:9,padding:8,fontSize:11,color:"#64748b",border:"1px dashed #2a3040",marginBottom:10}}/>
+        <div style={{fontSize:11,fontWeight:800,color:"#60a5fa",marginBottom:8}}>⬆️ BULK UPLOADS</div>
+        <div style={{fontSize:10,color:"#94a3b8",marginBottom:4}}>1. Rate Chart — upload your Bajaj price list Excel (.xlsx) directly, no conversion needed</div>
+        <input type="file" accept=".xlsx,.xls,.csv" onChange={e=>{
+          const fl=e.target.files[0];if(!fl)return;
+          function saveRC(obj){sv("nkd_rc",obj);_dbSet("rate_chart",obj);Object.assign(RC,obj);alert("✅ Rate chart updated: "+Object.keys(obj).length+" models.");}
+          function parseNKDRows(rows){
+            // Detect NKD Bajaj price list format (PD CODE / MODEL DISCRIPTION headers)
+            const isNKD=rows[0]&&String(rows[0][0]||"").toUpperCase().includes("PD CODE");
+            if(isNKD){
+              const obj={};let cat="OTHER";
+              for(let i=1;i<rows.length;i++){
+                const r=rows[i];if(!r||r[0]==null)continue;
+                const a=String(r[0]).trim(),b=r[1],c=r[2];
+                if(!b&&c!=null&&String(c).toUpperCase().includes("EX SHOWROOM")){cat=a.replace(/\s+$/,"");continue;}
+                if(!b||c==null||typeof c!=="number")continue;
+                const ex=Number(c)||0,cacc=typeof r[3]==="number"?r[3]:0,hdl=typeof r[4]==="number"?r[4]:600,ins=typeof r[5]==="number"?r[5]:0,amc=typeof r[12]==="number"?r[12]:0;
+                let reg=0;
+                if(typeof r[6]==="number"){reg=r[6];}
+                else if(typeof r[6]==="string"&&r[6].startsWith("=")){
+                  const pm=r[6].match(/\*(\d+)%/);const pct=pm?parseInt(pm[1])/100:0.07;
+                  const cs=[...r[6].matchAll(/\+(\d{4,})/g)].map(m=>parseInt(m[1]));
+                  reg=Math.round(ex*pct+cs.reduce((s,v)=>s+v,0));
+                }
+                const onRoad=typeof r[11]==="number"?r[11]:Math.round(ex+cacc+hdl+ins+reg+1700);
+                const code=a.toUpperCase();
+                if(code)obj[code]={n:String(b).trim(),cat,ex,cAcc:cacc,hdl,ins,reg,onRoad,amc};
+              }
+              return obj;
+            }
+            // Standard CRM CSV format: code,name,cat,ex,cAcc,hdl,ins,reg,onRoad,amc
+            const hd=rows[0].map(x=>String(x||"").toLowerCase().trim());
+            const gi=n=>hd.indexOf(n);const obj={};
+            for(let i=1;i<rows.length;i++){const r=rows[i];const cd=String(r[gi("code")]||"").trim().toUpperCase();if(!cd)continue;
+              obj[cd]={n:String(r[gi("name")]||cd),cat:String(r[gi("cat")]||"OTHER"),ex:+r[gi("ex")]||0,cAcc:+r[gi("cacc")]||0,hdl:+r[gi("hdl")]||600,ins:+r[gi("ins")]||0,reg:+r[gi("reg")]||0,onRoad:+r[gi("onroad")]||0,amc:+r[gi("amc")]||0};}
+            return obj;
+          }
+          if(fl.name.match(/\.xlsx?$/i)){
+            const rd=new FileReader();rd.onload=ev=>{
+              try{const wb=XLSX.read(new Uint8Array(ev.target.result),{type:"array",cellFormula:true,cellNF:false,cellText:false});
+              const ws=wb.Sheets[wb.SheetNames[0]];
+              const rows=XLSX.utils.sheet_to_json(ws,{header:1,defval:null,raw:true});
+              saveRC(parseNKDRows(rows));}catch(err){alert("Could not read Excel: "+err.message);}
+            };rd.readAsArrayBuffer(fl);
+          }else{
+            const rd=new FileReader();rd.onload=ev=>{
+              try{const lines=ev.target.result.split(/\r?\n/).filter(x=>x.trim());
+              const rows=lines.map(l=>l.split(",").map(x=>{const n=Number(x.trim());return isNaN(n)||x.trim()===""?x.trim():n;}));
+              saveRC(parseNKDRows(rows));}catch(err){alert("Could not read CSV: "+err.message);}
+            };rd.readAsText(fl);
+          }
+          e.target.value="";}} style={{width:"100%",background:"#c2d6ec",borderRadius:9,padding:8,fontSize:11,color:"#64748b",border:"1px dashed #2a3040",marginBottom:10}}/>
         <div style={{fontSize:10,color:"#94a3b8",marginBottom:4}}>2. Old Customers (10,000+) — columns: name,phone,model,salesman,enquirydate,status,remarks</div>
         <input type="file" accept=".csv" onChange={e=>{const fl=e.target.files[0];if(!fl)return;const rd=new FileReader();rd.onload=ev=>{
           try{const lines=ev.target.result.split(/\r?\n/).filter(x=>x.trim());const hd=lines[0].toLowerCase().split(",").map(x=>x.trim());
