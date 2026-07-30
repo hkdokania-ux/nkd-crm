@@ -3141,12 +3141,12 @@ export default function App(){
   const navItems=role==="admin"?[{id:"vault",l:"Document Vault",ic:"📁"},{id:"uploads",l:"Uploads",ic:"📤"},{id:"stock",l:"Stock",ic:"🏍️"},{id:"rcstatus",l:"RC/HSRP",ic:"🔍"}]:[{id:"dashboard",l:"Home",ic:"🏠"},{id:"followups",l:"Followup",ic:"📞",badge:due.length},{id:"customers",l:"Customers",ic:"👥"},{id:"stock",l:"Stock",ic:"🏍️"},{id:"rcstatus",l:"RC/HSRP",ic:"🔍"},{id:"approvals",l:role==="salesman"?"My Pending":"Approve",ic:"✅",badge:myPending.length+(role!=="salesman"?pendingTransfers.length:0)},...(role!=="salesman"?[{id:"revival",l:"Revival",ic:"🔄"}]:[]),...(isOwner(role)?[{id:"reports",l:"Reports",ic:"📊"}]:[]),...(isOwner(role)?[{id:"vault",l:"Vault",ic:"📁"}]:[]),...(isOwner(role)?[{id:"uploads",l:"Uploads",ic:"📤"}]:[]),...(role!=="salesman"&&alerts.length>0?[{id:"alerts",l:"Alerts",ic:"⚠️",badge:alerts.length}]:[])];
 
   return(
-    <div style={{minHeight:"100dvh",background:"linear-gradient(160deg,#f0f7ff 0%,#e8f4ff 40%,#f8fafc 100%)",color:"#1e293b",fontFamily:"'Inter',-apple-system,sans-serif",maxWidth:480,margin:"0 auto"}}>
+    <div style={{height:"100dvh",display:"flex",flexDirection:"column",background:"linear-gradient(160deg,#f0f7ff 0%,#e8f4ff 40%,#f8fafc 100%)",color:"#1e293b",fontFamily:"'Inter',-apple-system,sans-serif",maxWidth:480,margin:"0 auto",overflow:"hidden",paddingTop:"env(safe-area-inset-top)"}}>
       {notifPopup}
       <style>{`
         @import url('https://fonts.googleapis.com/css2?family=Sora:wght@400;600;700;800&display=swap');
         *{font-family:'Sora','Inter',-apple-system,sans-serif!important;-webkit-tap-highlight-color:transparent}
-        body{background:#f0f7ff;-webkit-overflow-scrolling:touch}
+        body{background:#f0f7ff;overflow:hidden}
         @keyframes fadeUp{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:none}}
         @keyframes glow{0%,100%{box-shadow:0 0 14px rgba(249,115,22,.3)}50%{box-shadow:0 0 26px rgba(249,115,22,.5)}}
         @keyframes shimmer{0%{background-position:-200% 0}100%{background-position:200% 0}}
@@ -3159,7 +3159,9 @@ export default function App(){
         ::-webkit-scrollbar{display:none}
         ::placeholder{color:#b0bec8}
       `}</style>
-      <div style={{background:"rgba(255,255,255,.97)",backdropFilter:"blur(16px)",borderBottom:"1px solid #6b8fb5",padding:"12px 16px",paddingTop:"calc(12px + env(safe-area-inset-top))",display:"flex",alignItems:"center",justifyContent:"space-between",position:"sticky",top:0,zIndex:100,boxShadow:"0 2px 16px rgba(15,23,42,.14)"}}>
+
+      {/* ── HEADER — always visible, never scrolls away ── */}
+      <div style={{flexShrink:0,background:"rgba(255,255,255,.97)",backdropFilter:"blur(16px)",borderBottom:"1px solid #6b8fb5",padding:"12px 16px",display:"flex",alignItems:"center",justifyContent:"space-between",zIndex:10,boxShadow:"0 2px 16px rgba(15,23,42,.14)"}}>
         <div style={{display:"flex",alignItems:"center",gap:10}}>
           <div style={{width:38,height:38,borderRadius:11,background:"linear-gradient(135deg,#f97316,#ef4444)",display:"flex",alignItems:"center",justifyContent:"center",fontWeight:900,fontSize:17,color:"#fff",animation:"glow 3s ease infinite"}}>B</div>
           <div><div style={{fontWeight:800,fontSize:13,color:"#1e293b"}}>NKD BAJAJ CRM</div><div style={{fontSize:10,color:"#94a3b8"}}>{user} · {role}{role==="manager"?" · "+mBr:""}</div></div>
@@ -3173,17 +3175,10 @@ export default function App(){
         </div>
       </div>
 
-      {toast&&<div style={{position:"fixed",top:66,left:"50%",transform:"translateX(-50%)",background:toast.type==="err"?"#7f1d1d":toast.type==="warn"?"#78350f":"#064e3b",color:"#fff",padding:"9px 18px",borderRadius:12,fontSize:13,fontWeight:600,zIndex:300,whiteSpace:"nowrap"}}>{toast.msg}</div>}
+      {toast&&<div style={{position:"fixed",top:72,left:"50%",transform:"translateX(-50%)",background:toast.type==="err"?"#7f1d1d":toast.type==="warn"?"#78350f":"#064e3b",color:"#fff",padding:"9px 18px",borderRadius:12,fontSize:13,fontWeight:600,zIndex:300,whiteSpace:"nowrap",maxWidth:"90vw",textAlign:"center"}}>{toast.msg}</div>}
 
-      <div style={{position:"fixed",bottom:0,left:0,right:0,maxWidth:480,margin:"0 auto",background:"rgba(255,255,255,.97)",backdropFilter:"blur(18px)",borderTop:"1px solid #6b8fb5",display:"flex",zIndex:100,paddingBottom:"env(safe-area-inset-bottom)",boxShadow:"0 -4px 24px rgba(15,23,42,.10)"}}>
-        {navItems.map(t=><button key={t.id} onClick={()=>nav(t.id)} style={{flex:1,padding:"9px 2px 11px",background:"transparent",border:"none",cursor:"pointer",display:"flex",flexDirection:"column",alignItems:"center",gap:2}}>
-          <span style={{fontSize:22}}>{t.ic}</span>
-          <span style={{fontSize:11,fontWeight:700,color:view===t.id?"#f97316":"#94a3b8"}}>{t.l}</span>
-          {t.badge>0&&<span style={{position:"absolute",marginLeft:26,marginTop:-2,background:"#ef4444",color:"#fff",fontSize:8,fontWeight:800,borderRadius:8,padding:"1px 4px"}}>{t.badge}</span>}
-        </button>)}
-      </div>
-
-      <div style={{padding:16,paddingBottom:110}}>
+      {/* ── SCROLLABLE CONTENT ── */}
+      <div style={{flex:1,overflowY:"auto",WebkitOverflowScrolling:"touch",padding:16,paddingBottom:16}}>
         {role==="admin"&&view!=="vault"&&view!=="rcstatus"&&view!=="stock"&&view!=="uploads"&&setView("vault")}
         {view==="dashboard"&&<Dashboard custs={myC} role={role} onOpen={openD} onNav={nav} onNavF={st=>{setCustF(st);nav("customers");}} onSvcDone={id=>{upd(id,{serviceDone:true});notify("Service marked done ✓");}} onTeamTap={s=>{setFSM(s);nav("followups");}} onAddPayment={addPayment} onUpd={upd} notify={notify}/>}
         {view==="followups"&&<Followups items={due} onOpen={openD} onLog={logF} onCallLog={logCall} showSMFilter={role!=="salesman"} initSM={fSM}/>}
@@ -3250,6 +3245,13 @@ export default function App(){
         try{const doc=makeBookingPdf(updCu,newBk);sharePdf(doc,"Booking"+allBks.length+"_"+cu.name.replace(/ /g,"_")+"_"+td()+".pdf",cu.phone,"Please find your Booking Receipt #"+allBks.length+" from NKD Bajaj, Dhanbad.");savePdfToDrive(doc,"Booking"+allBks.length+"_"+cu.name.replace(/ /g,"_")+"_"+td()+".pdf",cu.name,"Booking");}catch(e){}
         setBookOpen(false);setDtab("docs");notify("✅ Booking #"+allBks.length+" saved & MR sent to customer!");}}/>}
       {billOpen&&sel&&<BillingModal cust={custs.find(c=>c.id===sel.id)||sel} onClose={()=>setBillOpen(false)} onSave={d=>{billC(custs.find(c=>c.id===sel.id)||sel,d);setBillOpen(false);}} onDraft={d=>{upd(sel.id,{billingDraft:d});setBillOpen(false);}} notify={notify} role={role} stockData={stockData} billedChassis={billedChassis} allCusts={custs}/>}
+      <div style={{flexShrink:0,background:"rgba(255,255,255,.97)",backdropFilter:"blur(18px)",borderTop:"1px solid #6b8fb5",display:"flex",zIndex:100,paddingBottom:"env(safe-area-inset-bottom)",boxShadow:"0 -4px 24px rgba(15,23,42,.10)"}}>
+        {navItems.map(t=><button key={t.id} onClick={()=>nav(t.id)} style={{flex:1,padding:"9px 2px 11px",background:"transparent",border:"none",cursor:"pointer",display:"flex",flexDirection:"column",alignItems:"center",gap:2}}>
+          <span style={{fontSize:22}}>{t.ic}</span>
+          <span style={{fontSize:11,fontWeight:700,color:view===t.id?"#f97316":"#94a3b8"}}>{t.l}</span>
+          {t.badge>0&&<span style={{position:"absolute",marginLeft:26,marginTop:-2,background:"#ef4444",color:"#fff",fontSize:8,fontWeight:800,borderRadius:8,padding:"1px 4px"}}>{t.badge}</span>}
+        </button>)}
+      </div>
     </div>
   );
 }
