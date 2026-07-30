@@ -1746,7 +1746,7 @@ function BillingModal({cust,onClose,onSave,onDraft,notify,role,stockData,billedC
     notify(role==="salesman"?"✅ Sent to Manager for approval — receipt saved in Billing tab":"✅ Billed & approved — receipt saved in Billing tab");
   }
 
-  return(
+  return(<>
     <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.93)",zIndex:150,display:"flex",alignItems:"flex-end"}}>
       <div style={{background:"#ffffff",width:"100%",borderRadius:"20px 20px 0 0",maxHeight:"97vh",overflowY:"auto",padding:"20px 16px 44px"}}>
         <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:4}}><div style={{fontWeight:800,fontSize:16,color:"#1e293b"}}>Bill Vehicle</div><button onClick={onClose} style={{background:"#c2d6ec",border:"none",borderRadius:8,width:32,height:32,cursor:"pointer",color:"#64748b",fontSize:18}}>✕</button></div>
@@ -1970,7 +1970,7 @@ function BillingModal({cust,onClose,onSave,onDraft,notify,role,stockData,billedC
         </div>
       </div>
     )}
-  );
+  </>);
 }
 
 function BillingPayBox({K,custId,onAddPayment}){
