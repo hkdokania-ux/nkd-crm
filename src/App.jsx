@@ -1748,9 +1748,16 @@ function BillingModal({cust,onClose,onSave,onDraft,notify,role,stockData,billedC
 
   return(<>
     <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.93)",zIndex:150,display:"flex",alignItems:"flex-end"}}>
-      <div style={{background:"#ffffff",width:"100%",borderRadius:"20px 20px 0 0",maxHeight:"97vh",overflowY:"auto",padding:"20px 16px 44px"}}>
-        <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:4}}><div style={{fontWeight:800,fontSize:16,color:"#1e293b"}}>Bill Vehicle</div><button onClick={onClose} style={{background:"#c2d6ec",border:"none",borderRadius:8,width:32,height:32,cursor:"pointer",color:"#64748b",fontSize:18}}>✕</button></div>
-        <div style={{fontSize:12,color:"#94a3b8",marginBottom:14}}>{cust.name} · {RC[billModelCode]?.n||cust.model} · <span style={{color:"#60a5fa",fontWeight:600}}>{billModelCode||cust.modelCode}</span></div>
+      <div style={{background:"#ffffff",width:"100%",borderRadius:"20px 20px 0 0",maxHeight:"97vh",overflowY:"auto",padding:"0 0 44px"}}>
+        {/* Sticky header — always visible even when scrolled */}
+        <div style={{position:"sticky",top:0,background:"#ffffff",zIndex:20,borderRadius:"20px 20px 0 0",borderBottom:"1px solid #e2e8f0",padding:"14px 16px 10px",boxShadow:"0 2px 8px rgba(15,23,42,.08)"}}>
+          <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:2}}>
+            <div style={{fontWeight:800,fontSize:16,color:"#1e293b"}}>Bill Vehicle</div>
+            <button onClick={onClose} style={{background:"#f1f5f9",border:"1px solid #6b8fb5",borderRadius:8,width:34,height:34,cursor:"pointer",color:"#64748b",fontSize:20,fontWeight:700,display:"flex",alignItems:"center",justifyContent:"center"}}>✕</button>
+          </div>
+          <div style={{fontSize:12,color:"#94a3b8"}}>{cust.name} · {RC[billModelCode]?.n||cust.model} · <span style={{color:"#60a5fa",fontWeight:600}}>{billModelCode||cust.modelCode}</span></div>
+        </div>
+        <div style={{padding:"14px 16px 0"}}>
         <div style={{background:"rgba(96,165,250,0.07)",border:"1px solid rgba(96,165,250,0.22)",borderRadius:11,padding:"9px 12px",marginBottom:14,fontSize:11,color:"#64748b",lineHeight:1.7}}>✓ <b style={{color:"#60a5fa"}}>Auto-filled:</b> Ex-Showroom {fc(r.ex)}, Insurance {fc(r.ins||0)}, Registration {fc(r.reg||0)}. Fill <b style={{color:"#f97316"}}>Teflon/Accessories/Hypo</b> manually.</div>
 
         <div style={{marginBottom:14}}>
@@ -1939,8 +1946,9 @@ function BillingModal({cust,onClose,onSave,onDraft,notify,role,stockData,billedC
         <button onClick={saveDraft} style={{...btn("linear-gradient(135deg,#64748b,#475569)"),width:"100%",padding:13,fontSize:14,borderRadius:12,marginBottom:10}}>💾 Save Draft (continue later)</button>
         <div style={{background:role==="salesman"?"rgba(249,115,22,0.08)":"rgba(139,92,246,0.08)",border:"1px solid "+(role==="salesman"?"rgba(249,115,22,0.3)":"rgba(139,92,246,0.3)"),borderRadius:10,padding:"10px 12px",marginBottom:14,fontSize:12,color:role==="salesman"?"#f97316":"#a78bfa",fontWeight:600}}>{role==="salesman"?"⏳ Sent to Manager for approval":"✅ You are "+role+" — auto-approved"}</div>
         <button onClick={submit} style={{...btn("linear-gradient(135deg,#059669,#10b981)"),width:"100%",padding:17,fontSize:16,borderRadius:16,boxShadow:"0 6px 24px rgba(16,185,129,0.35)"}}>{busy?"Saving…":"✅ Confirm Billing & Send MR on WhatsApp"}</button>
-      </div>
-    </div>
+      </div>{/* closes padding wrapper */}
+    </div>{/* closes modal panel */}
+  </div>{/* closes outer overlay */}
     {/* ── AMOUNT DIFFERENCE APPROVAL POPUP ── */}
     {amtDiffPopup&&(
       <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.82)",zIndex:300,display:"flex",alignItems:"center",justifyContent:"center",padding:20}}>
