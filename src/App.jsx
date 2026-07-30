@@ -1377,7 +1377,7 @@ function Detail({cust,role,onBack,onUpd,onLog,onBill,onBook,notify,initTab,clear
         <div style={{background:"rgba(139,92,246,0.08)",border:"1px solid rgba(139,92,246,0.3)",borderRadius:14,padding:"12px 14px",marginTop:10}}>
           <div style={{fontSize:11,fontWeight:700,color:"#a78bfa",marginBottom:10}}>⏳ PENDING APPROVAL — Action Required</div>
           <div style={{display:"flex",gap:8}}>
-            <button onClick={()=>{const cl=cust.billing?.calc||{};if(cl.K>2000){notify("⚠️ Shortage K="+fc(cl.K)+" exceeds ₹2000 limit","err");return;}onApprove(cust.id,true,"");notify("✅ Approved");}} style={{flex:1,background:"rgba(34,197,94,0.12)",border:"1px solid rgba(34,197,94,0.4)",borderRadius:10,padding:"11px 4px",color:"#22c55e",fontSize:13,fontWeight:700,cursor:"pointer"}}>✅ Approve</button>
+            <button onClick={()=>{onApprove(cust.id,true,"");notify("✅ Approved");}} style={{flex:1,background:"rgba(34,197,94,0.12)",border:"1px solid rgba(34,197,94,0.4)",borderRadius:10,padding:"11px 4px",color:"#22c55e",fontSize:13,fontWeight:700,cursor:"pointer"}}>✅ Approve</button>
             <button onClick={()=>{onApprove(cust.id,false,"");notify("❌ Rejected");}} style={{flex:1,background:"rgba(239,68,68,0.1)",border:"1px solid rgba(239,68,68,0.3)",borderRadius:10,padding:"11px 4px",color:"#ef4444",fontSize:13,fontWeight:700,cursor:"pointer"}}>❌ Reject</button>
           </div>
         </div>
@@ -3279,8 +3279,12 @@ export default function App(){
       {/* ── HEADER — always visible, never scrolls away ── */}
       <div style={{flexShrink:0,background:"rgba(255,255,255,.97)",backdropFilter:"blur(16px)",borderBottom:"1px solid #6b8fb5",padding:"12px 16px",display:"flex",alignItems:"center",justifyContent:"space-between",zIndex:10,boxShadow:"0 2px 16px rgba(15,23,42,.14)"}}>
         <div style={{display:"flex",alignItems:"center",gap:10}}>
-          <div style={{width:38,height:38,borderRadius:11,background:"linear-gradient(135deg,#f97316,#ef4444)",display:"flex",alignItems:"center",justifyContent:"center",fontWeight:900,fontSize:17,color:"#fff",animation:"glow 3s ease infinite"}}>B</div>
-          <div><div style={{fontWeight:800,fontSize:13,color:"#1e293b"}}>NKD BAJAJ CRM</div><div style={{fontSize:10,color:"#94a3b8"}}>{user} · {role}{role==="manager"?" · "+mBr:""}</div></div>
+          {stack.current.length>0
+            ?<button onClick={goBack} style={{display:"flex",alignItems:"center",gap:6,background:"#f1f5f9",border:"1px solid #6b8fb5",borderRadius:10,padding:"7px 12px",cursor:"pointer",fontSize:13,fontWeight:700,color:"#1e293b"}}>← Back</button>
+            :<><div style={{width:38,height:38,borderRadius:11,background:"linear-gradient(135deg,#f97316,#ef4444)",display:"flex",alignItems:"center",justifyContent:"center",fontWeight:900,fontSize:17,color:"#fff",animation:"glow 3s ease infinite"}}>B</div>
+              <div><div style={{fontWeight:800,fontSize:13,color:"#1e293b"}}>NKD BAJAJ CRM</div><div style={{fontSize:10,color:"#94a3b8"}}>{user} · {role}{role==="manager"?" · "+mBr:""}</div></div>
+            </>
+          }
         </div>
         <div style={{display:"flex",alignItems:"center",gap:6}}>
           {due.length>0&&<div style={{background:"rgba(249,115,22,0.2)",color:"#f97316",borderRadius:20,padding:"2px 7px",fontSize:10,fontWeight:800}}>📞 {due.length}</div>}
