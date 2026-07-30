@@ -2241,15 +2241,15 @@ function Reports({custs,onImportCust}){
                 if(!b||c==null||typeof c!=="number")continue;
                 const ex=Number(c)||0,cacc=typeof r[3]==="number"?r[3]:0,hdl=typeof r[4]==="number"?r[4]:600,ins=typeof r[5]==="number"?r[5]:0,amc=typeof r[12]==="number"?r[12]:0;
                 let reg=0;
-                if(typeof r[6]==="number"){reg=r[6];}
+                if(typeof r[6]==="number"){reg=Math.round(r[6]);}
                 else if(typeof r[6]==="string"&&r[6].startsWith("=")){
                   const pm=r[6].match(/\*(\d+)%/);const pct=pm?parseInt(pm[1])/100:0.07;
                   const cs=[...r[6].matchAll(/\+(\d{4,})/g)].map(m=>parseInt(m[1]));
                   reg=Math.round(ex*pct+cs.reduce((s,v)=>s+v,0));
                 }
-                const onRoad=typeof r[11]==="number"?r[11]:Math.round(ex+cacc+hdl+ins+reg+1700);
+                const onRoad=typeof r[11]==="number"?Math.round(r[11]):Math.round(ex+cacc+hdl+ins+reg+1700);
                 const code=a.toUpperCase();
-                if(code)obj[code]={n:String(b).trim(),cat,ex,cAcc:cacc,hdl,ins,reg,onRoad,amc};
+                if(code)obj[code]={n:String(b).trim(),cat,ex:Math.round(ex),cAcc:Math.round(cacc),hdl:Math.round(hdl),ins:Math.round(ins),reg,onRoad,amc:Math.round(amc)};
               }
               return obj;
             }
