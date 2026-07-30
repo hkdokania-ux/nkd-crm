@@ -1757,7 +1757,9 @@ function BillingModal({cust,onClose,onSave,onDraft,notify,role,stockData,billedC
           <div style={{fontSize:10,fontWeight:700,color:"#475569",letterSpacing:0.8,marginBottom:6}}>CUSTOMER KYC (required for billing)</div>
           <div style={{background:"#ffffff",border:"1px solid #6b8fb5",borderRadius:12,padding:12}}>
             <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:8}}>
-              {/* Father/Mother/Husband — spans full width */}
+              {/* Customer Name — full width, FIRST */}
+              <div style={{gridColumn:"1 / -1"}}><label style={{...lbl,fontSize:10}}>Customer Name (as on bill) *</label><input type="text" value={f.billName||""} onChange={e=>setF(p=>({...p,billName:e.target.value}))} onBlur={e=>setF(p=>({...p,billName:String(e.target.value).toUpperCase()}))} style={{...inp,fontSize:12,padding:"8px 10px",textTransform:"uppercase"}}/></div>
+              {/* Father/Mother/Husband — spans full width, SECOND */}
               <div style={{gridColumn:"1 / -1"}}>
                 <label style={{...lbl,fontSize:10}}>{f.fatherRel||"Father"} Name *</label>
                 <div style={{display:"flex",gap:4,marginBottom:6}}>
@@ -1770,7 +1772,7 @@ function BillingModal({cust,onClose,onSave,onDraft,notify,role,stockData,billedC
                 </div>
                 <input type="text" value={f.fatherName||""} onChange={e=>setF(p=>({...p,fatherName:e.target.value}))} onBlur={e=>setF(p=>({...p,fatherName:String(e.target.value).toUpperCase()}))} placeholder={(f.fatherRel||"Father")+"'s name"} style={{...inp,fontSize:12,padding:"8px 10px",textTransform:"uppercase"}}/>
               </div>
-              {[{k:"billName",l:"Customer Name (as on bill) *"},{k:"dob",l:"Date of Birth",t:"date"},{k:"aadhar",l:"Aadhar No * (12 digits)",t:"aadhar"},{k:"pan",l:"PAN No"},{k:"nominee",l:"Nominee Name *"},{k:"nomineeRel",l:"Nominee Relation *"}].map(({k,l,t})=>{
+              {[{k:"dob",l:"Date of Birth",t:"date"},{k:"aadhar",l:"Aadhar No * (12 digits)",t:"aadhar"},{k:"pan",l:"PAN No"},{k:"nominee",l:"Nominee Name *"},{k:"nomineeRel",l:"Nominee Relation *"}].map(({k,l,t})=>{
                 const age=k==="dob"&&f.dob?Math.floor((new Date()-new Date(f.dob))/31557600000):null;
                 if(t==="aadhar")return(<div key={k}><label style={{...lbl,fontSize:10}}>{l}</label><input type="text" inputMode="numeric" value={f[k]||""} maxLength={12} onChange={e=>{const v=e.target.value.replace(/\D/g,"").slice(0,12);setF(p=>({...p,[k]:v}));}} style={{...inp,fontSize:12,padding:"8px 10px",borderColor:f[k]&&f[k].length!==12?"#ef4444":undefined}}/>{f[k]&&f[k].length>0&&f[k].length!==12&&<div style={{fontSize:10,color:"#ef4444",marginTop:2}}>⚠️ Must be exactly 12 digits ({f[k].length}/12)</div>}</div>);
                 return(<div key={k}><label style={{...lbl,fontSize:10}}>{l}</label><input type={t||"text"} value={f[k]||""} max={t==="date"?td():undefined} onChange={e=>setF(p=>({...p,[k]:e.target.value}))} onBlur={t!=="date"?e=>setF(p=>({...p,[k]:String(e.target.value).toUpperCase()})):undefined} style={{...inp,fontSize:12,padding:"8px 10px",textTransform:t==="date"?"none":"uppercase"}}/>
