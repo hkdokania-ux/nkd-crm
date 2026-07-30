@@ -1563,12 +1563,21 @@ function BillingModal({cust,onClose,onSave,onDraft,notify,role,stockData,billedC
   const isFin=cust.finance==="Finance";
   function nextMrNo(){
     const now=new Date();
-    const yr=now.getFullYear(),mo=now.getMonth();
-    const fyStart=mo>=3?yr:yr-1;
-    const fy=String(fyStart).slice(-2)+"-"+String(fyStart+1).slice(-2);
-    const prefix="MR/NKD/"+fy+"/";
+    const mo=now.getMonth(),yr=now.getFullYear();
+    const MONTHS=["JAN","FEB","MAR","APR","MAY","JUN","JUL","AUG","SEP","OCT","NOV","DEC"];
+    const mon=MONTHS[mo];
+    const loc=cust.branch==="Chirkunda"?"CKD":"DHN";
+    const prefix="NKD/"+loc+"/"+mon+"/";
     const all=allCusts||[];
-    const nums=all.map(c=>{const m=(c.billing||c.billingDraft||{}).mrNo||"";if(!m.startsWith(prefix))return 0;const n=parseInt(m.slice(prefix.length),10);return isNaN(n)?0:n;});
+    const nums=all.map(c=>{
+      const m=(c.billing||c.billingDraft||{}).mrNo||"";
+      if(!m.startsWith(prefix))return 0;
+      // match same year via billedDate to reset counter each year
+      const bd=c.billedDate||"";
+      if(bd&&new Date(bd).getFullYear()!==yr)return 0;
+      const n=parseInt(m.slice(prefix.length),10);
+      return isNaN(n)?0:n;
+    });
     const max=nums.length?Math.max(...nums):0;
     return prefix+String(max+1).padStart(2,"0");
   }
@@ -1685,6 +1694,8 @@ function BillingModal({cust,onClose,onSave,onDraft,notify,role,stockData,billedC
   const [busy,setBusy]=useState(false);
   const [mrSent,setMrSent]=useState(!!(eb.receiptHtml||eb.mrNo||cust.billed));
   const [mrPayCount,setMrPayCount]=useState(mrSent?(eb.payments||[]).length:0);
+  const [amtDiffPopup,setAmtDiffPopup]=useState(false);
+  const [amtDiffReason,setAmtDiffReason]=useState("");
   function generateAndSendMR(){
     if(mrSent){notify("MR already sent to customer — cannot resend","err");return;}
     const activePmts=(f.payments||[]).filter(p=>Number(p.amt||0)>0);
@@ -1717,16 +1728,20 @@ function BillingModal({cust,onClose,onSave,onDraft,notify,role,stockData,billedC
     if(!f.aadhar||!f.fatherName||!f.nominee||!f.nomineeRel){notify("Fill KYC: Aadhar, Father name, Nominee & Relation","err");return;}
     if(c.C<0||c.E<0||c.G<0||c.I<0){alert("⚠️ Calculation error — a total has gone NEGATIVE.\nCheck discounts/booking/exchange amounts. No value can exceed the price above it.");return;}
     if(c.K<0){alert("⚠️ Payment Received ("+fc(c.paid)+") is MORE than balance due ("+fc(c.I)+").\nCorrect the Payment Received amount.");return;}
-    if(c.K>2000){alert("⚠️ Shortage K = "+fc(c.K)+" exceeds ₹2000 limit.\nCollect remaining amount before saving.");return;}
     const missing=VER_ALL.filter(([k])=>!ver[k]);
     if(missing.length>0){alert("⚠️ Cannot submit — verify these first:\n\n"+missing.map(([,l])=>"☐ "+l).join("\n"));return;}
+    // If any balance outstanding — show owner approval popup first
+    if(c.K>0){setAmtDiffPopup(true);return;}
+    doSubmit(null);
+  }
+  function doSubmit(amtDiff){
     var html=buildReceipt();
     var CALC_G=window.__CG||"";
     var activePmtsS=(f.payments||[]).filter(p=>Number(p.amt||0)>0);
     var payModeSummary=activePmtsS.map(p=>p.mode+(p.ref?" ("+p.ref+")":"")).join(" + ")||"—";
     var payModeRows=activePmtsS.map(p=>"<div class=row><span>"+p.mode+(p.ref?" ("+p.ref+")":"")+"</span><span class=v>"+fc(Number(p.amt))+"</span></div>").join("");
     var calcHtml=html.replace("MONEY RECEIPT","CALCULATION SHEET (INTERNAL)").replace("</h2>","</h2>"+[payModeRows||("<div class=row><span>Payment Mode</span><span class=v>—</span></div>"),"<div class=row><span>MR No.</span><span class=v>"+(f.mrNo||"—")+"</span></div>","<div class=row><span>Financed By</span><span class=v>"+(f.financeBank||"Cash")+"</span></div>"].join("")+CALC_G);
-    onSave({...f,billModelCode,billModelName:RC[billModelCode]?.n||cust.model,payMode:payModeSummary,paid:c.paid,calc:c,calcHtml:calcHtml,checklist:chk,verify:ver,verifyList:VER_ALL.map(([k,l])=>[k,l]),receiptHtml:html,details:{name:f.billName||cust.name,exchangeName:f.exchName,exchangePhone:f.exchPhone,exchangeAsked:f.exchModel,exchangeRegNo:f.exchRegNo,exchangeOffered:String(f.exv||""),fatherName:f.fatherName,address:cust.address,dob:f.dob,nominee:f.nominee,nomineeRel:f.nomineeRel,aadhar:f.aadhar,pan:f.pan}});
+    onSave({...f,billModelCode,billModelName:RC[billModelCode]?.n||cust.model,payMode:payModeSummary,paid:c.paid,calc:c,calcHtml:calcHtml,checklist:chk,verify:ver,verifyList:VER_ALL.map(([k,l])=>[k,l]),receiptHtml:html,amtDiff:amtDiff||null,details:{name:f.billName||cust.name,exchangeName:f.exchName,exchangePhone:f.exchPhone,exchangeAsked:f.exchModel,exchangeRegNo:f.exchRegNo,exchangeOffered:String(f.exv||""),fatherName:f.fatherName,address:cust.address,dob:f.dob,nominee:f.nominee,nomineeRel:f.nomineeRel,aadhar:f.aadhar,pan:f.pan}});
     setBusy(true);
     notify(role==="salesman"?"✅ Sent to Manager for approval — receipt saved in Billing tab":"✅ Billed & approved — receipt saved in Billing tab");
   }
@@ -1911,6 +1926,37 @@ function BillingModal({cust,onClose,onSave,onDraft,notify,role,stockData,billedC
         <button onClick={submit} style={{...btn("linear-gradient(135deg,#059669,#10b981)"),width:"100%",padding:17,fontSize:16,borderRadius:16,boxShadow:"0 6px 24px rgba(16,185,129,0.35)"}}>{busy?"Saving…":"✅ Confirm Billing & Send MR on WhatsApp"}</button>
       </div>
     </div>
+    {/* ── AMOUNT DIFFERENCE APPROVAL POPUP ── */}
+    {amtDiffPopup&&(
+      <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.82)",zIndex:300,display:"flex",alignItems:"center",justifyContent:"center",padding:20}}>
+        <div style={{background:"#ffffff",borderRadius:20,padding:24,width:"100%",maxWidth:380,boxShadow:"0 16px 48px rgba(0,0,0,0.4)"}}>
+          <div style={{fontSize:22,textAlign:"center",marginBottom:8}}>⚠️</div>
+          <div style={{fontWeight:800,fontSize:16,color:"#1e293b",textAlign:"center",marginBottom:4}}>Balance Outstanding</div>
+          <div style={{fontWeight:900,fontSize:26,color:"#ef4444",textAlign:"center",marginBottom:14}}>{fc(c.K)}</div>
+          <div style={{fontSize:12,color:"#64748b",marginBottom:16,textAlign:"center",lineHeight:1.6}}>This billing has an unpaid balance.<br/>Saving requires <b style={{color:"#6366f1"}}>Owner approval</b>. Enter the reason below.</div>
+          <div style={{fontSize:11,fontWeight:700,color:"#475569",marginBottom:4}}>Reason for balance / shortfall *</div>
+          <textarea
+            value={amtDiffReason}
+            onChange={e=>setAmtDiffReason(e.target.value)}
+            placeholder="e.g. Customer to pay balance at RTO, part payment pending, exchange adjustment..."
+            rows={3}
+            style={{width:"100%",boxSizing:"border-box",background:"#f8fafc",border:"1px solid #6b8fb5",borderRadius:10,padding:"9px 12px",fontSize:12,color:"#1e293b",resize:"none",outline:"none",marginBottom:16}}
+          />
+          <div style={{display:"flex",gap:10}}>
+            <button onClick={()=>{setAmtDiffPopup(false);setAmtDiffReason("");}} style={{flex:1,background:"#e8eef8",border:"1px solid #6b8fb5",borderRadius:10,padding:"12px",fontSize:13,fontWeight:700,color:"#475569",cursor:"pointer"}}>Cancel</button>
+            <button
+              onClick={()=>{
+                if(!amtDiffReason.trim()){alert("Please enter a reason for the balance shortfall");return;}
+                setAmtDiffPopup(false);
+                doSubmit({amt:c.K,reason:amtDiffReason.trim(),status:"pending",requestedAt:new Date().toISOString()});
+              }}
+              disabled={!amtDiffReason.trim()}
+              style={{flex:2,background:amtDiffReason.trim()?"linear-gradient(135deg,#f97316,#ea580c)":"#e8eef8",border:"none",borderRadius:10,padding:"12px",fontSize:13,fontWeight:700,color:amtDiffReason.trim()?"#fff":"#94a3b8",cursor:amtDiffReason.trim()?"pointer":"not-allowed"}}
+            >📤 Save &amp; Send for Owner Approval</button>
+          </div>
+        </div>
+      </div>
+    )}
   );
 }
 
@@ -2041,11 +2087,20 @@ function Approvals({custs,onApprove,onOpen,onEditCalc,allC,canApprove}){
               </div>
               <button onClick={()=>onOpen(c)} style={{width:"100%",background:"#c2d6ec",border:"1px solid #6b8fb5",borderRadius:9,padding:8,color:"#64748b",fontSize:11,fontWeight:600,cursor:"pointer"}}>📂 View Documents</button>
             </div>
-            {cl.K>2000&&<div style={{margin:"0 14px 10px",background:"rgba(239,68,68,0.1)",border:"1px solid rgba(239,68,68,0.35)",borderRadius:9,padding:"8px 11px",fontSize:11,color:"#ef4444",fontWeight:700}}>⛔ Shortage K = {fc(cl.K)} — approval blocked (must be ₹0 or ≤ ₹2000)</div>}
+            {c.billing?.amtDiff&&c.billing.amtDiff.status==="pending"&&(
+              <div style={{margin:"0 14px 10px",background:"rgba(249,115,22,0.08)",border:"1px solid rgba(249,115,22,0.4)",borderRadius:9,padding:"10px 12px"}}>
+                <div style={{fontSize:10,fontWeight:700,color:"#f97316",marginBottom:4}}>💰 BALANCE SHORTFALL — PENDING OWNER APPROVAL</div>
+                <div style={{fontSize:13,fontWeight:900,color:"#ef4444",marginBottom:4}}>Outstanding: {fc(c.billing.amtDiff.amt)}</div>
+                <div style={{fontSize:11,color:"#64748b"}}><b>Reason:</b> {c.billing.amtDiff.reason}</div>
+              </div>
+            )}
+            {c.billing?.amtDiff&&c.billing.amtDiff.status==="approved"&&(
+              <div style={{margin:"0 14px 10px",background:"rgba(34,197,94,0.06)",border:"1px solid rgba(34,197,94,0.3)",borderRadius:9,padding:"8px 11px",fontSize:11,color:"#22c55e",fontWeight:700}}>✅ Balance of {fc(c.billing.amtDiff.amt)} approved by Owner</div>
+            )}
             <div style={{padding:"0 14px 8px"}}><input placeholder="Manager remark (optional — saved to history)" value={rem[c.id]||""} onChange={e=>setRem(p=>({...p,[c.id]:e.target.value}))} style={{background:"#f8fafc",border:"1px solid #6b8fb5",borderRadius:10,padding:"9px 12px",fontSize:12,color:"#1e293b",width:"100%",boxSizing:"border-box",outline:"none"}}/></div>
-            {cl.K!==0&&<div style={{margin:"0 14px 8px",fontSize:11,color:"#f59e0b",fontWeight:700}}>👉 Tap EDIT to correct the sheet yourself, then it auto-approves</div>}
+            {cl.K>0&&!(c.billing?.amtDiff)&&<div style={{margin:"0 14px 8px",fontSize:11,color:"#f59e0b",fontWeight:700}}>👉 Tap EDIT to correct the sheet yourself, then it auto-approves</div>}
             {canApprove&&(<div style={{display:"flex",gap:6,padding:"10px 14px",borderTop:"1px solid #6b8fb5"}}>
-              <button onClick={()=>cl.K<=2000&&cl.K>=0&&onApprove(c.id,true,rem[c.id]||"")} disabled={cl.K>2000||cl.K<0} style={{...btn(cl.K<=2000&&cl.K>=0?"rgba(34,197,94,0.12)":"rgba(107,114,128,0.1)",cl.K<=2000&&cl.K>=0?"#22c55e":"#374151"),flex:1,border:"1px solid "+(cl.K<=2000&&cl.K>=0?"rgba(34,197,94,0.4)":"#6b8fb5"),cursor:cl.K<=2000&&cl.K>=0?"pointer":"not-allowed",fontSize:12,padding:"11px 4px"}}>✅ Approve</button>
+              <button onClick={()=>cl.K>=0&&onApprove(c.id,true,rem[c.id]||"")} disabled={cl.K<0} style={{...btn(cl.K>=0?"rgba(34,197,94,0.12)":"rgba(107,114,128,0.1)",cl.K>=0?"#22c55e":"#374151"),flex:1,border:"1px solid "+(cl.K>=0?"rgba(34,197,94,0.4)":"#6b8fb5"),cursor:cl.K>=0?"pointer":"not-allowed",fontSize:12,padding:"11px 4px"}}>✅ Approve</button>
               <button onClick={()=>onEditCalc(c)} style={{...btn("rgba(245,158,11,0.15)","#f59e0b"),flex:1,border:"1px solid rgba(245,158,11,0.5)",fontSize:12,padding:"11px 4px"}}>✏️ EDIT</button>
               <button onClick={()=>onApprove(c.id,false,rem[c.id]||"")} style={{...btn("rgba(239,68,68,0.1)","#ef4444"),flex:1,border:"1px solid rgba(239,68,68,0.3)",fontSize:12,padding:"11px 4px"}}>❌ Reject</button>
             </div>)}
@@ -3077,7 +3132,13 @@ export default function App(){
   function approveBill(id,ok,remark){
     const cu=custs.find(c=>c.id===id);
     const mr=remark?("\n["+td()+"] MANAGER: "+remark):"";
-    if(ok){upd(id,{managerApproval:"approved",approvedBy:user,remarks:((cu&&cu.remarks)||"")+mr+"\n["+td()+"] APPROVED by "+user});notify("✅ Approved — record locked");}
+    if(ok){
+      const updBilling=cu?.billing?.amtDiff&&cu.billing.amtDiff.status==="pending"
+        ?{...cu.billing,amtDiff:{...cu.billing.amtDiff,status:"approved",approvedBy:user,approvedAt:new Date().toISOString()}}
+        :cu?.billing;
+      upd(id,{managerApproval:"approved",approvedBy:user,billing:updBilling||cu?.billing,remarks:((cu&&cu.remarks)||"")+mr+"\n["+td()+"] APPROVED by "+user+(cu?.billing?.amtDiff?.status==="pending"?" (balance of "+fc(cu.billing.amtDiff.amt)+" approved)":"")});
+      notify("✅ Approved — record locked");
+    }
     else{upd(id,{managerApproval:"rejected",billed:false,status:"Booked",billing:(cu&&cu.billing)?{...cu.billing,receiptHtml:null}:null,remarks:((cu&&cu.remarks)||"")+mr+"\n["+td()+"] BILLING REJECTED by Manager — correct and re-bill. All documents retained."});notify("❌ Rejected — sent back to executive");}
   }
   function requestTransfer(id,requestedBy){
