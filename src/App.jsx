@@ -903,6 +903,7 @@ function excelDateToAge(raw){const n=typeof raw==="number"?raw:Number(raw);if(n>
 function StockView({stockData,billedChassis,role,userBranch,onUpload,notify}){
   const [q,setQ]=useState("");
   const [tab,setTab]=useState("stock"); // "stock" | "ageing"
+  const [openModels,setOpenModels]=useState(new Set());
   const rows=stockData||[];
   const keys=rows.length>0?Object.keys(rows[0]):[];
   const chassisKey=findStockCol(keys,["chassis","frame"]);
@@ -947,6 +948,23 @@ function StockView({stockData,billedChassis,role,userBranch,onUpload,notify}){
     filtered.forEach(r=>{const m=String(r[modelKey]||"Other");map[m]=(map[m]||0)+1;});
     return Object.entries(map).sort((a,b)=>b[1]-a[1]);
   },[filtered,modelKey]);
+
+  // Grouped view for default (no search) state
+  const groupedByModel=useMemo(()=>{
+    if(!modelKey)return[];
+    const groups={};
+    available.forEach(r=>{
+      const m=String(r[modelKey]||"Other");
+      if(!groups[m])groups[m]=[];
+      groups[m].push(r);
+    });
+    return Object.entries(groups).sort((a,b)=>{
+      const aOwn=userBranch&&a[1].some(r=>isMyBranch(r))?0:1;
+      const bOwn=userBranch&&b[1].some(r=>isMyBranch(r))?0:1;
+      if(aOwn!==bOwn)return aOwn-bOwn;
+      return b[1].length-a[1].length;
+    });
+  },[available,modelKey,userBranch,branchKey]);
 
   // Ageing: own branch first, then oldest first
   const ageingRows=useMemo(()=>{
@@ -1015,27 +1033,73 @@ function StockView({stockData,billedChassis,role,userBranch,onUpload,notify}){
 
       {/* ── STOCK SEARCH TAB ── */}
       {tab==="stock"&&<>
-        {q.trim().length<2&&byModel.length>0&&(
-          <div style={{display:"flex",flexWrap:"wrap",gap:6,marginBottom:12}}>
-            {byModel.map(([m,cnt])=>(
-              <div key={m} style={{background:"#ffffff",border:"1px solid #6b8fb5",borderRadius:10,padding:"6px 12px",cursor:"pointer"}} onClick={()=>setQ(m)}>
-                <span style={{fontSize:11,color:"#1e293b",fontWeight:600}}>{m}</span>
-                <span style={{fontSize:10,color:"#34d399",fontWeight:700,marginLeft:6}}>{cnt}</span>
-              </div>
-            ))}
+        {/* Grouped accordion — shown when no search query */}
+        {q.trim().length<2&&groupedByModel.length>0&&(
+          <div>
+            {groupedByModel.map(([model,rows])=>{
+              const isOpen=openModels.has(model);
+              const ownRows=rows.filter(r=>isMyBranch(r));
+              const otherRows=rows.filter(r=>!isMyBranch(r));
+              const hasOwn=ownRows.length>0;
+              const ages=rows.map(r=>getAge(r)).filter(x=>x!==null);
+              const maxAge=ages.length?Math.max(...ages):null;
+              const ab=maxAge!==null?ageBadge(maxAge):{col:"#94a3b8",bg:"#f1f5f9",border:"#6b8fb5",tag:"—"};
+              return(
+                <div key={model} style={{marginBottom:8,borderRadius:12,overflow:"hidden",border:"2px solid "+(hasOwn?"#3b82f6":"#e2e8f0")}}>
+                  {/* Model header — click to expand/collapse */}
+                  <div onClick={()=>{const s=new Set(openModels);isOpen?s.delete(model):s.add(model);setOpenModels(s);}}
+                    style={{display:"flex",alignItems:"center",gap:10,padding:"10px 14px",background:hasOwn?"rgba(59,130,246,0.06)":"#f8fafc",cursor:"pointer",userSelect:"none"}}>
+                    <span style={{fontSize:16,transition:"transform 0.2s",display:"inline-block",transform:isOpen?"rotate(90deg)":"rotate(0deg)",color:"#6b8fb5"}}>▶</span>
+                    <div style={{flex:1,minWidth:0}}>
+                      <div style={{fontWeight:700,fontSize:13,color:"#1e293b",whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis"}}>{model}</div>
+                      <div style={{display:"flex",gap:6,marginTop:2,flexWrap:"wrap"}}>
+                        {hasOwn&&<span style={{fontSize:10,fontWeight:700,color:"#1d4ed8",background:"#dbeafe",padding:"1px 7px",borderRadius:6}}>📍 {ownRows.length} yours</span>}
+                        {otherRows.length>0&&<span style={{fontSize:10,fontWeight:600,color:"#64748b",background:"#f1f5f9",padding:"1px 7px",borderRadius:6}}>{otherRows.length} other</span>}
+                      </div>
+                    </div>
+                    <div style={{display:"flex",flexDirection:"column",alignItems:"flex-end",gap:3,flexShrink:0}}>
+                      <span style={{fontSize:13,fontWeight:900,color:hasOwn?"#1d4ed8":"#475569"}}>{rows.length}</span>
+                      {maxAge!==null&&<span style={{fontSize:9,fontWeight:700,background:ab.bg,color:ab.col,padding:"1px 6px",borderRadius:6,border:"1px solid "+ab.border}}>max {ab.tag}</span>}
+                    </div>
+                  </div>
+                  {/* Expanded chassis cards */}
+                  {isOpen&&(
+                    <div style={{padding:"0 10px 10px",background:"#ffffff"}}>
+                      {/* Own branch first */}
+                      {ownRows.length>0&&(
+                        <div style={{marginTop:8}}>
+                          {userBranch&&otherRows.length>0&&<div style={{fontSize:10,fontWeight:700,color:"#1d4ed8",marginBottom:6,paddingLeft:2}}>📍 {userBranch}</div>}
+                          {ownRows.sort((a,b)=>(getAge(b)||0)-(getAge(a)||0)).map((row,i)=><StockCard key={"o"+i} row={{...row,__age:getAge(row)}} i={i}/>)}
+                        </div>
+                      )}
+                      {/* Other branches */}
+                      {otherRows.length>0&&(
+                        <div style={{marginTop:ownRows.length>0?8:8}}>
+                          {ownRows.length>0&&<div style={{fontSize:10,fontWeight:600,color:"#94a3b8",marginBottom:6,paddingLeft:2,display:"flex",alignItems:"center",gap:6}}><div style={{flex:1,height:1,background:"#e2e8f0"}}/><span>Other Branches</span><div style={{flex:1,height:1,background:"#e2e8f0"}}/></div>}
+                          {otherRows.sort((a,b)=>(getAge(b)||0)-(getAge(a)||0)).map((row,i)=><StockCard key={"r"+i} row={{...row,__age:getAge(row)}} i={i}/>)}
+                        </div>
+                      )}
+                    </div>
+                  )}
+                </div>
+              );
+            })}
           </div>
         )}
+        {/* Flat filtered results — shown when searching */}
         {q.trim().length>=2&&filtered.length===0&&<div style={{textAlign:"center",padding:20,color:"#94a3b8",fontSize:13}}>No stock found for "{q}"</div>}
-        {filtered.slice(0,60).map((row,i)=>{
-          const isMine=isMyBranch(row);
-          const prevMine=i>0?isMyBranch(filtered[i-1]):true;
-          const showDivider=userBranch&&branchKey&&!isMine&&prevMine&&i>0;
-          return(<Fragment key={i}>
-            {showDivider&&<div style={{textAlign:"center",fontSize:11,color:"#94a3b8",margin:"10px 0 8px",display:"flex",alignItems:"center",gap:8}}><div style={{flex:1,height:1,background:"#6b8fb5"}}/><span>Other Branches</span><div style={{flex:1,height:1,background:"#6b8fb5"}}/></div>}
-            <StockCard row={row} i={i}/>
-          </Fragment>);
-        })}
-        {filtered.length>60&&<div style={{textAlign:"center",color:"#94a3b8",fontSize:12,padding:8}}>Showing 60 of {filtered.length} — search to narrow down</div>}
+        {q.trim().length>=2&&<>
+          {filtered.slice(0,60).map((row,i)=>{
+            const isMine=isMyBranch(row);
+            const prevMine=i>0?isMyBranch(filtered[i-1]):true;
+            const showDivider=userBranch&&branchKey&&!isMine&&prevMine&&i>0;
+            return(<Fragment key={i}>
+              {showDivider&&<div style={{textAlign:"center",fontSize:11,color:"#94a3b8",margin:"10px 0 8px",display:"flex",alignItems:"center",gap:8}}><div style={{flex:1,height:1,background:"#6b8fb5"}}/><span>Other Branches</span><div style={{flex:1,height:1,background:"#6b8fb5"}}/></div>}
+              <StockCard row={row} i={i}/>
+            </Fragment>);
+          })}
+          {filtered.length>60&&<div style={{textAlign:"center",color:"#94a3b8",fontSize:12,padding:8}}>Showing 60 of {filtered.length} — refine search</div>}
+        </>}
       </>}
 
       {/* ── AGEING REPORT TAB ── */}
