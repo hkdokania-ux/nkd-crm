@@ -1185,10 +1185,11 @@ function RCHSRPSearch({statusData,role,onUpload,notify}){
     </div>
   );
 }
-function Detail({cust,role,onBack,onUpd,onLog,onBill,onBook,notify,initTab,clearInit,onAddPayment,onApprove,curUser,onTransferReq,onApproveTransfer}){
+function Detail({cust,role,onBack,onUpd,onLog,onBill,onBook,notify,initTab,clearInit,onAddPayment,onApprove,curUser,onTransferReq,onApproveTransfer,onCorrectionReq}){
   const [tab,setTab]=useState(initTab||"info");
   useEffect(()=>{if(initTab){setTab(initTab);clearInit&&clearInit();}},[initTab]);
   const [edit,setEdit]=useState(false);
+  const [corrModal,setCorrModal]=useState(false);
   const [f,setF]=useState({...cust});
   const [mSearch,setMSearch]=useState(cust.modelCode?(cust.modelCode+" — "+(RC[cust.modelCode]?.n||"")):"");
   const r=RC[cust.modelCode];
@@ -1382,6 +1383,35 @@ function Detail({cust,role,onBack,onUpd,onLog,onBill,onBook,notify,initTab,clear
           </div>
         </div>
       )}
+      {/* ── CORRECTION REQUEST ── */}
+      {tab==="billing"&&cust.billed&&cust.managerApproval==="approved"&&(()=>{
+        const cr=cust.correctionReq;
+        if(cr?.status==="pending")return(
+          <div style={{background:"rgba(249,115,22,0.07)",border:"1px solid rgba(249,115,22,0.4)",borderRadius:14,padding:"12px 14px",marginTop:10}}>
+            <div style={{fontSize:12,fontWeight:800,color:"#f97316",marginBottom:4}}>⏳ CORRECTION REQUEST PENDING</div>
+            <div style={{fontSize:11,color:"#64748b",marginBottom:6}}>Requested by {cr.requestedBy} · {fd(cr.requestedAt)}</div>
+            <div style={{fontSize:11,color:"#475569",marginBottom:4}}><b>Reason:</b> {cr.reason}</div>
+            <div style={{fontSize:11,color:"#475569"}}>Fields: {Object.entries(cr.fields).map(([k,v])=><span key={k} style={{background:"#fef3c7",borderRadius:5,padding:"1px 5px",marginRight:4,fontWeight:600}}>{k}: {v}</span>)}</div>
+            {role!=="salesman"&&<div style={{display:"flex",gap:8,marginTop:10}}>
+              <button onClick={()=>onCorrectionReq&&onCorrectionReq(cust.id,"approved")} style={{flex:1,background:"rgba(34,197,94,0.12)",border:"1px solid rgba(34,197,94,0.4)",borderRadius:10,padding:"9px",color:"#22c55e",fontSize:13,fontWeight:700,cursor:"pointer"}}>✅ Apply Correction</button>
+              <button onClick={()=>onCorrectionReq&&onCorrectionReq(cust.id,"rejected")} style={{flex:1,background:"rgba(239,68,68,0.1)",border:"1px solid rgba(239,68,68,0.3)",borderRadius:10,padding:"9px",color:"#ef4444",fontSize:13,fontWeight:700,cursor:"pointer"}}>❌ Reject</button>
+            </div>}
+          </div>
+        );
+        if(cr?.status==="approved")return(
+          <div style={{background:"rgba(34,197,94,0.07)",border:"1px solid rgba(34,197,94,0.3)",borderRadius:14,padding:"12px 14px",marginTop:10,fontSize:12,color:"#22c55e",fontWeight:700}}>✅ Correction applied by {cr.approvedBy} on {fd(cr.approvedAt)}</div>
+        );
+        if(cr?.status==="rejected")return(
+          <div style={{background:"rgba(239,68,68,0.07)",border:"1px solid rgba(239,68,68,0.3)",borderRadius:14,padding:"12px 14px",marginTop:10}}>
+            <div style={{fontSize:12,color:"#ef4444",fontWeight:700,marginBottom:4}}>❌ Correction request was rejected</div>
+            {role==="salesman"&&<button onClick={()=>setCorrModal(true)} style={{background:"linear-gradient(135deg,#6366f1,#4f46e5)",border:"none",borderRadius:10,padding:"9px 14px",color:"#fff",fontSize:12,fontWeight:700,cursor:"pointer"}}>📝 Submit New Request</button>}
+          </div>
+        );
+        return role==="salesman"?(
+          <button onClick={()=>setCorrModal(true)} style={{width:"100%",background:"rgba(99,102,241,0.08)",border:"1px solid rgba(99,102,241,0.35)",borderRadius:12,padding:"11px",color:"#6366f1",fontWeight:700,fontSize:13,cursor:"pointer",marginTop:10}}>📝 Request Correction / Amendment</button>
+        ):null;
+      })()}
+      {corrModal&&<CorrectionModal cust={cust} curUser={curUser} onClose={()=>setCorrModal(false)} onSubmit={req=>{onCorrectionReq&&onCorrectionReq(cust.id,"submit",req);setCorrModal(false);notify("📤 Correction request sent for approval");}}/>}
 
 
       {tab==="docs"&&(
@@ -1552,6 +1582,58 @@ function Tot({label,val,col}){
     <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",background:"rgba(255,255,255,0.04)",borderRadius:8,padding:"8px 10px",marginTop:3}}>
       <span style={{fontSize:12,color:"#1e293b",fontWeight:700}}>{label}</span>
       <span style={{fontSize:17,color:col||"#f97316",fontWeight:900}}>{fc(val)}</span>
+    </div>
+  );
+}
+function CorrectionModal({cust,curUser,onSubmit,onClose}){
+  const b=cust.billing||{};
+  const [sel,setSel]=useState({});
+  const [vals,setVals]=useState({
+    name:cust.name||"",
+    billName:b.billName||cust.name||"",
+    fatherName:b.details?.fatherName||cust.fatherName||"",
+    exv:b.exv||"",
+  });
+  const [reason,setReason]=useState("");
+  const FIELDS=[
+    {k:"name",l:"Customer Name",hint:"Name used in CRM"},
+    {k:"billName",l:"Name on Bill",hint:"Name printed on money receipt"},
+    {k:"fatherName",l:"Father / Mother / Husband Name",hint:"As on KYC"},
+    {k:"exv",l:"Exchange Value (₹)",hint:"Old bike exchange amount",type:"number"},
+  ];
+  function submit(){
+    const changed={};
+    FIELDS.forEach(({k})=>{if(sel[k])changed[k]=k==="exv"?Number(vals[k]):String(vals[k]).toUpperCase().trim();});
+    if(!Object.keys(changed).length){alert("Select at least one field to correct");return;}
+    if(!reason.trim()){alert("Enter reason for this correction");return;}
+    onSubmit({fields:changed,reason:reason.trim(),status:"pending",requestedBy:curUser,requestedAt:new Date().toISOString()});
+  }
+  return(
+    <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.85)",zIndex:250,display:"flex",alignItems:"center",justifyContent:"center",padding:"20px 16px",paddingTop:"max(env(safe-area-inset-top),44px)"}}>
+      <div style={{background:"#fff",borderRadius:20,padding:22,width:"100%",maxWidth:400,maxHeight:"85vh",overflowY:"auto",WebkitOverflowScrolling:"touch"}}>
+        <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:14}}>
+          <div style={{fontWeight:800,fontSize:16,color:"#1e293b"}}>📝 Request Correction</div>
+          <button onClick={onClose} style={{background:"#f1f5f9",border:"1px solid #6b8fb5",borderRadius:8,width:32,height:32,cursor:"pointer",color:"#64748b",fontSize:18,display:"flex",alignItems:"center",justifyContent:"center"}}>✕</button>
+        </div>
+        <div style={{fontSize:11,color:"#94a3b8",marginBottom:16,background:"rgba(249,115,22,0.06)",border:"1px solid rgba(249,115,22,0.25)",borderRadius:10,padding:"9px 12px"}}>Tick the field(s) you want to change, enter new values, and send for Manager / Owner approval. Record stays locked until approved.</div>
+        {FIELDS.map(({k,l,hint,type})=>(
+          <div key={k} style={{marginBottom:12,background:sel[k]?"rgba(99,102,241,0.05)":"#f8fafc",border:"1px solid "+(sel[k]?"#6366f1":"#e2e8f0"),borderRadius:12,padding:"10px 12px"}}>
+            <label style={{display:"flex",alignItems:"center",gap:8,cursor:"pointer",marginBottom:sel[k]?8:0}}>
+              <input type="checkbox" checked={!!sel[k]} onChange={e=>setSel(p=>({...p,[k]:e.target.checked}))} style={{width:16,height:16,accentColor:"#6366f1"}}/>
+              <div><div style={{fontSize:12,fontWeight:700,color:"#1e293b"}}>{l}</div><div style={{fontSize:10,color:"#94a3b8"}}>{hint} · Current: <b style={{color:"#475569"}}>{k==="exv"?(vals[k]?("₹"+Number(vals[k]).toLocaleString("en-IN")):"—"):vals[k]||"—"}</b></div></div>
+            </label>
+            {sel[k]&&<input type={type||"text"} value={vals[k]} onChange={e=>setVals(p=>({...p,[k]:e.target.value}))} placeholder={"New "+l} style={{width:"100%",boxSizing:"border-box",background:"#fff",border:"1px solid #6366f1",borderRadius:8,padding:"8px 10px",fontSize:13,color:"#1e293b",outline:"none",textTransform:type?"none":"uppercase"}}/>}
+          </div>
+        ))}
+        <div style={{marginBottom:16}}>
+          <div style={{fontSize:11,fontWeight:700,color:"#475569",marginBottom:4}}>Reason for correction *</div>
+          <textarea value={reason} onChange={e=>setReason(e.target.value)} placeholder="e.g. Customer name was misspelled, exchange value agreed was different..." rows={3} style={{width:"100%",boxSizing:"border-box",background:"#f8fafc",border:"1px solid #6b8fb5",borderRadius:10,padding:"9px 12px",fontSize:12,color:"#1e293b",resize:"none",outline:"none"}}/>
+        </div>
+        <div style={{display:"flex",gap:10}}>
+          <button onClick={onClose} style={{flex:1,background:"#e8eef8",border:"1px solid #6b8fb5",borderRadius:10,padding:12,fontSize:13,fontWeight:700,color:"#475569",cursor:"pointer"}}>Cancel</button>
+          <button onClick={submit} style={{flex:2,background:"linear-gradient(135deg,#6366f1,#4f46e5)",border:"none",borderRadius:10,padding:12,fontSize:13,fontWeight:700,color:"#fff",cursor:"pointer"}}>📤 Send for Approval</button>
+        </div>
+      </div>
     </div>
   );
 }
@@ -1747,8 +1829,8 @@ function BillingModal({cust,onClose,onSave,onDraft,notify,role,stockData,billedC
   }
 
   return(<>
-    <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.93)",zIndex:150,display:"flex",alignItems:"flex-end"}}>
-      <div style={{background:"#ffffff",width:"100%",borderRadius:"20px 20px 0 0",maxHeight:"97vh",overflowY:"auto",padding:"0 0 44px"}}>
+    <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.93)",zIndex:150,display:"flex",alignItems:"flex-end",paddingTop:"max(env(safe-area-inset-top),44px)"}}>
+      <div style={{background:"#ffffff",width:"100%",borderRadius:"20px 20px 0 0",maxHeight:"calc(100% - max(env(safe-area-inset-top),44px))",overflowY:"auto",WebkitOverflowScrolling:"touch",overscrollBehavior:"contain",touchAction:"pan-y",padding:"0 0 44px"}}>
         {/* Sticky header — always visible even when scrolled */}
         <div style={{position:"sticky",top:0,background:"#ffffff",zIndex:20,borderRadius:"20px 20px 0 0",borderBottom:"1px solid #e2e8f0",padding:"14px 16px 10px",boxShadow:"0 2px 8px rgba(15,23,42,.08)"}}>
           <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:2}}>
@@ -3206,6 +3288,33 @@ export default function App(){
     }
     else{upd(id,{managerApproval:"rejected",billed:false,status:"Booked",billing:(cu&&cu.billing)?{...cu.billing,receiptHtml:null}:null,remarks:((cu&&cu.remarks)||"")+mr+"\n["+td()+"] BILLING REJECTED by Manager — correct and re-bill. All documents retained."});notify("❌ Rejected — sent back to executive");}
   }
+  function handleCorrectionReq(id,action,req){
+    const cu=custs.find(c=>c.id===id);
+    if(!cu)return;
+    if(action==="submit"){
+      upd(id,{correctionReq:{...req},remarks:(cu.remarks||"")+"\n["+td()+"] CORRECTION REQUEST by "+req.requestedBy+": "+req.reason});
+      notify("📤 Sent for approval");
+    } else if(action==="approved"){
+      const cr=cu.correctionReq;
+      if(!cr)return;
+      const flds=cr.fields||{};
+      const updObj={correctionReq:{...cr,status:"approved",approvedBy:user,approvedAt:new Date().toISOString()},remarks:(cu.remarks||"")+"\n["+td()+"] CORRECTION APPROVED by "+user};
+      // Apply field changes
+      if(flds.name)updObj.name=flds.name;
+      if(flds.fatherName){updObj.fatherName=flds.fatherName;updObj.billing={...(cu.billing||{}),details:{...(cu.billing?.details||{}),fatherName:flds.fatherName}};}
+      if(flds.billName||flds.exv){
+        const newBilling={...(cu.billing||{})};
+        if(flds.billName)newBilling.billName=flds.billName;
+        if(flds.exv!=null)newBilling.exv=Number(flds.exv);
+        updObj.billing={...(updObj.billing||cu.billing||{}), ...newBilling};
+      }
+      upd(id,updObj);
+      notify("✅ Correction applied");
+    } else if(action==="rejected"){
+      upd(id,{correctionReq:{...(cu.correctionReq||{}),status:"rejected",rejectedBy:user,rejectedAt:new Date().toISOString()},remarks:(cu.remarks||"")+"\n["+td()+"] CORRECTION REJECTED by "+user});
+      notify("❌ Correction request rejected");
+    }
+  }
   function requestTransfer(id,requestedBy){
     upd(id,{transferReq:{requestedBy,requestedAt:td(),status:"pending"}});
     // Notify office WhatsApp
@@ -3267,7 +3376,7 @@ export default function App(){
   const navItems=role==="admin"?[{id:"vault",l:"Document Vault",ic:"📁"},{id:"uploads",l:"Uploads",ic:"📤"},{id:"stock",l:"Stock",ic:"🏍️"},{id:"rcstatus",l:"RC/HSRP",ic:"🔍"}]:[{id:"dashboard",l:"Home",ic:"🏠"},{id:"followups",l:"Followup",ic:"📞",badge:due.length},{id:"customers",l:"Customers",ic:"👥"},{id:"stock",l:"Stock",ic:"🏍️"},{id:"rcstatus",l:"RC/HSRP",ic:"🔍"},{id:"approvals",l:role==="salesman"?"My Pending":"Approve",ic:"✅",badge:myPending.length+(role!=="salesman"?pendingTransfers.length:0)},...(role!=="salesman"?[{id:"revival",l:"Revival",ic:"🔄"}]:[]),...(isOwner(role)?[{id:"reports",l:"Reports",ic:"📊"}]:[]),...(isOwner(role)?[{id:"vault",l:"Vault",ic:"📁"}]:[]),...(isOwner(role)?[{id:"uploads",l:"Uploads",ic:"📤"}]:[]),...(role!=="salesman"&&alerts.length>0?[{id:"alerts",l:"Alerts",ic:"⚠️",badge:alerts.length}]:[])];
 
   return(
-    <div style={{height:"100dvh",display:"flex",flexDirection:"column",background:"linear-gradient(160deg,#f0f7ff 0%,#e8f4ff 40%,#f8fafc 100%)",color:"#1e293b",fontFamily:"'Inter',-apple-system,sans-serif",maxWidth:480,margin:"0 auto",overflow:"hidden",paddingTop:"env(safe-area-inset-top)"}}>
+    <div style={{height:"100dvh",display:"flex",flexDirection:"column",background:"linear-gradient(160deg,#f0f7ff 0%,#e8f4ff 40%,#f8fafc 100%)",color:"#1e293b",fontFamily:"'Inter',-apple-system,sans-serif",maxWidth:480,margin:"0 auto",overflow:"hidden",paddingTop:"max(env(safe-area-inset-top),0px)"}}>
       {notifPopup}
       <style>{`
         @import url('https://fonts.googleapis.com/css2?family=Sora:wght@400;600;700;800&display=swap');
@@ -3308,12 +3417,12 @@ export default function App(){
       {toast&&<div style={{position:"fixed",top:72,left:"50%",transform:"translateX(-50%)",background:toast.type==="err"?"#7f1d1d":toast.type==="warn"?"#78350f":"#064e3b",color:"#fff",padding:"9px 18px",borderRadius:12,fontSize:13,fontWeight:600,zIndex:300,whiteSpace:"nowrap",maxWidth:"90vw",textAlign:"center"}}>{toast.msg}</div>}
 
       {/* ── SCROLLABLE CONTENT ── */}
-      <div style={{flex:1,overflowY:"auto",WebkitOverflowScrolling:"touch",padding:16,paddingBottom:16}}>
+      <div style={{flex:1,overflowY:"auto",WebkitOverflowScrolling:"touch",overscrollBehavior:"contain",touchAction:"pan-y",padding:16,paddingBottom:90}}>
         {role==="admin"&&view!=="vault"&&view!=="rcstatus"&&view!=="stock"&&view!=="uploads"&&setView("vault")}
         {view==="dashboard"&&<Dashboard custs={myC} role={role} onOpen={openD} onNav={nav} onNavF={st=>{setCustF(st);nav("customers");}} onSvcDone={id=>{upd(id,{serviceDone:true});notify("Service marked done ✓");}} onTeamTap={s=>{setFSM(s);nav("followups");}} onAddPayment={addPayment} onUpd={upd} notify={notify}/>}
         {view==="followups"&&<Followups items={due} onOpen={openD} onLog={logF} onCallLog={logCall} showSMFilter={role!=="salesman"} initSM={fSM}/>}
         {view==="customers"&&<CustList custs={myC} onOpen={openD} initF={custF} showSM={role!=="salesman"}/>}
-        {view==="detail"&&sel&&<Detail cust={custs.find(c=>c.id===sel.id)||sel} role={role} onBack={goBack} onUpd={p=>upd(sel.id,p)} onLog={logF} onBill={()=>setBillOpen(true)} onBook={()=>setBookOpen(true)} notify={notify} initTab={dtab} clearInit={()=>setDtab(null)} onAddPayment={addPayment} onApprove={approveBill} curUser={user} onTransferReq={requestTransfer} onApproveTransfer={approveTransfer}/>}
+        {view==="detail"&&sel&&<Detail cust={custs.find(c=>c.id===sel.id)||sel} role={role} onBack={goBack} onUpd={p=>upd(sel.id,p)} onLog={logF} onBill={()=>setBillOpen(true)} onBook={()=>setBookOpen(true)} notify={notify} initTab={dtab} clearInit={()=>setDtab(null)} onAddPayment={addPayment} onApprove={approveBill} curUser={user} onTransferReq={requestTransfer} onApproveTransfer={approveTransfer} onCorrectionReq={handleCorrectionReq}/>}
         {view==="uploads"&&<div style={{padding:"0 16px 80px"}}><UploadsHub stockData={stockData} statusData={statusData} onStockUpload={saveStockData} onStatusUpload={saveStatusData} notify={notify}/></div>}
         {view==="stock"&&<div style={{padding:"0 16px 80px"}}><StockView stockData={stockData} billedChassis={billedChassis} role={role} userBranch={role==="salesman"?(smBranchMap[user]||BRANCHES[0]):role==="manager"?mBr:null} onUpload={saveStockData} notify={notify}/></div>}
         {view==="rcstatus"&&<div style={{padding:"0 16px 80px"}}><RCHSRPSearch statusData={statusData} role={role} onUpload={saveStatusData} notify={notify}/></div>}
