@@ -1214,6 +1214,7 @@ function Detail({cust,role,onBack,onUpd,onLog,onBill,onBook,notify,initTab,clear
   });}
 
   const tabs=["info","history","followup","docs",...(cust.billed?["billing"]:[])];
+  const tabIc={info:"📋",history:"📖",followup:"📞",docs:"📁",billing:"🧾"};
 
   return(
     <div>
@@ -1287,7 +1288,7 @@ function Detail({cust,role,onBack,onUpd,onLog,onBill,onBook,notify,initTab,clear
           ))}
         </div>);})()}
       <div style={{display:"flex",gap:6,overflowX:"auto",marginBottom:14,paddingBottom:2}}>
-        {tabs.map(t=><button key={t} onClick={()=>setTab(t)} style={{padding:"9px 16px",borderRadius:10,fontSize:13,fontWeight:700,cursor:"pointer",flexShrink:0,background:tab===t?"#f97316":"#ffffff",color:tab===t?"#fff":"#334155",border:tab===t?"none":"2px solid #94a3b8",textTransform:"capitalize",boxShadow:tab===t?"0 2px 8px rgba(249,115,22,0.35)":"none"}}>{t==="aftersale"?"After Sale":t}</button>)}
+        {tabs.map(t=><button key={t} onClick={()=>setTab(t)} style={{padding:"8px 14px",borderRadius:10,fontSize:12,fontWeight:700,cursor:"pointer",flexShrink:0,background:tab===t?"#f97316":"#ffffff",color:tab===t?"#fff":"#334155",border:tab===t?"none":"2px solid #94a3b8",textTransform:"capitalize",boxShadow:tab===t?"0 2px 8px rgba(249,115,22,0.35)":"none",display:"flex",alignItems:"center",gap:5}}><span style={{fontSize:16}}>{tabIc[t]||"•"}</span>{t==="aftersale"?"After Sale":t}</button>)}
       </div>
 
       {tab==="info"&&(
@@ -3488,11 +3489,12 @@ export default function App(){
         try{const doc=makeBookingPdf(updCu,newBk);sharePdf(doc,"Booking"+allBks.length+"_"+cu.name.replace(/ /g,"_")+"_"+td()+".pdf",cu.phone,"Please find your Booking Receipt #"+allBks.length+" from NKD Bajaj, Dhanbad.");savePdfToDrive(doc,"Booking"+allBks.length+"_"+cu.name.replace(/ /g,"_")+"_"+td()+".pdf",cu.name,"Booking");}catch(e){}
         setBookOpen(false);setDtab("docs");notify("✅ Booking #"+allBks.length+" saved & MR sent to customer!");}}/>}
       {billOpen&&sel&&<BillingModal cust={custs.find(c=>c.id===sel.id)||sel} onClose={()=>setBillOpen(false)} onSave={d=>{billC(custs.find(c=>c.id===sel.id)||sel,d);setBillOpen(false);}} onDraft={d=>{upd(sel.id,{billingDraft:d});setBillOpen(false);}} notify={notify} role={role} stockData={stockData} billedChassis={billedChassis} allCusts={custs}/>}
-      <div style={{flexShrink:0,background:"rgba(255,255,255,.97)",backdropFilter:"blur(18px)",borderTop:"1px solid #6b8fb5",display:"flex",zIndex:100,paddingBottom:"env(safe-area-inset-bottom)",boxShadow:"0 -4px 24px rgba(15,23,42,.10)"}}>
-        {navItems.map(t=><button key={t.id} onClick={()=>nav(t.id)} style={{flex:1,padding:"9px 2px 11px",background:"transparent",border:"none",cursor:"pointer",display:"flex",flexDirection:"column",alignItems:"center",gap:2}}>
-          <span style={{fontSize:22}}>{t.ic}</span>
-          <span style={{fontSize:11,fontWeight:700,color:view===t.id?"#f97316":"#94a3b8"}}>{t.l}</span>
-          {t.badge>0&&<span style={{position:"absolute",marginLeft:26,marginTop:-2,background:"#ef4444",color:"#fff",fontSize:8,fontWeight:800,borderRadius:8,padding:"1px 4px"}}>{t.badge}</span>}
+      <div style={{flexShrink:0,background:"rgba(255,255,255,.97)",backdropFilter:"blur(18px)",borderTop:"2px solid #6b8fb5",display:"flex",zIndex:100,paddingBottom:"env(safe-area-inset-bottom)",boxShadow:"0 -4px 24px rgba(15,23,42,.10)"}}>
+        {navItems.map(t=><button key={t.id} onClick={()=>nav(t.id)} style={{flex:1,padding:"8px 2px 10px",background:"transparent",border:"none",cursor:"pointer",display:"flex",flexDirection:"column",alignItems:"center",gap:3,position:"relative"}}>
+          <span style={{fontSize:26,lineHeight:1,filter:view===t.id?"none":"grayscale(0.3) opacity(0.75)"}}>{t.ic}</span>
+          <span style={{fontSize:10,fontWeight:800,color:view===t.id?"#f97316":"#64748b",letterSpacing:0.2}}>{t.l}</span>
+          {view===t.id&&<span style={{position:"absolute",top:0,left:"50%",transform:"translateX(-50%)",width:28,height:3,background:"#f97316",borderRadius:"0 0 4px 4px"}}/>}
+          {t.badge>0&&<span style={{position:"absolute",top:4,right:"50%",marginRight:-18,background:"#ef4444",color:"#fff",fontSize:9,fontWeight:800,borderRadius:10,padding:"1px 5px",minWidth:16,textAlign:"center"}}>{t.badge}</span>}
         </button>)}
       </div>
     </div>
