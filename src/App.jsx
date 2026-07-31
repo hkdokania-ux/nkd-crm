@@ -1336,7 +1336,7 @@ function Detail({cust,role,onBack,onUpd,onLog,onBill,onBook,notify,initTab,clear
                 <div><div style={{fontSize:10,color:"#8b5cf6",fontWeight:700}}>EXPECTED DATE OF PURCHASE</div><div style={{fontSize:14,fontWeight:800,color:"#1e293b",marginTop:2}}>{fd(cust.expectedPurchaseDate)}</div></div>
               </div>}
               {r&&<div style={{background:"rgba(96,165,250,0.07)",border:"1px solid rgba(96,165,250,0.2)",borderRadius:10,padding:"10px 12px",marginBottom:10}}><div style={{fontSize:10,color:"#60a5fa",fontWeight:700,marginBottom:5}}>📊 RATE CHART</div>{[["Ex-Showroom",r.ex],["On-Road",r.onRoad],["On-Road+AMC",r.onRoad+(r.amc||0)]].map(([k,v])=><div key={k} style={{display:"flex",justifyContent:"space-between",fontSize:12,padding:"2px 0"}}><span style={{color:"#64748b"}}>{k}</span><span style={{color:"#1e293b",fontWeight:600}}>{fc(v)}</span></div>)}</div>}
-              {cust.billed&&cust.managerApproval==="approved"&&role==="salesman"
+              {cust.billed&&role==="salesman"
                 ?<div style={{background:"rgba(99,102,241,0.07)",border:"1px solid rgba(99,102,241,0.35)",borderRadius:12,padding:"11px 14px",fontSize:12,color:"#6366f1",fontWeight:600,textAlign:"center"}}>🔒 Record locked after billing — go to <b>Billing tab → Request Correction</b> to request changes</div>
                 :<button onClick={()=>setEdit(true)} style={{width:"100%",background:"#c2d6ec",border:"1px solid #6b8fb5",borderRadius:12,padding:11,color:"#1e293b",fontWeight:600,fontSize:13,cursor:"pointer"}}>✏️ Edit Details</button>
               }
@@ -1392,7 +1392,7 @@ function Detail({cust,role,onBack,onUpd,onLog,onBill,onBook,notify,initTab,clear
         </div>
       )}
       {/* ── CORRECTION REQUEST ── */}
-      {tab==="billing"&&cust.billed&&cust.managerApproval==="approved"&&(()=>{
+      {tab==="billing"&&cust.billed&&(()=>{
         const cr=cust.correctionReq;
         if(cr?.status==="pending")return(
           <div style={{background:"rgba(249,115,22,0.07)",border:"1px solid rgba(249,115,22,0.4)",borderRadius:14,padding:"12px 14px",marginTop:10}}>
