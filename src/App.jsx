@@ -371,7 +371,7 @@ function Login({onLogin,nkdUsers}){
             <label style={lbl}>Password <span style={{color:"#94a3b8",fontWeight:400}}>(default: 1111 on first login)</span></label>
             <div style={{position:"relative"}}>
               <input type={showPw?"text":"password"} style={inp} value={smPass} onChange={e=>setSmPass(e.target.value)} onKeyDown={e=>e.key==="Enter"&&go()} autoComplete="current-password"/>
-              <button onClick={()=>setShowPw(!showPw)} style={{position:"absolute",right:8,top:9,background:"transparent",border:"none",color:"#94a3b8",cursor:"pointer",fontSize:14}}>{showPw?"🙈":"👁️"}</button>
+              <button onClick={()=>setShowPw(!showPw)} style={{position:"absolute",right:8,top:9,background:"transparent",border:"none",color:"#475569",cursor:"pointer",fontSize:14}}>{showPw?"🙈":"👁️"}</button>
             </div>
           </div>}
 
@@ -567,7 +567,7 @@ function Dashboard({custs,role,onOpen,onNav,onNavF,onSvcDone,onTeamTap,onAddPaym
               </div>
               <div style={{display:"flex",gap:6}}>
                 <a href={"https://wa.me/91"+c.phone+"?text="+encodeURIComponent("Hello "+c.name+", NKD Bajaj here! Your "+(c.model||"bike")+" is due for its 1st FREE service. Please visit our workshop at Hirak Road, Dhanbad. Thank you!")} target="_blank" rel="noreferrer" style={{background:"rgba(37,211,102,0.1)",border:"1px solid rgba(37,211,102,0.3)",borderRadius:8,padding:"6px 9px",fontSize:10,color:"#25D366",fontWeight:700,textDecoration:"none"}}>📲 Remind</a>
-                <button onClick={()=>onSvcDone(c.id)} style={{background:"#c2d6ec",border:"1px solid #6b8fb5",borderRadius:8,padding:"6px 9px",fontSize:10,color:"#64748b",fontWeight:700,cursor:"pointer"}}>✓ Done</button>
+                <button onClick={()=>onSvcDone(c.id)} style={{background:"#c2d6ec",border:"1px solid #6b8fb5",borderRadius:8,padding:"6px 9px",fontSize:10,color:"#1e293b",fontWeight:700,cursor:"pointer"}}>✓ Done</button>
               </div>
             </div>
           </div>)}
@@ -704,7 +704,7 @@ function Followups({items,onOpen,onLog,onCallLog,showSMFilter,initSM}){
                 <input type="date" style={inp} value={form.nxt} onChange={e=>setForm(p=>({...p,nxt:e.target.value}))}/>
                 <div style={{display:"flex",gap:8}}>
                   <button onClick={()=>submit(c)} style={{...btn("linear-gradient(135deg,#f97316,#ef4444)"),flex:1}}>Save Followup</button>
-                  <button onClick={()=>setActive(null)} style={{...btn("#6b8fb5","#8892a4"),flex:1}}>Cancel</button>
+                  <button onClick={()=>setActive(null)} style={{...btn("#e2e8f0","#1e293b"),flex:1}}>Cancel</button>
                 </div>
               </div>
             )}
@@ -1219,7 +1219,7 @@ function Detail({cust,role,onBack,onUpd,onLog,onBill,onBook,notify,initTab,clear
   return(
     <div>
       <div style={{display:"flex",alignItems:"center",gap:10,marginBottom:14}}>
-        <button onClick={onBack} style={{background:"#c2d6ec",border:"none",borderRadius:10,width:36,height:36,display:"flex",alignItems:"center",justifyContent:"center",cursor:"pointer",color:"#64748b",fontSize:20}}>←</button>
+        <button onClick={onBack} style={{background:"#c2d6ec",border:"none",borderRadius:10,width:36,height:36,display:"flex",alignItems:"center",justifyContent:"center",cursor:"pointer",color:"#1e293b",fontSize:20}}>←</button>
         <div style={{flex:1}}><div style={{fontWeight:800,fontSize:16,color:"#1e293b"}}>{cust.name}</div><div style={{fontSize:11,color:"#94a3b8"}}>{cust.id} · {cust.modelCode}</div></div>
         <Badge s={cust.status}/>
       </div>
@@ -1227,10 +1227,10 @@ function Detail({cust,role,onBack,onUpd,onLog,onBill,onBook,notify,initTab,clear
       <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:8,marginBottom:12}}>
         <a href={"tel:"+cust.phone} style={{background:"rgba(34,197,94,0.1)",border:"1px solid rgba(34,197,94,0.3)",borderRadius:13,padding:"11px 6px",display:"flex",flexDirection:"column",alignItems:"center",gap:4,textDecoration:"none"}}><PhIcon s={22}/><span style={{fontSize:11,color:"#22c55e",fontWeight:700}}>Call</span><span style={{fontSize:10,color:"#94a3b8"}}>{cust.phone}</span></a>
         <a href={"https://wa.me/91"+cust.phone+"?text="+encodeURIComponent("Hello "+cust.name+", NKD Bajaj here. Following up on your "+cust.model+" enquiry.")} target="_blank" rel="noreferrer" style={{background:"rgba(37,211,102,0.08)",border:"1px solid rgba(37,211,102,0.3)",borderRadius:13,padding:"11px 6px",display:"flex",flexDirection:"column",alignItems:"center",gap:4,textDecoration:"none"}}><WAIcon s={22}/><span style={{fontSize:11,color:"#25D366",fontWeight:700}}>WhatsApp</span><span style={{fontSize:10,color:"#94a3b8"}}>Message</span></a>
-        {!cust.billed&&!cust.stopped?<button onClick={onBill} style={{background:"rgba(52,211,153,0.1)",border:"1px solid rgba(52,211,153,0.3)",borderRadius:13,padding:"11px 6px",display:"flex",flexDirection:"column",alignItems:"center",gap:4,cursor:"pointer"}}><span style={{fontSize:22}}>🏍️</span><span style={{fontSize:11,color:"#34d399",fontWeight:700}}>{cust.billingDraft?"Resume":"Bill"}</span><span style={{fontSize:10,color:cust.billingDraft?"#f59e0b":"#94a3b8"}}>{cust.billingDraft?"Draft Saved":"Vehicle"}</span></button>:<div style={{background:"rgba(52,211,153,0.07)",border:"1px solid rgba(52,211,153,0.25)",borderRadius:13,padding:"11px 6px",display:"flex",flexDirection:"column",alignItems:"center",gap:4}}><span style={{fontSize:22}}>✅</span><span style={{fontSize:11,color:"#34d399",fontWeight:700}}>Billed</span><span style={{fontSize:10,color:"#94a3b8"}}>{fd(cust.billedDate)}</span></div>}
+        {!cust.billed&&!cust.stopped?<button onClick={onBill} style={{background:"rgba(52,211,153,0.1)",border:"1px solid rgba(52,211,153,0.3)",borderRadius:13,padding:"11px 6px",display:"flex",flexDirection:"column",alignItems:"center",gap:4,cursor:"pointer"}}><span style={{fontSize:22}}>🏍️</span><span style={{fontSize:11,color:"#34d399",fontWeight:700}}>{cust.billingDraft?"Resume":"Bill"}</span><span style={{fontSize:10,color:cust.billingDraft?"#f59e0b":"#94a3b8"}}>{cust.billingDraft?"Draft Saved":"Vehicle"}</span></button>:<div style={{background:"rgba(52,211,153,0.07)",border:"1px solid rgba(52,211,153,0.25)",borderRadius:13,padding:"11px 6px",display:"flex",flexDirection:"column",alignItems:"center",gap:4}}><span style={{fontSize:22}}>✅</span><span style={{fontSize:11,color:"#34d399",fontWeight:700}}>Billed</span><span style={{fontSize:10,color:"#475569"}}>{fd(cust.billedDate)}</span></div>}
       </div>
 
-      {!cust.billed&&!cust.stopped&&(()=>{const allBks=cust.bookings||(cust.booking?[cust.booking]:[]);const totalBk=allBks.reduce((s,b)=>s+Number(b.amt||0),0);return(<><Fragment>{allBks.length>0&&(<div style={{background:"rgba(139,92,246,0.06)",border:"1px solid rgba(139,92,246,0.3)",borderRadius:12,padding:"11px 13px",marginBottom:8}}><div style={{fontWeight:800,fontSize:12,color:"#8b5cf6",marginBottom:8}}>📝 BOOKINGS — Total: {fc(totalBk)}</div>{allBks.map((bk,i)=>(<div key={i} style={{display:"flex",justifyContent:"space-between",alignItems:"center",background:"#fff",border:"1px solid #e2e8f0",borderRadius:9,padding:"8px 10px",marginBottom:6}}><div><div style={{fontSize:12,fontWeight:700,color:"#1e293b"}}>#{i+1} · {fc(bk.amt)} · {bk.mode}</div><div style={{fontSize:10,color:"#94a3b8"}}>{fd(bk.date)}{bk.note?" · "+bk.note:""}</div></div><button onClick={()=>{const doc=makeBookingPdf(cust,bk);sharePdf(doc,"Booking"+(i+1)+"_"+cust.name.replace(/ /g,"_")+"_"+(bk.date||td())+".pdf",cust.phone,"Booking Receipt #"+(i+1)+" from NKD Bajaj, Dhanbad.");}} style={{background:"rgba(37,211,102,0.1)",border:"1px solid rgba(37,211,102,0.35)",borderRadius:8,padding:"6px 10px",fontSize:10,color:"#22c55e",fontWeight:700,cursor:"pointer",whiteSpace:"nowrap"}}>📲 MR #{i+1}</button></div>))}</div>)}</Fragment><button onClick={onBook} style={{width:"100%",background:"rgba(139,92,246,0.1)",border:"1px solid rgba(139,92,246,0.35)",borderRadius:12,padding:"11px",color:"#a78bfa",fontWeight:700,fontSize:13,cursor:"pointer",marginBottom:8}}>{allBks.length>0?"➕ Add Another Booking Payment":"📝 Take Booking Amount (without documents)"}</button></>);})()}
+      {!cust.billed&&!cust.stopped&&(()=>{const allBks=cust.bookings||(cust.booking?[cust.booking]:[]);const totalBk=allBks.reduce((s,b)=>s+Number(b.amt||0),0);return(<><Fragment>{allBks.length>0&&(<div style={{background:"rgba(139,92,246,0.06)",border:"1px solid rgba(139,92,246,0.3)",borderRadius:12,padding:"11px 13px",marginBottom:8}}><div style={{fontWeight:800,fontSize:12,color:"#8b5cf6",marginBottom:8}}>📝 BOOKINGS — Total: {fc(totalBk)}</div>{allBks.map((bk,i)=>(<div key={i} style={{display:"flex",justifyContent:"space-between",alignItems:"center",background:"#fff",border:"1px solid #e2e8f0",borderRadius:9,padding:"8px 10px",marginBottom:6}}><div><div style={{fontSize:12,fontWeight:700,color:"#1e293b"}}>#{i+1} · {fc(bk.amt)} · {bk.mode}</div><div style={{fontSize:10,color:"#475569"}}>{fd(bk.date)}{bk.note?" · "+bk.note:""}</div></div><button onClick={()=>{const doc=makeBookingPdf(cust,bk);sharePdf(doc,"Booking"+(i+1)+"_"+cust.name.replace(/ /g,"_")+"_"+(bk.date||td())+".pdf",cust.phone,"Booking Receipt #"+(i+1)+" from NKD Bajaj, Dhanbad.");}} style={{background:"rgba(37,211,102,0.1)",border:"1px solid rgba(37,211,102,0.35)",borderRadius:8,padding:"6px 10px",fontSize:10,color:"#22c55e",fontWeight:700,cursor:"pointer",whiteSpace:"nowrap"}}>📲 MR #{i+1}</button></div>))}</div>)}</Fragment><button onClick={onBook} style={{width:"100%",background:"rgba(139,92,246,0.1)",border:"1px solid rgba(139,92,246,0.35)",borderRadius:12,padding:"11px",color:"#a78bfa",fontWeight:700,fontSize:13,cursor:"pointer",marginBottom:8}}>{allBks.length>0?"➕ Add Another Booking Payment":"📝 Take Booking Amount (without documents)"}</button></>);})()}
       {!cust.billed&&!cust.stopped&&<button onClick={()=>{const taking=!cust.testRide;onUpd({testRide:taking?{date:td()}:null,remarks:(cust.remarks||"")+(taking?"\n["+td()+"] TEST RIDE taken":"")});if(taking){setTab("docs");notify("🚦 Test ride recorded — upload the license here");}}} style={{width:"100%",background:cust.testRide?"rgba(34,197,94,0.1)":"rgba(96,165,250,0.08)",border:"1px solid "+(cust.testRide?"rgba(34,197,94,0.35)":"rgba(96,165,250,0.3)"),borderRadius:12,padding:"10px",color:cust.testRide?"#22c55e":"#60a5fa",fontWeight:700,fontSize:12,cursor:"pointer",marginBottom:8}}>🏍️ Test Ride {cust.testRide?"✓ Done "+fd(cust.testRide.date):"— Tap when taken (upload license in Docs)"}</button>}
       {cust.managerApproval==="rejected"&&!cust.billed&&<div style={{background:"rgba(239,68,68,0.12)",border:"1px solid rgba(239,68,68,0.5)",borderRadius:12,padding:"11px 13px",marginBottom:12}}>
         <div style={{fontSize:12,color:"#ef4444",fontWeight:800,marginBottom:3}}>❌ BILLING REJECTED BY MANAGER</div>
@@ -1287,8 +1287,11 @@ function Detail({cust,role,onBack,onUpd,onLog,onBill,onBook,notify,initTab,clear
             </div>
           ))}
         </div>);})()}
-      <div style={{display:"flex",gap:6,overflowX:"auto",marginBottom:14,paddingBottom:2}}>
-        {tabs.map(t=><button key={t} onClick={()=>setTab(t)} style={{padding:"8px 14px",borderRadius:10,fontSize:12,fontWeight:700,cursor:"pointer",flexShrink:0,background:tab===t?"#f97316":"#ffffff",color:tab===t?"#fff":"#334155",border:tab===t?"none":"2px solid #94a3b8",textTransform:"capitalize",boxShadow:tab===t?"0 2px 8px rgba(249,115,22,0.35)":"none",display:"flex",alignItems:"center",gap:5}}><span style={{fontSize:16}}>{tabIc[t]||"•"}</span>{t==="aftersale"?"After Sale":t}</button>)}
+      <div style={{display:"flex",gap:3,marginBottom:14,background:"#f1f5f9",borderRadius:12,padding:3}}>
+        {tabs.map(t=><button key={t} onClick={()=>setTab(t)} style={{flex:1,minWidth:0,padding:"7px 2px",borderRadius:9,fontSize:9,fontWeight:800,cursor:"pointer",background:tab===t?"#f97316":"transparent",color:tab===t?"#fff":"#475569",border:"none",display:"flex",flexDirection:"column",alignItems:"center",gap:2,boxShadow:tab===t?"0 2px 8px rgba(249,115,22,0.35)":"none"}}>
+          <span style={{fontSize:17,lineHeight:1}}>{tabIc[t]||"•"}</span>
+          <span style={{letterSpacing:0,whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis",maxWidth:"100%",textTransform:"capitalize"}}>{t==="billing"?"Bill":t==="history"?"Hist":t==="followup"?"Follow":t==="aftersale"?"After":t}</span>
+        </button>)}
       </div>
 
       {tab==="info"&&(
@@ -1311,7 +1314,7 @@ function Detail({cust,role,onBack,onUpd,onLog,onBill,onBook,notify,initTab,clear
               <div><label style={lbl}>Status</label><select style={inp} value={f.status} onChange={e=>setF(p=>({...p,status:e.target.value}))}>{["Hot","Warm","Cold","Booked","Lost"].map(s=><option key={s}>{s}</option>)}</select></div>
               <div><label style={lbl}>Finance/Cash</label><select style={inp} value={f.finance} onChange={e=>setF(p=>({...p,finance:e.target.value}))}><option>Cash</option><option>Finance</option></select></div>
               <div><label style={lbl}>Next Followup</label><input type="date" style={inp} value={f.followupDate||""} onChange={e=>setF(p=>({...p,followupDate:e.target.value}))}/></div>
-              <div style={{display:"flex",gap:8}}><button onClick={saveEdit} style={{...btn("linear-gradient(135deg,#f97316,#ef4444)"),flex:1}}>Save</button><button onClick={()=>setEdit(false)} style={{...btn("#6b8fb5","#8892a4"),flex:1}}>Cancel</button></div>
+              <div style={{display:"flex",gap:8}}><button onClick={saveEdit} style={{...btn("linear-gradient(135deg,#f97316,#ef4444)"),flex:1}}>Save</button><button onClick={()=>setEdit(false)} style={{...btn("#e2e8f0","#1e293b"),flex:1,border:"1px solid #6b8fb5"}}>Cancel</button></div>
             </div>
           ):(
             <div>
@@ -1335,7 +1338,7 @@ function Detail({cust,role,onBack,onUpd,onLog,onBill,onBook,notify,initTab,clear
               {r&&<div style={{background:"rgba(96,165,250,0.07)",border:"1px solid rgba(96,165,250,0.2)",borderRadius:10,padding:"10px 12px",marginBottom:10}}><div style={{fontSize:10,color:"#60a5fa",fontWeight:700,marginBottom:5}}>📊 RATE CHART</div>{[["Ex-Showroom",r.ex],["On-Road",r.onRoad],["On-Road+AMC",r.onRoad+(r.amc||0)]].map(([k,v])=><div key={k} style={{display:"flex",justifyContent:"space-between",fontSize:12,padding:"2px 0"}}><span style={{color:"#64748b"}}>{k}</span><span style={{color:"#1e293b",fontWeight:600}}>{fc(v)}</span></div>)}</div>}
               {cust.billed&&cust.managerApproval==="approved"&&role==="salesman"
                 ?<div style={{background:"rgba(99,102,241,0.07)",border:"1px solid rgba(99,102,241,0.35)",borderRadius:12,padding:"11px 14px",fontSize:12,color:"#6366f1",fontWeight:600,textAlign:"center"}}>🔒 Record locked after billing — go to <b>Billing tab → Request Correction</b> to request changes</div>
-                :<button onClick={()=>setEdit(true)} style={{width:"100%",background:"#c2d6ec",border:"1px solid #6b8fb5",borderRadius:12,padding:11,color:"#64748b",fontWeight:600,fontSize:13,cursor:"pointer"}}>✏️ Edit Details</button>
+                :<button onClick={()=>setEdit(true)} style={{width:"100%",background:"#c2d6ec",border:"1px solid #6b8fb5",borderRadius:12,padding:11,color:"#1e293b",fontWeight:600,fontSize:13,cursor:"pointer"}}>✏️ Edit Details</button>
               }
             </div>
           )}
@@ -1473,7 +1476,7 @@ function BookingModal({cust,onClose,onSave}){
       <div style={{background:"#ffffff",width:"100%",borderRadius:"20px 20px 0 0",padding:"20px 16px 44px",maxHeight:"92vh",overflowY:"auto"}}>
         <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:14}}>
           <div style={{fontWeight:800,fontSize:17,color:"#1e293b"}}>{existingBks.length>0?"Add Booking Payment":"Take Booking"}</div>
-          <button onClick={onClose} style={{background:"#c2d6ec",border:"none",borderRadius:8,width:32,height:32,cursor:"pointer",color:"#64748b",fontSize:18}}>✕</button>
+          <button onClick={onClose} style={{background:"#c2d6ec",border:"none",borderRadius:8,width:32,height:32,cursor:"pointer",color:"#1e293b",fontSize:18}}>✕</button>
         </div>
         <div style={{fontSize:12,color:"#94a3b8",marginBottom:10}}>{cust.name} · {cust.model}</div>
         {existingBks.length>0&&(
@@ -1499,7 +1502,7 @@ function BookingModal({cust,onClose,onSave}){
             </div>
           </div>
           <div style={{display:"flex",gap:8}}>
-            <button onClick={onClose} style={{...btn("#6b8fb5","#8892a4"),flex:1,padding:14,borderRadius:13}}>← Go Back</button>
+            <button onClick={onClose} style={{...btn("#e2e8f0","#1e293b"),flex:1,padding:14,borderRadius:13}}>← Go Back</button>
             <button onClick={submit} style={{...btn("linear-gradient(135deg,#8b5cf6,#6d28d9)"),flex:2,padding:14,fontSize:15,borderRadius:13}}>💾 Save & Issue MR</button>
           </div>
         </div>
@@ -1531,7 +1534,7 @@ function AddModal({onClose,onSave,curUser,role,existing}){
   return(
     <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.88)",zIndex:150,display:"flex",alignItems:"flex-end"}}>
       <div style={{background:"#ffffff",width:"100%",borderRadius:"20px 20px 0 0",maxHeight:"94vh",overflowY:"auto",padding:"20px 16px 44px"}}>
-        <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:16}}><div style={{fontWeight:800,fontSize:17,color:"#1e293b"}}>New Enquiry</div><button onClick={onClose} style={{background:"#c2d6ec",border:"none",borderRadius:8,width:32,height:32,cursor:"pointer",color:"#64748b",fontSize:18}}>✕</button></div>
+        <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:16}}><div style={{fontWeight:800,fontSize:17,color:"#1e293b"}}>New Enquiry</div><button onClick={onClose} style={{background:"#c2d6ec",border:"none",borderRadius:8,width:32,height:32,cursor:"pointer",color:"#1e293b",fontSize:18}}>✕</button></div>
         <div style={{display:"flex",flexDirection:"column",gap:10}}>
           {[{k:"name",l:"Customer Name *"},{k:"phone",l:"Phone *",t:"tel"}].map(({k,l,t})=>(
             <div key={k}><label style={lbl}>{l}</label><input type={t||"text"} style={t!=="tel"?{...inp,textTransform:"uppercase"}:{...inp,borderColor:f[k]&&f[k].length!==10?"#ef4444":undefined}} value={f[k]||""} onChange={e=>{const v=t==="tel"?e.target.value.replace(/\D/g,"").slice(0,10):e.target.value;setF(p=>({...p,[k]:v}));}} {...(t!=="tel"?capBlur(k):{})}/>{t==="tel"&&f[k]&&f[k].length>0&&f[k].length!==10&&<div style={{fontSize:10,color:"#ef4444",marginTop:2}}>⚠️ Must be 10 digits ({f[k].length} entered)</div>}</div>
@@ -1569,7 +1572,7 @@ function AddModal({onClose,onSave,curUser,role,existing}){
 function Row({label,val,auto}){
   return(
     <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"4px 0",borderBottom:"1px solid #131820"}}>
-      <div style={{display:"flex",alignItems:"center",gap:5}}><span style={{fontSize:12,color:"#64748b"}}>{label}</span>{auto&&<span style={{fontSize:9,background:"#c2d6ec",color:"#94a3b8",padding:"1px 5px",borderRadius:4}}>AUTO</span>}</div>
+      <div style={{display:"flex",alignItems:"center",gap:5}}><span style={{fontSize:12,color:"#1e293b"}}>{label}</span>{auto&&<span style={{fontSize:9,background:"#c2d6ec",color:"#94a3b8",padding:"1px 5px",borderRadius:4}}>AUTO</span>}</div>
       <span style={{fontSize:13,color:"#1e293b",fontWeight:600}}>{fc(val)}</span>
     </div>
   );
@@ -2131,8 +2134,8 @@ function BillingView({billing:b,cust,onAddPayment}){
         <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.92)",zIndex:200,display:"flex",flexDirection:"column",padding:12}}>
           <div style={{display:"flex",gap:8,marginBottom:8}}>
             <button onClick={()=>dlFile(showR,showR===b.calcHtml?"CalcSheet_":"MoneyReceipt_"+cust.name.replace(/ /g,"_")+".html")} style={{flex:1,background:"#dbeafe",border:"none",borderRadius:10,padding:11,color:"#60a5fa",fontWeight:700,fontSize:12,cursor:"pointer"}}>⬇️ Download</button>
-            <button onClick={()=>{try{ifr.current.contentWindow.print();}catch(e){alert("Print blocked here — use Download, open the file, then print/save as PDF");}}} style={{flex:1,background:"#c2d6ec",border:"none",borderRadius:10,padding:11,color:"#64748b",fontWeight:700,fontSize:12,cursor:"pointer"}}>🖨️ Print</button>
-            <button onClick={()=>setShowR(false)} style={{flex:1,background:"#c2d6ec",border:"none",borderRadius:10,padding:11,color:"#64748b",fontWeight:700,fontSize:13,cursor:"pointer"}}>✕ Close</button>
+            <button onClick={()=>{try{ifr.current.contentWindow.print();}catch(e){alert("Print blocked here — use Download, open the file, then print/save as PDF");}}} style={{flex:1,background:"#c2d6ec",border:"none",borderRadius:10,padding:11,color:"#1e293b",fontWeight:700,fontSize:12,cursor:"pointer"}}>🖨️ Print</button>
+            <button onClick={()=>setShowR(false)} style={{flex:1,background:"#c2d6ec",border:"none",borderRadius:10,padding:11,color:"#1e293b",fontWeight:700,fontSize:13,cursor:"pointer"}}>✕ Close</button>
           </div>
           <iframe ref={ifr} srcDoc={showR} title="receipt" style={{flex:1,background:"#fff",borderRadius:12,border:"none",width:"100%"}}/>
         </div>
@@ -2195,7 +2198,7 @@ function Approvals({custs,onApprove,onOpen,onEditCalc,allC,canApprove}){
                   </div>);
                 })}
               </div>
-              <button onClick={()=>onOpen(c)} style={{width:"100%",background:"#c2d6ec",border:"1px solid #6b8fb5",borderRadius:9,padding:8,color:"#64748b",fontSize:11,fontWeight:600,cursor:"pointer"}}>📂 View Documents</button>
+              <button onClick={()=>onOpen(c)} style={{width:"100%",background:"#c2d6ec",border:"1px solid #6b8fb5",borderRadius:9,padding:8,color:"#1e293b",fontSize:11,fontWeight:600,cursor:"pointer"}}>📂 View Documents</button>
             </div>
             {c.billing?.amtDiff&&c.billing.amtDiff.status==="pending"&&(
               <div style={{margin:"0 14px 10px",background:"rgba(249,115,22,0.08)",border:"1px solid rgba(249,115,22,0.4)",borderRadius:9,padding:"10px 12px"}}>
@@ -2245,8 +2248,8 @@ function Revival({items,onRevive}){
       <div style={{fontWeight:800,fontSize:19,color:"#1e293b",marginBottom:4}}>Cold Pool Revival</div>
       <div style={{fontSize:11,color:"#94a3b8",marginBottom:12}}>{items.length} leads dormant 6+ months</div>
       <div style={{display:"flex",gap:7,marginBottom:12}}>
-        <button onClick={()=>setSel(items.map(c=>c.id))} style={{...btn("#6b8fb5","#8892a4"),flex:1,border:"1px solid #6b8fb5"}}>All</button>
-        <button onClick={()=>setSel([])} style={{...btn("#6b8fb5","#8892a4"),flex:1,border:"1px solid #6b8fb5"}}>Clear</button>
+        <button onClick={()=>setSel(items.map(c=>c.id))} style={{...btn("#e2e8f0","#1e293b"),flex:1,border:"1px solid #6b8fb5"}}>All</button>
+        <button onClick={()=>setSel([])} style={{...btn("#e2e8f0","#1e293b"),flex:1,border:"1px solid #6b8fb5"}}>Clear</button>
         <button onClick={()=>{onRevive(sel);setSel([]);}} disabled={sel.length===0} style={{...btn(sel.length>0?"#dbeafe":"#f4f7fb",sel.length>0?"#60a5fa":"#374151"),flex:2,border:"1px solid "+(sel.length>0?"#3b82f6":"#6b8fb5")}}>Revive {sel.length>0?"("+sel.length+")":""}</button>
       </div>
       {items.map(c=>(
@@ -2371,7 +2374,7 @@ function Reports({custs,onImportCust}){
               saveRC(parseNKDRows(rows));}catch(err){alert("Could not read CSV: "+err.message);}
             };rd.readAsText(fl);
           }
-          e.target.value="";}} style={{width:"100%",background:"#c2d6ec",borderRadius:9,padding:8,fontSize:11,color:"#64748b",border:"1px dashed #2a3040",marginBottom:10}}/>
+          e.target.value="";}} style={{width:"100%",background:"#c2d6ec",borderRadius:9,padding:8,fontSize:11,color:"#1e293b",border:"1px dashed #2a3040",marginBottom:10}}/>
         <div style={{fontSize:10,color:"#94a3b8",marginBottom:4}}>2. Old Customers (10,000+) — columns: name,phone,model,salesman,enquirydate,status,remarks</div>
         <input type="file" accept=".csv" onChange={e=>{const fl=e.target.files[0];if(!fl)return;const rd=new FileReader();rd.onload=ev=>{
           try{const lines=ev.target.result.split(/\r?\n/).filter(x=>x.trim());const hd=lines[0].toLowerCase().split(",").map(x=>x.trim());
@@ -2381,7 +2384,7 @@ function Reports({custs,onImportCust}){
             perDay[sm2]=(perDay[sm2]||0)+1;const off=Math.floor((perDay[sm2]-1)/80);
             rows.push({id:"OLD"+Date.now()+"_"+i,name:nm,phone:ph,model:(c2[gi("model")]||"").trim(),modelCode:"",cat:"",address:"",enquiryDate:(c2[gi("enquirydate")]||td()).trim()||td(),status:(c2[gi("status")]||"Cold").trim()||"Cold",salesman:sm2,branch:SM_BRANCH[sm2]||BRANCHES[0],finance:"Cash",remarks:"["+td()+"] IMPORTED: old customer data. "+((c2[gi("remarks")]||"").trim()),followupDate:aD(td(),off),attempts:0,stopped:false,billed:false,billedDate:null,photos:{},billing:null,managerApproval:null,callLog:[]});}
           onImportCust(rows);alert("✅ Imported "+rows.length+" customers — spread at max 80 calls/day per executive for followup");}catch(err){alert("Could not read file — check column names");}
-        };rd.readAsText(fl);e.target.value="";}} style={{width:"100%",background:"#c2d6ec",borderRadius:9,padding:8,fontSize:11,color:"#64748b",border:"1px dashed #2a3040"}}/>
+        };rd.readAsText(fl);e.target.value="";}} style={{width:"100%",background:"#c2d6ec",borderRadius:9,padding:8,fontSize:11,color:"#1e293b",border:"1px dashed #2a3040"}}/>
       </div>
       <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:8,marginBottom:18}}>
         {[["Total",custs.length,"#60a5fa"],["Billed",billed.length,"#22c55e"],["Conv%",conv+"%","#f59e0b"],["Hot",custs.filter(c=>c.status==="Hot"&&!c.billed).length,"#ef4444"],["Lost",custs.filter(c=>c.status==="Lost").length,"#6b7280"],["Stopped",custs.filter(c=>c.stopped).length,"#f97316"]].map(([l,v,c])=>(
@@ -3415,7 +3418,7 @@ export default function App(){
           {myPending.length>0&&<div onClick={()=>nav("approvals")} style={{background:"rgba(139,92,246,0.2)",color:"#a78bfa",borderRadius:20,padding:"2px 7px",fontSize:10,fontWeight:800,cursor:"pointer"}}>✓ {myPending.length}</div>}
           {role!=="salesman"&&alerts.length>0&&<div onClick={()=>nav("alerts")} style={{background:"rgba(239,68,68,0.2)",color:"#ef4444",borderRadius:20,padding:"2px 7px",fontSize:10,fontWeight:800,cursor:"pointer"}}>⚠️ {alerts.length}</div>}
           {isPortalRole(role)&&<button onClick={()=>togglePortal(true)} style={{background:"#dbeafe",border:"1px solid #3b82f6",color:"#1d4ed8",borderRadius:8,padding:"3px 8px",fontSize:10,cursor:"pointer",fontWeight:700}}>🖥️ Portal</button>}
-          <button onClick={()=>{sv("nkd_li",false);setLi(false);}} style={{background:"transparent",border:"1px solid #6b8fb5",color:"#94a3b8",borderRadius:8,padding:"3px 8px",fontSize:10,cursor:"pointer"}}>Out</button>
+          <button onClick={()=>{sv("nkd_li",false);setLi(false);}} style={{background:"transparent",border:"1px solid #6b8fb5",color:"#475569",borderRadius:8,padding:"3px 8px",fontSize:10,cursor:"pointer"}}>Out</button>
         </div>
       </div>
 
@@ -3469,7 +3472,7 @@ export default function App(){
                     <a href={"https://wa.me/91"+c.phone} target="_blank" rel="noreferrer" style={{background:"rgba(37,211,102,0.08)",border:"1px solid rgba(37,211,102,0.3)",borderRadius:8,padding:"6px 10px",display:"flex",alignItems:"center",gap:4,textDecoration:"none",color:"#25D366",fontSize:11,fontWeight:700}}><WAIcon s={11}/>WA</a>
                   </div>
                 </div>
-                <button onClick={()=>upd(c.id,{alertDismissed:true})} style={{background:"transparent",border:"none",color:"#94a3b8",fontSize:12,cursor:"pointer",marginTop:8}}>Dismiss</button>
+                <button onClick={()=>upd(c.id,{alertDismissed:true})} style={{background:"transparent",border:"none",color:"#475569",fontSize:12,cursor:"pointer",marginTop:8}}>Dismiss</button>
               </div>
             ))}
           </div>
