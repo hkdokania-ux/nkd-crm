@@ -651,7 +651,7 @@ function Followups({items,onOpen,onLog,onCallLog,showSMFilter,initSM}){
       <div style={{fontWeight:800,fontSize:19,color:"#1e293b",marginBottom:3}}>Today's Followups</div>
       <div style={{fontSize:11,color:"#94a3b8",marginBottom:10}}>🔥 Hot first — auto prioritised</div>
       {showSMFilter&&<div style={{display:"flex",gap:5,overflowX:"auto",marginBottom:12,paddingBottom:2}}>
-        {["All",...SM].map(s=><button key={s} onClick={()=>setSmF(s)} style={{padding:"5px 11px",borderRadius:20,fontSize:11,fontWeight:600,cursor:"pointer",flexShrink:0,background:smF===s?"#f97316":"#6b8fb5",color:smF===s?"#fff":"#8892a4",border:"none"}}>{s==="All"?"All Team":s.split(" ")[0]}</button>)}
+        {["All",...SM].map(s=><button key={s} onClick={()=>setSmF(s)} style={{padding:"5px 11px",borderRadius:20,fontSize:11,fontWeight:700,cursor:"pointer",flexShrink:0,background:smF===s?"#f97316":"#334155",color:"#fff",border:"none"}}>{s==="All"?"All Team":s.split(" ")[0]}</button>)}
       </div>}
       {timer&&(
         <div style={{background:"rgba(34,197,94,0.1)",border:"1px solid rgba(34,197,94,0.4)",borderRadius:13,padding:"14px 16px",marginBottom:14,display:"flex",justifyContent:"space-between",alignItems:"center"}}>
@@ -677,7 +677,7 @@ function Followups({items,onOpen,onLog,onCallLog,showSMFilter,initSM}){
             </div>
             <div style={{padding:"6px 14px 2px",display:"flex",gap:5,flexWrap:"wrap"}}>
               {[["interested","👍 Interested"],["no_response","📵 No Resp"],["switched_off","🔕 Off"],["booked","✅ Booked"],["price_issue","💸 Price"],["visit_scheduled","🏪 Visit"]].map(([o,l])=>(
-                <button key={o} onClick={()=>onLog(c,o,"",null,{})} style={{background:"#f1f5f9",border:"1px solid #6b8fb5",borderRadius:16,padding:"5px 10px",fontSize:11,color:"#64748b",fontWeight:600,cursor:"pointer"}}>{l}</button>
+                <button key={o} onClick={()=>onLog(c,o,"",null,{})} style={{background:"#334155",border:"none",borderRadius:16,padding:"5px 10px",fontSize:11,color:"#fff",fontWeight:600,cursor:"pointer"}}>{l}</button>
               ))}
             </div>
             <div style={{borderTop:"1px solid #6b8fb5",padding:"9px 14px",display:"flex",gap:7,marginTop:6}}>
@@ -1094,7 +1094,7 @@ function StockView({stockData,billedChassis,role,userBranch,onUpload,notify}){
             const prevMine=i>0?isMyBranch(filtered[i-1]):true;
             const showDivider=userBranch&&branchKey&&!isMine&&prevMine&&i>0;
             return(<Fragment key={i}>
-              {showDivider&&<div style={{textAlign:"center",fontSize:11,color:"#94a3b8",margin:"10px 0 8px",display:"flex",alignItems:"center",gap:8}}><div style={{flex:1,height:1,background:"#6b8fb5"}}/><span>Other Branches</span><div style={{flex:1,height:1,background:"#6b8fb5"}}/></div>}
+              {showDivider&&<div style={{textAlign:"center",fontSize:11,color:"#fff",margin:"10px 0 8px",display:"flex",alignItems:"center",gap:8}}><div style={{flex:1,height:1,background:"#6b8fb5"}}/><span>Other Branches</span><div style={{flex:1,height:1,background:"#6b8fb5"}}/></div>}
               <StockCard row={row} i={i}/>
             </Fragment>);
           })}
@@ -1121,7 +1121,7 @@ function StockView({stockData,billedChassis,role,userBranch,onUpload,notify}){
           const prevMine=i>0?isMyBranch(ageingRows[i-1]):true;
           const showDivider=userBranch&&branchKey&&!isMine&&prevMine&&i>0;
           return(<Fragment key={i}>
-            {showDivider&&<div style={{textAlign:"center",fontSize:11,color:"#94a3b8",margin:"10px 0 8px",display:"flex",alignItems:"center",gap:8}}><div style={{flex:1,height:1,background:"#6b8fb5"}}/><span>Other Branches</span><div style={{flex:1,height:1,background:"#6b8fb5"}}/></div>}
+            {showDivider&&<div style={{textAlign:"center",fontSize:11,color:"#fff",margin:"10px 0 8px",display:"flex",alignItems:"center",gap:8}}><div style={{flex:1,height:1,background:"#6b8fb5"}}/><span>Other Branches</span><div style={{flex:1,height:1,background:"#6b8fb5"}}/></div>}
             <StockCard row={row} i={i}/>
           </Fragment>);
         })}
