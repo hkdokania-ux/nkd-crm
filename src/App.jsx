@@ -912,11 +912,18 @@ function StockView({stockData,billedChassis,role,userBranch,onUpload,notify}){
   const modelKey=findStockCol(keys,["model","name","variant"]);
   const branchKey=findStockCol(keys,["branch","location","godown","store"]);
   const dateKey=findStockCol(keys,["date","invoice","inward","receipt","received","entry","purchase","billing"]);
+  const ageKey=findStockCol(keys,["age","days","ageing","aging","no of day","day"]);
   const available=rows.filter(r=>!billedChassis.includes(String(r[chassisKey]||"").trim().toUpperCase()));
   function isMyBranch(row){if(!userBranch||!branchKey)return false;return String(row[branchKey]||"").toLowerCase().includes(userBranch.toLowerCase());}
   function branchSort(a,b){if(isMyBranch(a)&&!isMyBranch(b))return -1;if(!isMyBranch(a)&&isMyBranch(b))return 1;return 0;}
 
   function getAge(row){
+    // First: try direct age/days column
+    if(ageKey&&row[ageKey]!=null&&row[ageKey]!==""){
+      const d=Number(row[ageKey]);
+      if(!isNaN(d))return Math.max(0,Math.round(d));
+    }
+    // Fallback: compute from date column
     if(!dateKey||!row[dateKey])return null;
     const rawVal=row[dateKey];
     // Excel serial date (number or numeric string like 46164.5)
@@ -1114,7 +1121,7 @@ function StockView({stockData,billedChassis,role,userBranch,onUpload,notify}){
             </div>
           ))}
         </div>}
-        {!dateKey&&<div style={{background:"rgba(249,115,22,0.08)",border:"1px solid rgba(249,115,22,0.35)",borderRadius:10,padding:"10px 14px",marginBottom:12,fontSize:12,color:"#ea580c"}}>⚠️ No date column found in stock Excel. Add a column like "Invoice Date" or "Inward Date" to see ageing.</div>}
+        {!dateKey&&!ageKey&&<div style={{background:"rgba(249,115,22,0.08)",border:"1px solid rgba(249,115,22,0.35)",borderRadius:10,padding:"10px 14px",marginBottom:12,fontSize:12,color:"#ea580c"}}>⚠️ No date column found in stock Excel. Add a column like "Invoice Date", "Inward Date", or "No of Days" to see ageing.</div>}
         {ageingRows.length===0&&<div style={{textAlign:"center",padding:20,color:"#94a3b8",fontSize:13}}>No stock to show</div>}
         {ageingRows.slice(0,80).map((row,i)=>{
           const isMine=isMyBranch(row);
