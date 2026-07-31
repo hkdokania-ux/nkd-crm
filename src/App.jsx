@@ -1401,27 +1401,62 @@ function Detail({cust,role,onBack,onUpd,onLog,onBill,onBook,notify,initTab,clear
       {/* ── CORRECTION REQUEST ── */}
       {tab==="billing"&&cust.billed&&(()=>{
         const cr=cust.correctionReq;
+        const isOwnerRole=role==="owner"||role==="admin"||role==="tech";
+        const crFields=(cr?.fields&&Object.keys(cr.fields).length>0)?Object.entries(cr.fields).map(([k,v])=><span key={k} style={{background:"#fef3c7",borderRadius:5,padding:"1px 5px",marginRight:4,fontWeight:600}}>{k}: {v}</span>):null;
+
+        // Status: pending — awaiting manager approval
         if(cr?.status==="pending")return(
           <div style={{background:"rgba(249,115,22,0.07)",border:"1px solid rgba(249,115,22,0.4)",borderRadius:14,padding:"12px 14px",marginTop:10}}>
-            <div style={{fontSize:12,fontWeight:800,color:"#f97316",marginBottom:4}}>⏳ CORRECTION REQUEST PENDING</div>
-            <div style={{fontSize:11,color:"#64748b",marginBottom:6}}>Requested by {cr.requestedBy} · {fd(cr.requestedAt)}</div>
+            <div style={{fontSize:12,fontWeight:800,color:"#f97316",marginBottom:4}}>⏳ CORRECTION REQUEST — Awaiting Manager Approval</div>
+            <div style={{fontSize:11,color:"#64748b",marginBottom:6}}>Requested by <b>{cr.requestedBy}</b> · {fd(cr.requestedAt)}</div>
             <div style={{fontSize:11,color:"#475569",marginBottom:4}}><b>Reason:</b> {cr.reason}</div>
-            <div style={{fontSize:11,color:"#475569"}}>Fields: {Object.entries(cr.fields).map(([k,v])=><span key={k} style={{background:"#fef3c7",borderRadius:5,padding:"1px 5px",marginRight:4,fontWeight:600}}>{k}: {v}</span>)}</div>
-            {role!=="salesman"&&<div style={{display:"flex",gap:8,marginTop:10}}>
-              <button onClick={()=>onCorrectionReq&&onCorrectionReq(cust.id,"approved")} style={{flex:1,background:"rgba(34,197,94,0.12)",border:"1px solid rgba(34,197,94,0.4)",borderRadius:10,padding:"9px",color:"#22c55e",fontSize:13,fontWeight:700,cursor:"pointer"}}>✅ Apply Correction</button>
-              <button onClick={()=>onCorrectionReq&&onCorrectionReq(cust.id,"rejected")} style={{flex:1,background:"rgba(239,68,68,0.1)",border:"1px solid rgba(239,68,68,0.3)",borderRadius:10,padding:"9px",color:"#ef4444",fontSize:13,fontWeight:700,cursor:"pointer"}}>❌ Reject</button>
+            <div style={{fontSize:11,color:"#475569",marginBottom:6}}>Fields: {crFields}</div>
+            {role==="manager"&&<div style={{display:"flex",gap:8,marginTop:10}}>
+              <button onClick={()=>onCorrectionReq&&onCorrectionReq(cust.id,"manager_approve")} style={{flex:1,background:"rgba(34,197,94,0.12)",border:"1px solid rgba(34,197,94,0.4)",borderRadius:10,padding:"9px",color:"#22c55e",fontSize:12,fontWeight:700,cursor:"pointer"}}>✅ Approve → Send to Owner</button>
+              <button onClick={()=>onCorrectionReq&&onCorrectionReq(cust.id,"rejected")} style={{flex:1,background:"rgba(239,68,68,0.1)",border:"1px solid rgba(239,68,68,0.3)",borderRadius:10,padding:"9px",color:"#ef4444",fontSize:12,fontWeight:700,cursor:"pointer"}}>❌ Reject</button>
+            </div>}
+            {isOwnerRole&&<div style={{display:"flex",gap:8,marginTop:10}}>
+              <button onClick={()=>onCorrectionReq&&onCorrectionReq(cust.id,"approved")} style={{flex:1,background:"rgba(34,197,94,0.12)",border:"1px solid rgba(34,197,94,0.4)",borderRadius:10,padding:"9px",color:"#22c55e",fontSize:12,fontWeight:700,cursor:"pointer"}}>✅ Confirm & Apply</button>
+              <button onClick={()=>onCorrectionReq&&onCorrectionReq(cust.id,"rejected")} style={{flex:1,background:"rgba(239,68,68,0.1)",border:"1px solid rgba(239,68,68,0.3)",borderRadius:10,padding:"9px",color:"#ef4444",fontSize:12,fontWeight:700,cursor:"pointer"}}>❌ Reject</button>
             </div>}
           </div>
         );
-        if(cr?.status==="approved")return(
-          <div style={{background:"rgba(34,197,94,0.07)",border:"1px solid rgba(34,197,94,0.3)",borderRadius:14,padding:"12px 14px",marginTop:10,fontSize:12,color:"#22c55e",fontWeight:700}}>✅ Correction applied by {cr.approvedBy} on {fd(cr.approvedAt)}</div>
+
+        // Status: manager_approved — awaiting owner final confirmation
+        if(cr?.status==="manager_approved")return(
+          <div style={{background:"rgba(239,68,68,0.07)",border:"2px solid rgba(239,68,68,0.5)",borderRadius:14,padding:"12px 14px",marginTop:10}}>
+            <div style={{fontSize:12,fontWeight:800,color:"#ef4444",marginBottom:4}}>🔴 AWAITING OWNER CONFIRMATION</div>
+            <div style={{fontSize:11,color:"#64748b",marginBottom:4}}>Requested by <b>{cr.requestedBy}</b> · Manager approved by <b>{cr.managerApprovedBy}</b> · {fd(cr.managerApprovedAt)}</div>
+            <div style={{fontSize:11,color:"#475569",marginBottom:4}}><b>Reason:</b> {cr.reason}</div>
+            <div style={{fontSize:11,color:"#475569",marginBottom:6}}>Fields: {crFields}</div>
+            {isOwnerRole
+              ?<div style={{display:"flex",gap:8,marginTop:10}}>
+                <button onClick={()=>onCorrectionReq&&onCorrectionReq(cust.id,"approved")} style={{flex:1,background:"linear-gradient(135deg,#22c55e,#16a34a)",border:"none",borderRadius:10,padding:"10px",color:"#fff",fontSize:13,fontWeight:800,cursor:"pointer"}}>✅ Confirm & Apply to Record</button>
+                <button onClick={()=>onCorrectionReq&&onCorrectionReq(cust.id,"rejected")} style={{flex:1,background:"rgba(239,68,68,0.1)",border:"1px solid rgba(239,68,68,0.3)",borderRadius:10,padding:"10px",color:"#ef4444",fontSize:12,fontWeight:700,cursor:"pointer"}}>❌ Reject</button>
+              </div>
+              :<div style={{fontSize:11,color:"#94a3b8",fontStyle:"italic",marginTop:6}}>⏳ Pending Owner's final confirmation — no changes applied yet</div>
+            }
+          </div>
         );
+
+        // Status: approved — fields applied, confirmed for production
+        if(cr?.status==="approved")return(
+          <div style={{background:"rgba(34,197,94,0.07)",border:"1px solid rgba(34,197,94,0.3)",borderRadius:14,padding:"12px 14px",marginTop:10}}>
+            <div style={{fontSize:12,fontWeight:800,color:"#22c55e",marginBottom:4}}>✅ CORRECTION APPLIED — Confirmed by Owner</div>
+            <div style={{fontSize:11,color:"#64748b"}}>Confirmed by <b>{cr.approvedBy}</b> on {fd(cr.approvedAt)}</div>
+          </div>
+        );
+
+        // Status: rejected
         if(cr?.status==="rejected")return(
           <div style={{background:"rgba(239,68,68,0.07)",border:"1px solid rgba(239,68,68,0.3)",borderRadius:14,padding:"12px 14px",marginTop:10}}>
             <div style={{fontSize:12,color:"#ef4444",fontWeight:700,marginBottom:4}}>❌ Correction request was rejected</div>
+            <div style={{fontSize:11,color:"#94a3b8",marginBottom:8}}>Rejected by {cr.rejectedBy}</div>
             {role==="salesman"&&<button onClick={()=>setCorrModal(true)} style={{background:"linear-gradient(135deg,#6366f1,#4f46e5)",border:"none",borderRadius:10,padding:"9px 14px",color:"#fff",fontSize:12,fontWeight:700,cursor:"pointer"}}>📝 Submit New Request</button>}
           </div>
         );
+
+        // No request yet
         return role==="salesman"?(
           <button onClick={()=>setCorrModal(true)} style={{width:"100%",background:"rgba(99,102,241,0.08)",border:"1px solid rgba(99,102,241,0.35)",borderRadius:12,padding:"11px",color:"#6366f1",fontWeight:700,fontSize:13,cursor:"pointer",marginTop:10}}>📝 Request Correction / Amendment</button>
         ):null;
@@ -3308,13 +3343,19 @@ export default function App(){
     if(!cu)return;
     if(action==="submit"){
       upd(id,{correctionReq:{...req},remarks:(cu.remarks||"")+"\n["+td()+"] CORRECTION REQUEST by "+req.requestedBy+": "+req.reason});
-      notify("📤 Sent for approval");
+      notify("📤 Sent to Manager for approval");
+    } else if(action==="manager_approve"){
+      // Step 1: Manager approves → awaits Owner confirmation (no fields applied yet)
+      const cr=cu.correctionReq;
+      if(!cr)return;
+      upd(id,{correctionReq:{...cr,status:"manager_approved",managerApprovedBy:user,managerApprovedAt:new Date().toISOString()},remarks:(cu.remarks||"")+"\n["+td()+"] CORRECTION MANAGER-APPROVED by "+user+" — awaiting Owner confirmation"});
+      notify("✅ Approved — sent to Owner for final confirmation");
     } else if(action==="approved"){
+      // Step 2: Owner confirms → apply field changes to record
       const cr=cu.correctionReq;
       if(!cr)return;
       const flds=cr.fields||{};
-      const updObj={correctionReq:{...cr,status:"approved",approvedBy:user,approvedAt:new Date().toISOString()},remarks:(cu.remarks||"")+"\n["+td()+"] CORRECTION APPROVED by "+user};
-      // Apply field changes
+      const updObj={correctionReq:{...cr,status:"approved",approvedBy:user,approvedAt:new Date().toISOString()},remarks:(cu.remarks||"")+"\n["+td()+"] CORRECTION CONFIRMED & APPLIED by Owner "+user};
       if(flds.name)updObj.name=flds.name;
       if(flds.fatherName){updObj.fatherName=flds.fatherName;updObj.billing={...(cu.billing||{}),details:{...(cu.billing?.details||{}),fatherName:flds.fatherName}};}
       if(flds.billName||flds.exv){
@@ -3324,7 +3365,7 @@ export default function App(){
         updObj.billing={...(updObj.billing||cu.billing||{}), ...newBilling};
       }
       upd(id,updObj);
-      notify("✅ Correction applied");
+      notify("✅ Correction confirmed & applied to record");
     } else if(action==="rejected"){
       upd(id,{correctionReq:{...(cu.correctionReq||{}),status:"rejected",rejectedBy:user,rejectedAt:new Date().toISOString()},remarks:(cu.remarks||"")+"\n["+td()+"] CORRECTION REJECTED by "+user});
       notify("❌ Correction request rejected");
@@ -3355,6 +3396,8 @@ export default function App(){
   const pending=custs.filter(c=>c.billing&&c.managerApproval===null);
   const myPending=role==="salesman"?pending.filter(c=>c.salesman===user):pending;
   const pendingTransfers=custs.filter(c=>c.transferReq&&c.transferReq.status==="pending");
+  // Correction requests awaiting owner's final confirmation (manager already approved)
+  const pendingCorrections=(role==="owner"||role==="admin"||role==="tech")?custs.filter(c=>c.correctionReq?.status==="manager_approved"):[];
   const revivable=custs.filter(c=>{if(c.billed)return false;const base=c.reactivatedAt||c.enquiryDate;return((new Date()-new Date(base))/(864e5*30))>=6;});
 
   function openD(c,tab){setSel(c);if(tab)setDtab(tab);nav("detail");window.scrollTo({top:0,behavior:"instant"});}
@@ -3388,7 +3431,7 @@ export default function App(){
     /></>;
   }
 
-  const navItems=role==="admin"?[{id:"vault",l:"Document Vault",ic:"📁"},{id:"uploads",l:"Uploads",ic:"📤"},{id:"stock",l:"Stock",ic:"🏍️"},{id:"rcstatus",l:"RC/HSRP",ic:"🔍"}]:[{id:"dashboard",l:"Home",ic:"🏠"},{id:"followups",l:"Followup",ic:"📞",badge:due.length},{id:"customers",l:"Customers",ic:"👥"},{id:"stock",l:"Stock",ic:"🏍️"},{id:"rcstatus",l:"RC/HSRP",ic:"🔍"},{id:"approvals",l:role==="salesman"?"My Pending":"Approve",ic:"✅",badge:myPending.length+(role!=="salesman"?pendingTransfers.length:0)},...(role!=="salesman"?[{id:"revival",l:"Revival",ic:"🔄"}]:[]),...(isOwner(role)?[{id:"reports",l:"Reports",ic:"📊"}]:[]),...(isOwner(role)?[{id:"vault",l:"Vault",ic:"📁"}]:[]),...(isOwner(role)?[{id:"uploads",l:"Uploads",ic:"📤"}]:[]),...(role!=="salesman"&&alerts.length>0?[{id:"alerts",l:"Alerts",ic:"⚠️",badge:alerts.length}]:[])];
+  const navItems=role==="admin"?[{id:"vault",l:"Document Vault",ic:"📁"},{id:"uploads",l:"Uploads",ic:"📤"},{id:"stock",l:"Stock",ic:"🏍️"},{id:"rcstatus",l:"RC/HSRP",ic:"🔍"}]:[{id:"dashboard",l:"Home",ic:"🏠"},{id:"followups",l:"Followup",ic:"📞",badge:due.length},{id:"customers",l:"Customers",ic:"👥"},{id:"stock",l:"Stock",ic:"🏍️"},{id:"rcstatus",l:"RC/HSRP",ic:"🔍"},{id:"approvals",l:role==="salesman"?"My Pending":"Approve",ic:"✅",badge:myPending.length+(role!=="salesman"?pendingTransfers.length:0)+pendingCorrections.length},...(role!=="salesman"?[{id:"revival",l:"Revival",ic:"🔄"}]:[]),...(isOwner(role)?[{id:"reports",l:"Reports",ic:"📊"}]:[]),...(isOwner(role)?[{id:"vault",l:"Vault",ic:"📁"}]:[]),...(isOwner(role)?[{id:"uploads",l:"Uploads",ic:"📤"}]:[]),...(role!=="salesman"&&alerts.length>0?[{id:"alerts",l:"Alerts",ic:"⚠️",badge:alerts.length}]:[])];
 
   return(
     <div style={{height:"100dvh",display:"flex",flexDirection:"column",background:"linear-gradient(160deg,#f0f7ff 0%,#e8f4ff 40%,#f8fafc 100%)",color:"#1e293b",fontFamily:"'Inter',-apple-system,sans-serif",maxWidth:480,margin:"0 auto",overflow:"hidden",paddingTop:"max(env(safe-area-inset-top),0px)"}}>
@@ -3442,6 +3485,27 @@ export default function App(){
         {view==="stock"&&<div style={{padding:"0 16px 80px"}}><StockView stockData={stockData} billedChassis={billedChassis} role={role} userBranch={role==="salesman"?(smBranchMap[user]||BRANCHES[0]):role==="manager"?mBr:null} onUpload={saveStockData} notify={notify}/></div>}
         {view==="rcstatus"&&<div style={{padding:"0 16px 80px"}}><RCHSRPSearch statusData={statusData} role={role} onUpload={saveStatusData} notify={notify}/></div>}
         {view==="approvals"&&<>
+          {/* ── TOP PRIORITY: Correction requests awaiting Owner confirmation ── */}
+          {pendingCorrections.length>0&&<div style={{marginBottom:18}}>
+            <div style={{fontWeight:800,fontSize:14,color:"#ef4444",marginBottom:8,display:"flex",alignItems:"center",gap:6}}>
+              <span style={{background:"#ef4444",color:"#fff",borderRadius:6,padding:"2px 7px",fontSize:11}}>🔴 {pendingCorrections.length}</span>
+              CORRECTION REQUESTS — Owner Action Required
+            </div>
+            {pendingCorrections.map(c=>{
+              const cr=c.correctionReq;
+              return(<div key={c.id} style={{background:"rgba(239,68,68,0.07)",border:"2px solid rgba(239,68,68,0.45)",borderRadius:13,padding:"12px 13px",marginBottom:10}}>
+                <div style={{fontWeight:800,fontSize:13,color:"#1e293b",marginBottom:3}}>{c.name} <span style={{fontSize:11,color:"#94a3b8",fontWeight:400}}>· {c.modelCode}</span></div>
+                <div style={{fontSize:11,color:"#64748b",marginBottom:4}}>Salesman: <b>{c.salesman}</b> · Manager approved by <b>{cr.managerApprovedBy}</b> · {fd(cr.managerApprovedAt)}</div>
+                <div style={{fontSize:11,color:"#475569",marginBottom:4}}><b>Reason:</b> {cr.reason}</div>
+                <div style={{fontSize:11,color:"#475569",marginBottom:8}}>Fields: {Object.entries(cr.fields||{}).map(([k,v])=><span key={k} style={{background:"#fef3c7",borderRadius:5,padding:"1px 5px",marginRight:4,fontWeight:600}}>{k}: {v}</span>)}</div>
+                <div style={{display:"flex",gap:8}}>
+                  <button onClick={()=>{handleCorrectionReq(c.id,"approved");}} style={{flex:1,background:"linear-gradient(135deg,#22c55e,#16a34a)",border:"none",borderRadius:9,padding:"10px",color:"#fff",fontSize:12,fontWeight:800,cursor:"pointer"}}>✅ Confirm & Apply</button>
+                  <button onClick={()=>{handleCorrectionReq(c.id,"rejected");}} style={{flex:1,background:"rgba(239,68,68,0.1)",border:"1px solid rgba(239,68,68,0.3)",borderRadius:9,padding:"10px",color:"#ef4444",fontSize:12,fontWeight:700,cursor:"pointer"}}>❌ Reject</button>
+                  <button onClick={()=>openD(c,"billing")} style={{background:"rgba(249,115,22,0.08)",border:"1px solid rgba(249,115,22,0.3)",borderRadius:9,padding:"10px 12px",color:"#f97316",fontSize:12,fontWeight:700,cursor:"pointer"}}>View</button>
+                </div>
+              </div>);
+            })}
+          </div>}
           {role!=="salesman"&&pendingTransfers.length>0&&<div style={{marginBottom:16}}>
             <div style={{fontWeight:800,fontSize:14,color:"#3b82f6",marginBottom:8}}>🔄 Lead Transfer Requests ({pendingTransfers.length})</div>
             {pendingTransfers.map(c=>(
