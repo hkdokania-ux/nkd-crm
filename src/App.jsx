@@ -621,10 +621,12 @@ function Dashboard({custs,role,onOpen,onNav,onNavF,onSvcDone,onTeamTap,onAddPaym
   );
 }
 
-function Followups({items,onOpen,onLog,onCallLog,showSMFilter,initSM}){
+function Followups({items,onOpen,onLog,onCallLog,showSMFilter,initSM,smList}){
   const [smF,setSmF]=useState(initSM||"All");
   useEffect(()=>{if(initSM)setSmF(initSM);},[initSM]);
+  const [stF,setStF]=useState("All");
   items=smF==="All"?items:items.filter(c=>c.salesman===smF);
+  items=stF==="All"?items:items.filter(c=>c.status===stF);
   const [active,setActive]=useState(null);
   const [form,setForm]=useState({out:"interested",note:"",nxt:"",reason:"",competitor:""});
   const [timer,setTimer]=useState(null);
@@ -649,9 +651,12 @@ function Followups({items,onOpen,onLog,onCallLog,showSMFilter,initSM}){
   return(
     <div>
       <div style={{fontWeight:800,fontSize:19,color:"#1e293b",marginBottom:3}}>Today's Followups</div>
-      <div style={{fontSize:11,color:"#94a3b8",marginBottom:10}}>🔥 Hot first — auto prioritised</div>
+      <div style={{fontSize:11,color:"#94a3b8",marginBottom:10}}>🔥 Overdue first — auto prioritised</div>
+      <div style={{display:"flex",gap:5,overflowX:"auto",marginBottom:10,paddingBottom:2}}>
+        {["All","Hot","Warm","Cold","Booked"].map(s=><button key={s} onClick={()=>setStF(s)} style={{padding:"5px 13px",borderRadius:20,fontSize:11,fontWeight:700,cursor:"pointer",flexShrink:0,background:stF===s?(ST_C[s]||"#f97316"):"#334155",color:"#fff",border:"none"}}>{s}</button>)}
+      </div>
       {showSMFilter&&<div style={{display:"flex",gap:5,overflowX:"auto",marginBottom:12,paddingBottom:2}}>
-        {["All",...SM].map(s=><button key={s} onClick={()=>setSmF(s)} style={{padding:"5px 11px",borderRadius:20,fontSize:11,fontWeight:700,cursor:"pointer",flexShrink:0,background:smF===s?"#f97316":"#334155",color:"#fff",border:"none"}}>{s==="All"?"All Team":s.split(" ")[0]}</button>)}
+        {["All",...(smList||[])].map(s=><button key={s} onClick={()=>setSmF(s)} style={{padding:"5px 11px",borderRadius:20,fontSize:11,fontWeight:700,cursor:"pointer",flexShrink:0,background:smF===s?"#f97316":"#334155",color:"#fff",border:"none"}}>{s==="All"?"All Team":s.split(" ")[0]}</button>)}
       </div>}
       {timer&&(
         <div style={{background:"rgba(34,197,94,0.1)",border:"1px solid rgba(34,197,94,0.4)",borderRadius:13,padding:"14px 16px",marginBottom:14,display:"flex",justifyContent:"space-between",alignItems:"center"}}>
@@ -3467,7 +3472,7 @@ export default function App(){
 
   const mBr=ld("nkd_br",BRANCHES[0]);
   const myC=role==="salesman"?custs.filter(c=>c.salesman===user):role==="manager"?custs.filter(c=>(c.branch||smBranchMap[c.salesman])===mBr):custs; // owner/tech/admin see all
-  const due=[...myC.filter(c=>!c.billed&&!c.stopped&&c.followupDate<=td())].sort((a,b)=>{const o={Hot:0,Warm:1,Cold:2,Booked:3};return(o[a.status]??9)-(o[b.status]??9);});
+  const due=[...myC.filter(c=>!c.billed&&!c.stopped&&c.followupDate<=td())].sort((a,b)=>{const today=td();const aOvd=a.followupDate<today?0:1,bOvd=b.followupDate<today?0:1;if(aOvd!==bOvd)return aOvd-bOvd;const o={Hot:0,Warm:1,Cold:2,Booked:3};return(o[a.status]??9)-(o[b.status]??9);});
   const pending=custs.filter(c=>c.billing&&c.managerApproval===null);
   const myPending=role==="salesman"?pending.filter(c=>c.salesman===user):pending;
   const pendingTransfers=custs.filter(c=>c.transferReq&&c.transferReq.status==="pending");
@@ -3553,7 +3558,7 @@ export default function App(){
       <div style={{flex:1,overflowY:"auto",WebkitOverflowScrolling:"touch",overscrollBehavior:"contain",touchAction:"pan-y",padding:16,paddingBottom:90}}>
         {role==="admin"&&view!=="vault"&&view!=="rcstatus"&&view!=="stock"&&view!=="uploads"&&setView("vault")}
         {view==="dashboard"&&<Dashboard custs={myC} role={role} onOpen={openD} onNav={nav} onNavF={st=>{setCustF(st);nav("customers");}} onSvcDone={id=>{upd(id,{serviceDone:true});notify("Service marked done ✓");}} onTeamTap={s=>{setFSM(s);nav("followups");}} onAddPayment={addPayment} onUpd={upd} notify={notify}/>}
-        {view==="followups"&&<Followups items={due} onOpen={openD} onLog={logF} onCallLog={logCall} showSMFilter={role!=="salesman"} initSM={fSM}/>}
+        {view==="followups"&&<Followups items={due} onOpen={openD} onLog={logF} onCallLog={logCall} showSMFilter={role!=="salesman"} initSM={fSM} smList={(nkdUsers?.salesman||[]).map(s=>s.name)}/>}
         {view==="customers"&&<CustList custs={myC} onOpen={openD} initF={custF} showSM={role!=="salesman"}/>}
         {view==="detail"&&sel&&<Detail cust={custs.find(c=>c.id===sel.id)||sel} role={role} onBack={goBack} onUpd={p=>upd(sel.id,p)} onLog={logF} onBill={()=>setBillOpen(true)} onBook={()=>setBookOpen(true)} notify={notify} initTab={dtab} clearInit={()=>setDtab(null)} onAddPayment={addPayment} onApprove={approveBill} curUser={user} onTransferReq={requestTransfer} onApproveTransfer={approveTransfer} onCorrectionReq={handleCorrectionReq}/>}
         {view==="uploads"&&<div style={{padding:"0 16px 80px"}}><UploadsHub stockData={stockData} statusData={statusData} onStockUpload={saveStockData} onStatusUpload={saveStatusData} notify={notify}/></div>}
