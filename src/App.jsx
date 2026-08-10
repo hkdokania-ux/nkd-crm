@@ -3019,6 +3019,7 @@ function CashBook({custs,smBranchMap}){
 function OwnerPortal({custs,stockData,billedChassis,statusData,role,user,mBr,saveStockData,saveStatusData,nkdUsers,onSaveUsers,notify,onUpd,onApprove,onLogout,onMobile}){
   const [view,setView]=useState(role==="admin"?"uploads":"dashboard");
   const [custTableQ,setCustTableQ]=useState("");
+  const [docCust,setDocCust]=useState(null);
   const smBranchMap=useMemo(()=>{const m={...SM_BRANCH};(nkdUsers?.salesman||[]).forEach(s=>{if(s.name&&s.branch)m[s.name]=s.branch;});return m;},[nkdUsers]);
   const billed=custs.filter(c=>c.billed);
   const thisM=td().slice(0,7);
@@ -3206,11 +3207,32 @@ function OwnerPortal({custs,stockData,billedChassis,statusData,role,user,mBr,sav
         {view==="users"&&isOwner(role)&&<UserMgmt nkdUsers={nkdUsers||DEFAULT_USERS} onSave={onSaveUsers} notify={notify}/>}
 
         {/* ── APPROVALS ── */}
-        {view==="approvals"&&<div style={{maxWidth:800}}><Approvals custs={pendingApprovals} onApprove={onApprove} onOpen={()=>{}} onEditCalc={()=>{}} allC={custs} canApprove={true}/></div>}
+        {view==="approvals"&&<div style={{maxWidth:800}}><Approvals custs={pendingApprovals} onApprove={onApprove} onOpen={c=>setDocCust(c)} onEditCalc={()=>{}} allC={custs} canApprove={true}/></div>}
 
         {/* ── VAULT ── */}
         {view==="vault"&&<DocVault custs={custs} onImport={()=>{}}/>}
       </div>
+      {/* ── DOC VIEWER MODAL ── */}
+      {docCust&&(
+        <div onClick={()=>setDocCust(null)} style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.6)",zIndex:1000,display:"flex",alignItems:"center",justifyContent:"center",padding:16}}>
+          <div onClick={e=>e.stopPropagation()} style={{background:"#fff",borderRadius:16,padding:20,maxWidth:600,width:"100%",maxHeight:"85vh",overflowY:"auto"}}>
+            <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:14}}>
+              <div><div style={{fontWeight:800,fontSize:16,color:"#1e293b"}}>📂 {docCust.name}</div><div style={{fontSize:11,color:"#64748b"}}>{docCust.model} · {docCust.salesman}</div></div>
+              <button onClick={()=>setDocCust(null)} style={{background:"none",border:"none",fontSize:22,cursor:"pointer",color:"#64748b"}}>✕</button>
+            </div>
+            <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10}}>
+              {[["aadhar_photo","Aadhar"],["pan_photo","PAN"],["booking_proof","Booking Proof"],["invoice","Invoice"],["insurance","Insurance"],["moneyreceipt","Money Receipt"],["mr","MR"],["do_letter","DO"]].map(([k,l])=>{
+                const src=(docCust.photos||{})[k];
+                return(<div key={k} style={{border:"1px solid #e2e8f0",borderRadius:10,overflow:"hidden",background:"#f8fafc"}}>
+                  <div style={{fontSize:10,fontWeight:700,color:"#64748b",padding:"6px 10px",borderBottom:"1px solid #e2e8f0"}}>{l}</div>
+                  {src?<a href={src} target="_blank" rel="noreferrer"><img src={src} alt={l} style={{width:"100%",objectFit:"contain",maxHeight:140,cursor:"pointer"}}/></a>
+                  :<div style={{height:80,display:"flex",alignItems:"center",justifyContent:"center",fontSize:11,color:"#94a3b8"}}>No document</div>}
+                </div>);
+              })}
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
