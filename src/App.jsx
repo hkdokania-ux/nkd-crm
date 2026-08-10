@@ -861,10 +861,43 @@ function parseExcel(file,cb,errCb){
 function parseRateChartFile(file,onDone,onErr){
   function saveRC(obj){const existing=ld("nkd_rc",{});const merged={...existing,...obj};sv("nkd_rc",merged);_dbSet("rate_chart",merged);Object.assign(RC,merged);onDone(Object.keys(merged).length);}
   function parseNKDRows(rows){
-    const isNKD=rows[0]&&String(rows[0][0]||"").toUpperCase().includes("PD CODE");
+    if(!rows||!rows.length)return{};
+    // ── CHETAK transposed format: col-0 = row labels, col-1+ = model codes ──
+    const r0c0=String(rows[0][0]||"").toUpperCase().trim();
+    const isChetak=r0c0==="MODEL"&&rows[0].length>1&&!r0c0.includes("PD CODE");
+    if(isChetak){
+      const obj={};
+      const hdrs=rows[0];
+      const norm=s=>String(s||"").toUpperCase().replace(/[-\s]+/g," ").trim();
+      const fRow=kw=>rows.find(r=>norm(r[0]).includes(norm(kw)));
+      const exR=fRow("EX SHOWROOM");
+      const hdlR=fRow("HANDLING CHARGES");
+      const regR=fRow("ROAD TAX")||fRow("REGISTRATION");
+      const insR=fRow("INSURANCE");
+      const onRoadAllR=rows.find(r=>norm(r[0]).includes("INCLUDING ALL"));
+      const onRoadR=onRoadAllR||fRow("ON ROAD PRICE");
+      const amcR=fRow("TEC PAC");
+      const catMatch=String(hdrs[1]||"").match(/Chetak|Pulsar|CT|Platina|Dominar|Avenger/i);
+      const cat=catMatch?catMatch[0]:"OTHER";
+      for(let col=1;col<hdrs.length;col++){
+        const h=String(hdrs[col]||"").trim();if(!h)continue;
+        const m=h.match(/^([A-Z0-9]+)/i);const code=m?m[1].toUpperCase():null;if(!code)continue;
+        const ex=exR?Number(exR[col])||0:0;if(!ex)continue;
+        const hdl=hdlR?Number(hdlR[col])||600:600;
+        const reg=regR?Number(regR[col])||0:0;
+        const ins=insR?Number(insR[col])||0:0;
+        const onRoad=onRoadR?Number(onRoadR[col])||0:Math.round(ex+hdl+reg+ins+1700);
+        const amc=amcR?Number(amcR[col])||0:0;
+        obj[code]={n:h,cat,ex,cAcc:0,hdl,ins,reg,onRoad,amc};
+      }
+      return obj;
+    }
+    // ── NKD Bajaj format: row[0][0] = "PD CODE" ──
+    const isNKD=rows[0]&&String(rows[0][0]||"").toUpperCase().includes("PD CODE")||(rows[1]&&String(rows[1][0]||"").toUpperCase().includes("PD CODE"));
+    const nkdStart=isNKD&&String(rows[0][0]||"").toUpperCase().includes("PD CODE")?0:1;
     if(isNKD){
       const obj={};let cat="OTHER";
-      for(let i=1;i<rows.length;i++){
+      for(let i=nkdStart+1;i<rows.length;i++){
         const r=rows[i];if(!r||r[0]==null)continue;
         const a=String(r[0]).trim(),b=r[1],c=r[2];
         if(!b&&c!=null&&String(c).toUpperCase().includes("EX SHOWROOM")){cat=a.replace(/\s+$/,"");continue;}
@@ -911,7 +944,7 @@ function UploadsHub({stockData,statusData,onStockUpload,onStatusUpload,notify}){
       id:"ratechart",ic:"💰",title:"Rate Chart",color:"#f97316",bg:"rgba(249,115,22,0.08)",border:"rgba(249,115,22,0.4)",mergeLabel:"➕ Add / Merge Models",
       desc:"Bajaj price list Excel — upload directly, no conversion needed",
       current:rcCount>0?rcCount+" models loaded":null,
-      onFile:(file)=>parseRateChartFile(file,n=>notify("✅ Rate chart updated: "+n+" models"),e=>notify("❌ "+e)),
+      onFile:(file)=>parseRateChartFile(file,n=>n>0?notify("✅ Rate chart updated: "+n+" models"):notify("⚠️ No models found — check file format"),e=>notify("❌ "+e)),
     },
     {
       id:"stock",ic:"🏍️",title:"Stock Statement",color:"#34d399",bg:"rgba(52,211,153,0.08)",border:"rgba(52,211,153,0.4)",
