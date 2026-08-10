@@ -3022,6 +3022,8 @@ function OwnerPortal({custs,stockData,billedChassis,statusData,role,user,mBr,sav
   const [view,setView]=useState(role==="admin"?"uploads":"dashboard");
   const [custTableQ,setCustTableQ]=useState("");
   const [docCust,setDocCust]=useState(null);
+  const [docTab,setDocTab]=useState(null);
+  function openCust(c,tab){setDocCust(c);setDocTab(tab||null);}
   const smBranchMap=useMemo(()=>{const m={...SM_BRANCH};(nkdUsers?.salesman||[]).forEach(s=>{if(s.name&&s.branch)m[s.name]=s.branch;});return m;},[nkdUsers]);
   const billed=custs.filter(c=>c.billed);
   const thisM=td().slice(0,7);
@@ -3127,7 +3129,7 @@ function OwnerPortal({custs,stockData,billedChassis,statusData,role,user,mBr,sav
             <div style={{background:"#fff",border:"2px solid #6b8fb5",borderRadius:14,overflow:"auto"}}>
               <table style={{width:"100%",borderCollapse:"collapse",minWidth:900}}>
                 <thead><tr><SB label="Name"/><SB label="Phone"/><SB label="Model"/><SB label="Status"/><SB label="Salesman"/><SB label="Branch"/><SB label="Enquiry"/><SB label="Billed"/><SB label="Revenue"/></tr></thead>
-                <tbody>{filt.slice(0,200).map(c=>{const b=c.billing;const cl=b&&b.calc?b.calc:null;return(<tr key={c.id} style={{cursor:"pointer"}} onClick={()=>setDocCust(c)}><TD v={c.name} bold/><TD v={c.phone} col="#64748b"/><TD v={c.model||"—"}/><TD v={<span style={{fontSize:10,fontWeight:800,background:({"Hot":"#ef4444","Warm":"#f97316","Billed":"#22c55e","Booked":"#8b5cf6","Cold":"#3b82f6","Lost":"#64748b"}[c.status]||"#374151")+"20",color:({"Hot":"#ef4444","Warm":"#f97316","Billed":"#22c55e","Booked":"#8b5cf6","Cold":"#3b82f6","Lost":"#64748b"}[c.status]||"#374151"),padding:"2px 8px",borderRadius:8}}>{c.status}</span>}/><TD v={c.salesman||"—"} col="#64748b"/><TD v={(c.branch||smBranchMap[c.salesman]||"—")} col="#64748b"/><TD v={fd(c.enquiryDate)} col="#94a3b8"/><TD v={c.billed?fd(c.billedDate):"—"} col={c.billed?"#22c55e":"#94a3b8"}/><TD v={cl?fc(cl.E):"—"} col="#f97316" bold/></tr>);})}</tbody>
+                <tbody>{filt.slice(0,200).map(c=>{const b=c.billing;const cl=b&&b.calc?b.calc:null;return(<tr key={c.id} style={{cursor:"pointer"}} onClick={()=>openCust(c)}><TD v={c.name} bold/><TD v={c.phone} col="#64748b"/><TD v={c.model||"—"}/><TD v={<span style={{fontSize:10,fontWeight:800,background:({"Hot":"#ef4444","Warm":"#f97316","Billed":"#22c55e","Booked":"#8b5cf6","Cold":"#3b82f6","Lost":"#64748b"}[c.status]||"#374151")+"20",color:({"Hot":"#ef4444","Warm":"#f97316","Billed":"#22c55e","Booked":"#8b5cf6","Cold":"#3b82f6","Lost":"#64748b"}[c.status]||"#374151"),padding:"2px 8px",borderRadius:8}}>{c.status}</span>}/><TD v={c.salesman||"—"} col="#64748b"/><TD v={(c.branch||smBranchMap[c.salesman]||"—")} col="#64748b"/><TD v={fd(c.enquiryDate)} col="#94a3b8"/><TD v={c.billed?fd(c.billedDate):"—"} col={c.billed?"#22c55e":"#94a3b8"}/><TD v={cl?fc(cl.E):"—"} col="#f97316" bold/></tr>);})}</tbody>
               </table>
               {filt.length>200&&<div style={{padding:"10px 16px",fontSize:12,color:"#94a3b8"}}>Showing 200 of {filt.length} — refine search</div>}
             </div>
@@ -3209,7 +3211,7 @@ function OwnerPortal({custs,stockData,billedChassis,statusData,role,user,mBr,sav
         {view==="users"&&isOwner(role)&&<UserMgmt nkdUsers={nkdUsers||DEFAULT_USERS} onSave={onSaveUsers} notify={notify}/>}
 
         {/* ── APPROVALS ── */}
-        {view==="approvals"&&<div style={{maxWidth:800}}><Approvals custs={pendingApprovals} onApprove={onApprove} onOpen={c=>setDocCust(c)} onEditCalc={()=>{}} allC={custs} canApprove={true}/></div>}
+        {view==="approvals"&&<div style={{maxWidth:800}}><Approvals custs={pendingApprovals} onApprove={onApprove} onOpen={c=>openCust(c,"billing")} onEditCalc={c=>openCust(c,"billing")} allC={custs} canApprove={true}/></div>}
 
         {/* ── VAULT ── */}
         {view==="vault"&&<DocVault custs={custs} onImport={()=>{}}/>}
@@ -3225,14 +3227,14 @@ function OwnerPortal({custs,stockData,billedChassis,statusData,role,user,mBr,sav
             <Detail
               cust={custs.find(c=>c.id===docCust.id)||docCust}
               role={role}
-              onBack={()=>setDocCust(null)}
+              onBack={()=>{setDocCust(null);setDocTab(null);}}
               onUpd={p=>onUpd(docCust.id,p)}
               onLog={()=>{}}
               onBill={()=>{}}
               onBook={()=>{}}
               notify={notify}
-              initTab={null}
-              clearInit={()=>{}}
+              initTab={docTab}
+              clearInit={()=>setDocTab(null)}
               onAddPayment={()=>{}}
               onApprove={onApprove}
               curUser={user}
