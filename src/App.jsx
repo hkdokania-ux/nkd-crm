@@ -859,7 +859,7 @@ function parseExcel(file,cb,errCb){
   rd.readAsArrayBuffer(file);
 }
 function parseRateChartFile(file,onDone,onErr){
-  function saveRC(obj){sv("nkd_rc",obj);_dbSet("rate_chart",obj);Object.assign(RC,obj);onDone(Object.keys(obj).length);}
+  function saveRC(obj){const existing=ld("nkd_rc",{});const merged={...existing,...obj};sv("nkd_rc",merged);_dbSet("rate_chart",merged);Object.assign(RC,merged);onDone(Object.keys(merged).length);}
   function parseNKDRows(rows){
     const isNKD=rows[0]&&String(rows[0][0]||"").toUpperCase().includes("PD CODE");
     if(isNKD){
