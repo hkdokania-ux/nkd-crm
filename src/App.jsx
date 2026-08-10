@@ -3214,24 +3214,32 @@ function OwnerPortal({custs,stockData,billedChassis,statusData,role,user,mBr,sav
         {/* ── VAULT ── */}
         {view==="vault"&&<DocVault custs={custs} onImport={()=>{}}/>}
       </div>
-      {/* ── DOC VIEWER MODAL ── */}
+      {/* ── FULL CUSTOMER DETAIL OVERLAY ── */}
       {docCust&&(
-        <div onClick={()=>setDocCust(null)} style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.6)",zIndex:1000,display:"flex",alignItems:"center",justifyContent:"center",padding:16}}>
-          <div onClick={e=>e.stopPropagation()} style={{background:"#fff",borderRadius:16,padding:20,maxWidth:600,width:"100%",maxHeight:"85vh",overflowY:"auto"}}>
-            <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:14}}>
-              <div><div style={{fontWeight:800,fontSize:16,color:"#1e293b"}}>📂 {docCust.name}</div><div style={{fontSize:11,color:"#64748b"}}>{docCust.model} · {docCust.salesman}</div></div>
-              <button onClick={()=>setDocCust(null)} style={{background:"none",border:"none",fontSize:22,cursor:"pointer",color:"#64748b"}}>✕</button>
-            </div>
-            <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10}}>
-              {[["aadhar_photo","Aadhar"],["pan_photo","PAN"],["booking_proof","Booking Proof"],["invoice","Invoice"],["insurance","Insurance"],["moneyreceipt","Money Receipt"],["mr","MR"],["do_letter","DO"]].map(([k,l])=>{
-                const src=(docCust.photos||{})[k];
-                return(<div key={k} style={{border:"1px solid #e2e8f0",borderRadius:10,overflow:"hidden",background:"#f8fafc"}}>
-                  <div style={{fontSize:10,fontWeight:700,color:"#64748b",padding:"6px 10px",borderBottom:"1px solid #e2e8f0"}}>{l}</div>
-                  {src?<a href={src} target="_blank" rel="noreferrer"><img src={src} alt={l} style={{width:"100%",objectFit:"contain",maxHeight:140,cursor:"pointer"}}/></a>
-                  :<div style={{height:80,display:"flex",alignItems:"center",justifyContent:"center",fontSize:11,color:"#94a3b8"}}>No document</div>}
-                </div>);
-              })}
-            </div>
+        <div style={{position:"fixed",inset:0,background:"#f0f7ff",zIndex:1000,overflowY:"auto",display:"flex",flexDirection:"column"}}>
+          <div style={{background:"#fff",borderBottom:"1px solid #6b8fb5",padding:"12px 20px",display:"flex",alignItems:"center",gap:12,position:"sticky",top:0,zIndex:10}}>
+            <button onClick={()=>setDocCust(null)} style={{background:"#f1f5f9",border:"1px solid #6b8fb5",borderRadius:10,padding:"7px 14px",cursor:"pointer",fontSize:13,fontWeight:700,color:"#1e293b"}}>← Back</button>
+            <div><div style={{fontWeight:800,fontSize:15,color:"#1e293b"}}>{docCust.name}</div><div style={{fontSize:11,color:"#64748b"}}>{docCust.model} · {docCust.salesman}</div></div>
+          </div>
+          <div style={{flex:1,padding:16,maxWidth:700,margin:"0 auto",width:"100%"}}>
+            <Detail
+              cust={custs.find(c=>c.id===docCust.id)||docCust}
+              role={role}
+              onBack={()=>setDocCust(null)}
+              onUpd={p=>onUpd(docCust.id,p)}
+              onLog={()=>{}}
+              onBill={()=>{}}
+              onBook={()=>{}}
+              notify={notify}
+              initTab={null}
+              clearInit={()=>{}}
+              onAddPayment={()=>{}}
+              onApprove={onApprove}
+              curUser={user}
+              onTransferReq={()=>{}}
+              onApproveTransfer={()=>{}}
+              onCorrectionReq={()=>{}}
+            />
           </div>
         </div>
       )}
