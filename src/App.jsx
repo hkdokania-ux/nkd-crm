@@ -858,8 +858,61 @@ function parseExcel(file,cb,errCb){
   };
   rd.readAsArrayBuffer(file);
 }
+function parseRateChartFile(file,onDone,onErr){
+  function saveRC(obj){sv("nkd_rc",obj);_dbSet("rate_chart",obj);Object.assign(RC,obj);onDone(Object.keys(obj).length);}
+  function parseNKDRows(rows){
+    const isNKD=rows[0]&&String(rows[0][0]||"").toUpperCase().includes("PD CODE");
+    if(isNKD){
+      const obj={};let cat="OTHER";
+      for(let i=1;i<rows.length;i++){
+        const r=rows[i];if(!r||r[0]==null)continue;
+        const a=String(r[0]).trim(),b=r[1],c=r[2];
+        if(!b&&c!=null&&String(c).toUpperCase().includes("EX SHOWROOM")){cat=a.replace(/\s+$/,"");continue;}
+        if(!b||c==null||typeof c!=="number")continue;
+        const ex=Number(c)||0,cacc=typeof r[3]==="number"?r[3]:0,hdl=typeof r[4]==="number"?r[4]:600,ins=typeof r[5]==="number"?r[5]:0,amc=typeof r[12]==="number"?r[12]:0;
+        let reg=0;
+        if(typeof r[6]==="number"){reg=Math.round(r[6]);}
+        else if(typeof r[6]==="string"&&r[6].startsWith("=")){
+          const pm=r[6].match(/\*(\d+)%/);const pct=pm?parseInt(pm[1])/100:0.07;
+          const cs=[...r[6].matchAll(/\+(\d{4,})/g)].map(m=>parseInt(m[1]));
+          reg=Math.round(ex*pct+cs.reduce((s,v)=>s+v,0));
+        }
+        const onRoad=typeof r[11]==="number"?Math.round(r[11]):Math.round(ex+cacc+hdl+ins+reg+1700);
+        const code=a.toUpperCase();
+        if(code)obj[code]={n:String(b).trim(),cat,ex:Math.round(ex),cAcc:Math.round(cacc),hdl:Math.round(hdl),ins:Math.round(ins),reg,onRoad,amc:Math.round(amc)};
+      }
+      return obj;
+    }
+    const hd=rows[0].map(x=>String(x||"").toLowerCase().trim());
+    const gi=n=>hd.indexOf(n);const obj={};
+    for(let i=1;i<rows.length;i++){const r=rows[i];const cd=String(r[gi("code")]||"").trim().toUpperCase();if(!cd)continue;
+      obj[cd]={n:String(r[gi("name")]||cd),cat:String(r[gi("cat")]||"OTHER"),ex:+r[gi("ex")]||0,cAcc:+r[gi("cacc")]||0,hdl:+r[gi("hdl")]||600,ins:+r[gi("ins")]||0,reg:+r[gi("reg")]||0,onRoad:+r[gi("onroad")]||0,amc:+r[gi("amc")]||0};}
+    return obj;
+  }
+  if(file.name.match(/\.xlsx?$/i)){
+    const rd=new FileReader();rd.onload=ev=>{
+      try{const wb=XLSX.read(new Uint8Array(ev.target.result),{type:"array",cellFormula:true,cellNF:false,cellText:false});
+      const ws=wb.Sheets[wb.SheetNames[0]];
+      const rows=XLSX.utils.sheet_to_json(ws,{header:1,defval:null,raw:true});
+      saveRC(parseNKDRows(rows));}catch(err){onErr("Could not read Excel: "+err.message);}
+    };rd.readAsArrayBuffer(file);
+  }else{
+    const rd=new FileReader();rd.onload=ev=>{
+      try{const lines=ev.target.result.split(/\r?\n/).filter(x=>x.trim());
+      const rows=lines.map(l=>l.split(",").map(x=>{const n=Number(x.trim());return isNaN(n)||x.trim()===""?x.trim():n;}));
+      saveRC(parseNKDRows(rows));}catch(err){onErr("Could not read CSV: "+err.message);}
+    };rd.readAsText(file);
+  }
+}
 function UploadsHub({stockData,statusData,onStockUpload,onStatusUpload,notify}){
+  const rcCount=Object.keys(RC||{}).length;
   const uploads=[
+    {
+      id:"ratechart",ic:"💰",title:"Rate Chart",color:"#f97316",bg:"rgba(249,115,22,0.08)",border:"rgba(249,115,22,0.4)",
+      desc:"Bajaj price list Excel — upload directly, no conversion needed",
+      current:rcCount>0?rcCount+" models loaded":null,
+      onFile:(file)=>parseRateChartFile(file,n=>notify("✅ Rate chart updated: "+n+" models"),e=>notify("❌ "+e)),
+    },
     {
       id:"stock",ic:"🏍️",title:"Stock Statement",color:"#34d399",bg:"rgba(52,211,153,0.08)",border:"rgba(52,211,153,0.4)",
       desc:"Branch-wise vehicle stock from dealership",
@@ -2367,57 +2420,7 @@ function Reports({custs,onImportCust}){
       }} style={{width:"100%",background:"rgba(52,211,153,0.1)",border:"1px solid rgba(52,211,153,0.35)",borderRadius:12,padding:11,color:"#34d399",fontWeight:700,fontSize:12,cursor:"pointer",marginBottom:10}}>📊 Export Branch Report (Excel/CSV)</button>
       <div className="glass" style={{background:"#ffffff",borderRadius:14,padding:12,marginBottom:14}}>
         <div style={{fontSize:11,fontWeight:800,color:"#60a5fa",marginBottom:8}}>⬆️ BULK UPLOADS</div>
-        <div style={{fontSize:10,color:"#94a3b8",marginBottom:4}}>1. Rate Chart — upload your Bajaj price list Excel (.xlsx) directly, no conversion needed</div>
-        <input type="file" accept=".xlsx,.xls,.csv" onChange={e=>{
-          const fl=e.target.files[0];if(!fl)return;
-          function saveRC(obj){sv("nkd_rc",obj);_dbSet("rate_chart",obj);Object.assign(RC,obj);alert("✅ Rate chart updated: "+Object.keys(obj).length+" models.");}
-          function parseNKDRows(rows){
-            // Detect NKD Bajaj price list format (PD CODE / MODEL DISCRIPTION headers)
-            const isNKD=rows[0]&&String(rows[0][0]||"").toUpperCase().includes("PD CODE");
-            if(isNKD){
-              const obj={};let cat="OTHER";
-              for(let i=1;i<rows.length;i++){
-                const r=rows[i];if(!r||r[0]==null)continue;
-                const a=String(r[0]).trim(),b=r[1],c=r[2];
-                if(!b&&c!=null&&String(c).toUpperCase().includes("EX SHOWROOM")){cat=a.replace(/\s+$/,"");continue;}
-                if(!b||c==null||typeof c!=="number")continue;
-                const ex=Number(c)||0,cacc=typeof r[3]==="number"?r[3]:0,hdl=typeof r[4]==="number"?r[4]:600,ins=typeof r[5]==="number"?r[5]:0,amc=typeof r[12]==="number"?r[12]:0;
-                let reg=0;
-                if(typeof r[6]==="number"){reg=Math.round(r[6]);}
-                else if(typeof r[6]==="string"&&r[6].startsWith("=")){
-                  const pm=r[6].match(/\*(\d+)%/);const pct=pm?parseInt(pm[1])/100:0.07;
-                  const cs=[...r[6].matchAll(/\+(\d{4,})/g)].map(m=>parseInt(m[1]));
-                  reg=Math.round(ex*pct+cs.reduce((s,v)=>s+v,0));
-                }
-                const onRoad=typeof r[11]==="number"?Math.round(r[11]):Math.round(ex+cacc+hdl+ins+reg+1700);
-                const code=a.toUpperCase();
-                if(code)obj[code]={n:String(b).trim(),cat,ex:Math.round(ex),cAcc:Math.round(cacc),hdl:Math.round(hdl),ins:Math.round(ins),reg,onRoad,amc:Math.round(amc)};
-              }
-              return obj;
-            }
-            // Standard CRM CSV format: code,name,cat,ex,cAcc,hdl,ins,reg,onRoad,amc
-            const hd=rows[0].map(x=>String(x||"").toLowerCase().trim());
-            const gi=n=>hd.indexOf(n);const obj={};
-            for(let i=1;i<rows.length;i++){const r=rows[i];const cd=String(r[gi("code")]||"").trim().toUpperCase();if(!cd)continue;
-              obj[cd]={n:String(r[gi("name")]||cd),cat:String(r[gi("cat")]||"OTHER"),ex:+r[gi("ex")]||0,cAcc:+r[gi("cacc")]||0,hdl:+r[gi("hdl")]||600,ins:+r[gi("ins")]||0,reg:+r[gi("reg")]||0,onRoad:+r[gi("onroad")]||0,amc:+r[gi("amc")]||0};}
-            return obj;
-          }
-          if(fl.name.match(/\.xlsx?$/i)){
-            const rd=new FileReader();rd.onload=ev=>{
-              try{const wb=XLSX.read(new Uint8Array(ev.target.result),{type:"array",cellFormula:true,cellNF:false,cellText:false});
-              const ws=wb.Sheets[wb.SheetNames[0]];
-              const rows=XLSX.utils.sheet_to_json(ws,{header:1,defval:null,raw:true});
-              saveRC(parseNKDRows(rows));}catch(err){alert("Could not read Excel: "+err.message);}
-            };rd.readAsArrayBuffer(fl);
-          }else{
-            const rd=new FileReader();rd.onload=ev=>{
-              try{const lines=ev.target.result.split(/\r?\n/).filter(x=>x.trim());
-              const rows=lines.map(l=>l.split(",").map(x=>{const n=Number(x.trim());return isNaN(n)||x.trim()===""?x.trim():n;}));
-              saveRC(parseNKDRows(rows));}catch(err){alert("Could not read CSV: "+err.message);}
-            };rd.readAsText(fl);
-          }
-          e.target.value="";}} style={{width:"100%",background:"#c2d6ec",borderRadius:9,padding:8,fontSize:11,color:"#1e293b",border:"1px dashed #2a3040",marginBottom:10}}/>
-        <div style={{fontSize:10,color:"#94a3b8",marginBottom:4}}>2. Old Customers (10,000+) — columns: name,phone,model,salesman,enquirydate,status,remarks</div>
+        <div style={{fontSize:10,color:"#94a3b8",marginBottom:4}}>Old Customers (10,000+) — columns: name,phone,model,salesman,enquirydate,status,remarks</div>
         <input type="file" accept=".csv" onChange={e=>{const fl=e.target.files[0];if(!fl)return;const rd=new FileReader();rd.onload=ev=>{
           try{const lines=ev.target.result.split(/\r?\n/).filter(x=>x.trim());const hd=lines[0].toLowerCase().split(",").map(x=>x.trim());
           const gi=n=>hd.indexOf(n);const rows=[];const perDay={};
