@@ -823,7 +823,7 @@ function DocGrid({cust,onUpload,docs}){
               </div>
               {existing&&(
                 <div style={{position:'relative'}}>
-                  <img src={existing} alt={l} style={{width:"100%",maxHeight:220,objectFit:"contain",background:"#000",display:"block"}}/>
+                  <img src={existing} alt={l} style={{width:"100%",maxHeight:400,objectFit:"contain",background:"#000",display:"block",cursor:"pointer"}} onClick={()=>window.open(existing,"_blank")}/>
                   <button onClick={()=>setCropSt({key,src:existing})} style={{position:'absolute',top:8,right:8,background:'rgba(0,0,0,0.72)',border:'1px solid #60a5fa',borderRadius:8,padding:'6px 12px',color:'#60a5fa',fontSize:12,fontWeight:700,cursor:'pointer'}}>✏️ Edit / Crop</button>
                 </div>
               )}
@@ -2295,7 +2295,7 @@ function Approvals({custs,onApprove,onOpen,onEditCalc,allC,canApprove}){
                   </div>);
                 })}
               </div>
-              <button onClick={()=>onOpen(c)} style={{width:"100%",background:"#c2d6ec",border:"1px solid #6b8fb5",borderRadius:9,padding:8,color:"#1e293b",fontSize:11,fontWeight:600,cursor:"pointer"}}>📂 View Documents</button>
+              <button onClick={()=>onOpen(c,"docs")} style={{width:"100%",background:"#c2d6ec",border:"1px solid #6b8fb5",borderRadius:9,padding:8,color:"#1e293b",fontSize:11,fontWeight:600,cursor:"pointer"}}>📂 View Documents</button>
             </div>
             {c.billing?.amtDiff&&c.billing.amtDiff.status==="pending"&&(
               <div style={{margin:"0 14px 10px",background:"rgba(249,115,22,0.08)",border:"1px solid rgba(249,115,22,0.4)",borderRadius:9,padding:"10px 12px"}}>
