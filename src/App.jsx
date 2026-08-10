@@ -1000,7 +1000,7 @@ function StockView({stockData,billedChassis,role,userBranch,onUpload,notify}){
 
   const filtered=useMemo(()=>{
     const base=q.trim().length<2?available:available.filter(r=>keys.some(k=>String(r[k]||"").toLowerCase().includes(q.toLowerCase())));
-    return [...base].sort(branchSort);
+    return [...base].sort((a,b)=>{const bs=branchSort(a,b);if(bs!==0)return bs;const da=getAge(a)??-1,db=getAge(b)??-1;return db-da;});
   },[available,q,keys,userBranch,branchKey]);
   const byModel=useMemo(()=>{
     if(!modelKey)return[];
@@ -1022,7 +1022,9 @@ function StockView({stockData,billedChassis,role,userBranch,onUpload,notify}){
       const aOwn=userBranch&&a[1].some(r=>isMyBranch(r))?0:1;
       const bOwn=userBranch&&b[1].some(r=>isMyBranch(r))?0:1;
       if(aOwn!==bOwn)return aOwn-bOwn;
-      return b[1].length-a[1].length;
+      const aMax=Math.max(...a[1].map(r=>getAge(r)??0));
+      const bMax=Math.max(...b[1].map(r=>getAge(r)??0));
+      return bMax-aMax;
     });
   },[available,modelKey,userBranch,branchKey]);
 
