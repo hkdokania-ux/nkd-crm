@@ -1131,14 +1131,14 @@ function StockView({stockData,billedChassis,role,userBranch,onUpload,notify}){
                       {ownRows.length>0&&(
                         <div style={{marginTop:8}}>
                           {userBranch&&otherRows.length>0&&<div style={{fontSize:10,fontWeight:700,color:"#1d4ed8",marginBottom:6,paddingLeft:2}}>📍 {userBranch}</div>}
-                          {ownRows.sort((a,b)=>(getAge(b)||0)-(getAge(a)||0)).map((row,i)=><StockCard key={"o"+i} row={{...row,__age:getAge(row)}} i={i}/>)}
+                          {[...ownRows].sort((a,b)=>(getAge(b)||0)-(getAge(a)||0)).map((row,i)=><StockCard key={"o"+i} row={{...row,__age:getAge(row)}} i={i}/>)}
                         </div>
                       )}
                       {/* Other branches */}
                       {otherRows.length>0&&(
                         <div style={{marginTop:ownRows.length>0?8:8}}>
                           {ownRows.length>0&&<div style={{fontSize:10,fontWeight:600,color:"#94a3b8",marginBottom:6,paddingLeft:2,display:"flex",alignItems:"center",gap:6}}><div style={{flex:1,height:1,background:"#e2e8f0"}}/><span>Other Branches</span><div style={{flex:1,height:1,background:"#e2e8f0"}}/></div>}
-                          {otherRows.sort((a,b)=>(getAge(b)||0)-(getAge(a)||0)).map((row,i)=><StockCard key={"r"+i} row={{...row,__age:getAge(row)}} i={i}/>)}
+                          {[...otherRows].sort((a,b)=>(getAge(b)||0)-(getAge(a)||0)).map((row,i)=><StockCard key={"r"+i} row={{...row,__age:getAge(row)}} i={i}/>)}
                         </div>
                       )}
                     </div>
