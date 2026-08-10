@@ -3073,8 +3073,8 @@ function OwnerPortal({custs,stockData,billedChassis,statusData,role,user,mBr,sav
         {/* ── DASHBOARD ── */}
         {view==="dashboard"&&<>
           <div style={{display:"grid",gridTemplateColumns:"repeat(4,1fr)",gap:16,marginBottom:24}}>
-            {[[" Total Enquiries",custs.length,"#3b82f6","👥"],[" Bookings",custs.filter(c=>c.booking).length,"#8b5cf6","📝"],[" Total Billed",billed.length,"#22c55e","✅"],[" Total Revenue",fc(billed.reduce((s,c)=>s+((c.billing&&c.billing.calc&&c.billing.calc.E)||0),0)),"#f97316","💰"]].map(([l,v,col,ic])=>(
-              <div key={l} style={{background:"#fff",border:"2px solid #6b8fb5",borderRadius:16,padding:"20px 22px",boxShadow:"0 2px 14px rgba(15,23,42,.06)"}}>
+            {[[" Total Enquiries",custs.length,"#3b82f6","👥","customers"],[" Bookings",custs.filter(c=>c.booking).length,"#8b5cf6","📝","customers"],[" Total Billed",billed.length,"#22c55e","✅","customers"],[" Total Revenue",fc(billed.reduce((s,c)=>s+((c.billing&&c.billing.calc&&c.billing.calc.E)||0),0)),"#f97316","💰","customers"]].map(([l,v,col,ic,nav])=>(
+              <div key={l} onClick={()=>setView(nav)} style={{background:"#fff",border:"2px solid #6b8fb5",borderRadius:16,padding:"20px 22px",boxShadow:"0 2px 14px rgba(15,23,42,.06)",cursor:"pointer",transition:"box-shadow 0.15s"}} onMouseEnter={e=>e.currentTarget.style.boxShadow="0 4px 20px rgba(15,23,42,.13)"} onMouseLeave={e=>e.currentTarget.style.boxShadow="0 2px 14px rgba(15,23,42,.06)"}>
                 <div style={{fontSize:28,marginBottom:8}}>{ic}</div>
                 <div style={{fontSize:28,fontWeight:900,color:col,lineHeight:1}}>{v}</div>
                 <div style={{fontSize:12,color:"#64748b",marginTop:6,fontWeight:600}}>{l}</div>
@@ -3082,8 +3082,8 @@ function OwnerPortal({custs,stockData,billedChassis,statusData,role,user,mBr,sav
             ))}
           </div>
           <div style={{display:"grid",gridTemplateColumns:"repeat(3,1fr)",gap:16,marginBottom:24}}>
-            {[["Billed This Month",billedThisM.length,"#22c55e"],["Revenue This Month",fc(revThisM),"#f97316"],["Hot + Warm Leads",custs.filter(c=>!c.billed&&!c.stopped&&["Hot","Warm"].includes(c.status)).length,"#8b5cf6"]].map(([l,v,col])=>(
-              <div key={l} style={{background:"#fff",border:"2px solid "+col+"50",borderRadius:14,padding:"16px 20px"}}>
+            {[["Billed This Month",billedThisM.length,"#22c55e","customers"],["Revenue This Month",fc(revThisM),"#f97316","customers"],["Hot + Warm Leads",custs.filter(c=>!c.billed&&!c.stopped&&["Hot","Warm"].includes(c.status)).length,"#8b5cf6","customers"]].map(([l,v,col,nav])=>(
+              <div key={l} onClick={()=>setView(nav)} style={{background:"#fff",border:"2px solid "+col+"50",borderRadius:14,padding:"16px 20px",cursor:"pointer",transition:"box-shadow 0.15s"}} onMouseEnter={e=>e.currentTarget.style.boxShadow="0 4px 16px rgba(15,23,42,.1)"} onMouseLeave={e=>e.currentTarget.style.boxShadow="none"}>
                 <div style={{fontSize:22,fontWeight:900,color:col}}>{v}</div>
                 <div style={{fontSize:12,color:"#64748b",marginTop:4,fontWeight:600}}>{l}</div>
               </div>
@@ -3125,7 +3125,7 @@ function OwnerPortal({custs,stockData,billedChassis,statusData,role,user,mBr,sav
             <div style={{background:"#fff",border:"2px solid #6b8fb5",borderRadius:14,overflow:"auto"}}>
               <table style={{width:"100%",borderCollapse:"collapse",minWidth:900}}>
                 <thead><tr><SB label="Name"/><SB label="Phone"/><SB label="Model"/><SB label="Status"/><SB label="Salesman"/><SB label="Branch"/><SB label="Enquiry"/><SB label="Billed"/><SB label="Revenue"/></tr></thead>
-                <tbody>{filt.slice(0,200).map(c=>{const b=c.billing;const cl=b&&b.calc?b.calc:null;return(<tr key={c.id} style={{cursor:"pointer"}} onClick={()=>{}}><TD v={c.name} bold/><TD v={c.phone} col="#64748b"/><TD v={c.model||"—"}/><TD v={<span style={{fontSize:10,fontWeight:800,background:({"Hot":"#ef4444","Warm":"#f97316","Billed":"#22c55e","Booked":"#8b5cf6","Cold":"#3b82f6","Lost":"#64748b"}[c.status]||"#374151")+"20",color:({"Hot":"#ef4444","Warm":"#f97316","Billed":"#22c55e","Booked":"#8b5cf6","Cold":"#3b82f6","Lost":"#64748b"}[c.status]||"#374151"),padding:"2px 8px",borderRadius:8}}>{c.status}</span>}/><TD v={c.salesman||"—"} col="#64748b"/><TD v={(c.branch||smBranchMap[c.salesman]||"—")} col="#64748b"/><TD v={fd(c.enquiryDate)} col="#94a3b8"/><TD v={c.billed?fd(c.billedDate):"—"} col={c.billed?"#22c55e":"#94a3b8"}/><TD v={cl?fc(cl.E):"—"} col="#f97316" bold/></tr>);})}</tbody>
+                <tbody>{filt.slice(0,200).map(c=>{const b=c.billing;const cl=b&&b.calc?b.calc:null;return(<tr key={c.id} style={{cursor:"pointer"}} onClick={()=>setDocCust(c)}><TD v={c.name} bold/><TD v={c.phone} col="#64748b"/><TD v={c.model||"—"}/><TD v={<span style={{fontSize:10,fontWeight:800,background:({"Hot":"#ef4444","Warm":"#f97316","Billed":"#22c55e","Booked":"#8b5cf6","Cold":"#3b82f6","Lost":"#64748b"}[c.status]||"#374151")+"20",color:({"Hot":"#ef4444","Warm":"#f97316","Billed":"#22c55e","Booked":"#8b5cf6","Cold":"#3b82f6","Lost":"#64748b"}[c.status]||"#374151"),padding:"2px 8px",borderRadius:8}}>{c.status}</span>}/><TD v={c.salesman||"—"} col="#64748b"/><TD v={(c.branch||smBranchMap[c.salesman]||"—")} col="#64748b"/><TD v={fd(c.enquiryDate)} col="#94a3b8"/><TD v={c.billed?fd(c.billedDate):"—"} col={c.billed?"#22c55e":"#94a3b8"}/><TD v={cl?fc(cl.E):"—"} col="#f97316" bold/></tr>);})}</tbody>
               </table>
               {filt.length>200&&<div style={{padding:"10px 16px",fontSize:12,color:"#94a3b8"}}>Showing 200 of {filt.length} — refine search</div>}
             </div>
