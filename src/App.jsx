@@ -2450,8 +2450,8 @@ function Reports({custs,onImportCust,nkdUsers}){
       </div>
       <button onClick={()=>{
         const rows=[["Salesman","Branch","Total Leads","Bookings","Test Rides","Docs Collected","Sold","Revenue"]];
-        SM.forEach(s=>{const m=allC.filter(c=>c.salesman===s);
-          rows.push([s,smBranchMap[s],m.length,m.filter(c=>c.booking).length,m.filter(c=>c.testRide).length,m.filter(c=>c.photos&&Object.keys(c.photos).some(k=>c.photos[k])).length,m.filter(c=>c.billed).length,m.filter(c=>c.billed).reduce((x,c)=>x+((c.billing&&c.billing.calc&&c.billing.calc.E)||0),0)]);});
+        (nkdUsers?.salesman||[]).forEach(({name:s,branch:br})=>{const m=allC.filter(c=>c.salesman===s);
+          rows.push([s,br||smBranchMap[s]||"",m.length,m.filter(c=>c.booking).length,m.filter(c=>c.testRide).length,m.filter(c=>c.photos&&Object.keys(c.photos).some(k=>c.photos[k])).length,m.filter(c=>c.billed).length,m.filter(c=>c.billed).reduce((x,c)=>x+((c.billing&&c.billing.calc&&c.billing.calc.E)||0),0)]);});
         dlFile(rows.map(r=>r.join(",")).join("\n"),"NKD_Branch_Report_"+td()+".csv","text/csv");
       }} style={{width:"100%",background:"rgba(52,211,153,0.1)",border:"1px solid rgba(52,211,153,0.35)",borderRadius:12,padding:11,color:"#34d399",fontWeight:700,fontSize:12,cursor:"pointer",marginBottom:10}}>📊 Export Branch Report (Excel/CSV)</button>
       <div className="glass" style={{background:"#ffffff",borderRadius:14,padding:12,marginBottom:14}}>
@@ -2544,36 +2544,9 @@ function DocVault({custs,onImport}){
       <div style={{display:"flex",gap:6,marginBottom:10}}>
         {[["approved","✅ Approved"],["billed","Billed"],["all","All"]].map(([k,l])=><button key={k} onClick={()=>setFlt(k)} style={{flex:1,padding:"7px",borderRadius:10,fontSize:11,fontWeight:700,cursor:"pointer",background:flt===k?"#dbeafe":"#6b8fb5",color:flt===k?"#60a5fa":"#8892a4",border:"1px solid "+(flt===k?"#3b82f6":"#6b8fb5")}}>{l}</button>)}
       </div>
-      <div style={{background:"#ffffff",border:"1px solid #6b8fb5",borderRadius:13,padding:"12px 14px",marginBottom:12}}>
-        <div style={{fontSize:11,color:"#f97316",fontWeight:700,marginBottom:6}}>📅 SELECT MONTH FOR REPORTS</div>
-        <input type="month" value={repMonth} onChange={e=>setRepMonth(e.target.value)} style={{...inp,fontSize:14,padding:"10px 12px"}}/>
-        <div style={{fontSize:11,color:"#94a3b8",marginTop:6}}>{billedForMonth.length} billed customers in {repMonth}</div>
-      </div>
-      <div style={{display:"flex",flexDirection:"column",gap:7,marginBottom:14}}>
-        <button onClick={()=>{
-          const H=["Bill Date","Customer","Phone","Address","Father Name","Aadhar","PAN","Model","Code","Chassis","Engine","Colour","Delivery Date","MR No","Pay Mode","Financed By","Reg No","Salesman","Branch","Last Modified"];
-          const rows=billedForMonth.filter(c=>c.billing).map(c=>{const b=c.billing;
-            return[c.billedDate||"",c.name||"",c.phone||"",c.address||"",c.fatherName||"",c.aadhar||"",c.pan||"",c.model||"",c.modelCode||"",b.chassis||"",b.engine||"",b.color||"",b.deliveryDate||"",b.mrNo||"",b.payMode||"",b.financeBank||"Cash",b.registrationNo||"",c.salesman||"",c.branch||"",c.updatedAt||c.billedDate||""];
-          });
-          if(rows.length===0){alert("No billed customers for "+repMonth);return;}
-          const wb=XLSX.utils.book_new();const ws=XLSX.utils.aoa_to_sheet([H,...rows]);
-          ws["!cols"]=H.map(()=>({wch:16}));XLSX.utils.book_append_sheet(wb,ws,"Billing Team");
-          XLSX.writeFile(wb,"NKD_BillingTeam_"+repMonth+".xlsx");
-        }} style={{width:"100%",background:"rgba(52,211,153,0.1)",border:"1px solid rgba(52,211,153,0.35)",borderRadius:11,padding:"11px",color:"#34d399",fontWeight:700,fontSize:12,cursor:"pointer"}}>🧾 Billing Team — {repMonth}</button>
-        <button onClick={()=>{
-          const H=["Bill Date","Customer","Phone","Address","Father Name","Model","Code","Chassis","Engine","Delivery Date","MR No","Pay Mode","Financed By","Reg No","Ex-Showroom","Comp Acc","Handling","Insurance","Registration","Accessories","Teflon","Hypo","ATW","RSA","AMC","TOTAL ON-ROAD","Consumer Offer","Special Disc","Disc Remarks","Disc Adj Amt","Corporate","DEAL PRICE","Booking Amt","Exchange Vehicle","Exchange Value","NET AMT","Loan","BALANCE","PAID","EXCESS","DIFF","Salesman","Branch","Approved By","Enquiry Date","Last Modified"];
-          const rows=billedForMonth.filter(c=>c.billing&&c.billing.calc).map(c=>{const b=c.billing,k=b.calc;
-            return[c.billedDate||"",c.name||"",c.phone||"",c.address||"",c.fatherName||"",c.model||"",c.modelCode||"",b.chassis||"",b.engine||"",b.deliveryDate||"",b.mrNo||"",b.payMode||"",b.financeBank||"Cash",b.registrationNo||"",k.ex,k.ca,k.hdl,k.ins,k.reg,k.acc,k.tef,k.hyp,k.atw||0,k.rsa||0,k.amcV,k.C,k.cof,k.sdis,b.discRem||"",b.discAmt||0,k.corp,k.E,k.bk,c.exchangeAsked||"",k.exv,k.G,k.loan,k.I,k.paid,k.excess||0,k.K,c.salesman||"",c.branch||"",c.approvedBy||"",c.enquiryDate||"",c.updatedAt||c.billedDate||""];
-          });
-          if(rows.length===0){alert("No billed customers for "+repMonth);return;}
-          const wb=XLSX.utils.book_new();const ws=XLSX.utils.aoa_to_sheet([H,...rows]);
-          ws["!cols"]=H.map(()=>({wch:16}));XLSX.utils.book_append_sheet(wb,ws,"Accounts Team");
-          XLSX.writeFile(wb,"NKD_AccountsTeam_"+repMonth+".xlsx");
-        }} style={{width:"100%",background:"rgba(96,165,250,0.1)",border:"1px solid rgba(96,165,250,0.35)",borderRadius:11,padding:"11px",color:"#60a5fa",fontWeight:700,fontSize:12,cursor:"pointer"}}>💰 Accounts Team — {repMonth}</button>
-        <div style={{display:"flex",gap:7}}>
-          <button onClick={exportDB} style={{flex:1,background:"rgba(52,211,153,0.1)",border:"1px solid rgba(52,211,153,0.35)",borderRadius:11,padding:"11px",color:"#34d399",fontWeight:700,fontSize:12,cursor:"pointer"}}>⬇️ Export Full Database</button>
-          <label style={{flex:1,background:"rgba(139,92,246,0.1)",border:"1px solid rgba(139,92,246,0.35)",borderRadius:11,padding:"11px",color:"#a78bfa",fontWeight:700,fontSize:12,cursor:"pointer",textAlign:"center"}}>⬆️ Import Database<input type="file" accept=".json" style={{display:"none"}} onChange={e=>e.target.files[0]&&importDB(e.target.files[0])}/></label>
-        </div>
+      <div style={{display:"flex",gap:7,marginBottom:14}}>
+        <button onClick={exportDB} style={{flex:1,background:"rgba(52,211,153,0.1)",border:"1px solid rgba(52,211,153,0.35)",borderRadius:11,padding:"11px",color:"#34d399",fontWeight:700,fontSize:12,cursor:"pointer"}}>⬇️ Export Full Database</button>
+        <label style={{flex:1,background:"rgba(139,92,246,0.1)",border:"1px solid rgba(139,92,246,0.35)",borderRadius:11,padding:"11px",color:"#a78bfa",fontWeight:700,fontSize:12,cursor:"pointer",textAlign:"center"}}>⬆️ Import Database<input type="file" accept=".json" style={{display:"none"}} onChange={e=>e.target.files[0]&&importDB(e.target.files[0])}/></label>
       </div>
       {withDocs.length===0&&<div style={{color:"#64748b",textAlign:"center",padding:32,fontSize:13}}>{flt==="approved"?"No approved parties with documents yet":"No documents uploaded yet"}</div>}
       {withDocs.map(c=>{
