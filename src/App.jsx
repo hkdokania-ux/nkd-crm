@@ -3022,7 +3022,8 @@ function OwnerPortal({custs,stockData,billedChassis,statusData,role,user,mBr,sav
   const modelMap={};billed.forEach(c=>{const m=c.model||"Unknown";modelMap[m]=(modelMap[m]||0)+1;});
   const modelWise=Object.entries(modelMap).sort((a,b)=>b[1]-a[1]);
   const smMap={};custs.forEach(c=>{if(!smMap[c.salesman])smMap[c.salesman]={enq:0,book:0,bill:0,rev:0,branch:smBranchMap[c.salesman]||""};smMap[c.salesman].enq++;if(c.booking)smMap[c.salesman].book++;if(c.billed){smMap[c.salesman].bill++;smMap[c.salesman].rev+=((c.billing&&c.billing.calc&&c.billing.calc.E)||0);}});
-  const smPerf=Object.entries(smMap).sort((a,b)=>b[1].bill-a[1].bill);
+  const activeSM=new Set((nkdUsers?.salesman||[]).map(s=>s.name));
+  const smPerf=Object.entries(smMap).filter(([s])=>activeSM.has(s)).sort((a,b)=>b[1].bill-a[1].bill);
   const pendingApprovals=custs.filter(c=>c.billing&&c.managerApproval===null);
   const navItems=role==="admin"
     ?[{id:"uploads",l:"Uploads & Data",ic:"📤"},{id:"vault",l:"Document Vault",ic:"📁"}]
