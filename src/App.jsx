@@ -3021,6 +3021,7 @@ function CashBook({custs,smBranchMap}){
 function OwnerPortal({custs,stockData,billedChassis,statusData,role,user,mBr,saveStockData,saveStatusData,nkdUsers,onSaveUsers,notify,onUpd,onApprove,onLogout,onMobile}){
   const [view,setView]=useState(role==="admin"?"uploads":"dashboard");
   const [custTableQ,setCustTableQ]=useState("");
+  const [custStatusF,setCustStatusF]=useState("All");
   const [docCust,setDocCust]=useState(null);
   const [docTab,setDocTab]=useState(null);
   function openCust(c,tab){setDocCust(c);setDocTab(tab||null);}
@@ -3077,8 +3078,8 @@ function OwnerPortal({custs,stockData,billedChassis,statusData,role,user,mBr,sav
         {/* ── DASHBOARD ── */}
         {view==="dashboard"&&<>
           <div style={{display:"grid",gridTemplateColumns:"repeat(4,1fr)",gap:16,marginBottom:24}}>
-            {[[" Total Enquiries",custs.length,"#3b82f6","👥","customers"],[" Bookings",custs.filter(c=>c.booking).length,"#8b5cf6","📝","customers"],[" Total Billed",billed.length,"#22c55e","✅","customers"],[" Total Revenue",fc(billed.reduce((s,c)=>s+((c.billing&&c.billing.calc&&c.billing.calc.E)||0),0)),"#f97316","💰","customers"]].map(([l,v,col,ic,nav])=>(
-              <div key={l} onClick={()=>setView(nav)} style={{background:"#fff",border:"2px solid #6b8fb5",borderRadius:16,padding:"20px 22px",boxShadow:"0 2px 14px rgba(15,23,42,.06)",cursor:"pointer",transition:"box-shadow 0.15s"}} onMouseEnter={e=>e.currentTarget.style.boxShadow="0 4px 20px rgba(15,23,42,.13)"} onMouseLeave={e=>e.currentTarget.style.boxShadow="0 2px 14px rgba(15,23,42,.06)"}>
+            {[[" Total Enquiries",custs.length,"#3b82f6","👥","All"],[" Bookings",custs.filter(c=>c.booking).length,"#8b5cf6","📝","Booked"],[" Total Billed",billed.length,"#22c55e","✅","Billed"],[" Total Revenue",fc(billed.reduce((s,c)=>s+((c.billing&&c.billing.calc&&c.billing.calc.E)||0),0)),"#f97316","💰","Billed"]].map(([l,v,col,ic,sf])=>(
+              <div key={l} onClick={()=>{setCustStatusF(sf);setView("customers");}} style={{background:"#fff",border:"2px solid #6b8fb5",borderRadius:16,padding:"20px 22px",boxShadow:"0 2px 14px rgba(15,23,42,.06)",cursor:"pointer",transition:"box-shadow 0.15s"}} onMouseEnter={e=>e.currentTarget.style.boxShadow="0 4px 20px rgba(15,23,42,.13)"} onMouseLeave={e=>e.currentTarget.style.boxShadow="0 2px 14px rgba(15,23,42,.06)"}>
                 <div style={{fontSize:28,marginBottom:8}}>{ic}</div>
                 <div style={{fontSize:28,fontWeight:900,color:col,lineHeight:1}}>{v}</div>
                 <div style={{fontSize:12,color:"#64748b",marginTop:6,fontWeight:600}}>{l}</div>
@@ -3086,8 +3087,8 @@ function OwnerPortal({custs,stockData,billedChassis,statusData,role,user,mBr,sav
             ))}
           </div>
           <div style={{display:"grid",gridTemplateColumns:"repeat(3,1fr)",gap:16,marginBottom:24}}>
-            {[["Billed This Month",billedThisM.length,"#22c55e","customers"],["Revenue This Month",fc(revThisM),"#f97316","customers"],["Hot + Warm Leads",custs.filter(c=>!c.billed&&!c.stopped&&["Hot","Warm"].includes(c.status)).length,"#8b5cf6","customers"]].map(([l,v,col,nav])=>(
-              <div key={l} onClick={()=>setView(nav)} style={{background:"#fff",border:"2px solid "+col+"50",borderRadius:14,padding:"16px 20px",cursor:"pointer",transition:"box-shadow 0.15s"}} onMouseEnter={e=>e.currentTarget.style.boxShadow="0 4px 16px rgba(15,23,42,.1)"} onMouseLeave={e=>e.currentTarget.style.boxShadow="none"}>
+            {[["Billed This Month",billedThisM.length,"#22c55e","BilledThisM"],["Revenue This Month",fc(revThisM),"#f97316","BilledThisM"],["Hot + Warm Leads",custs.filter(c=>!c.billed&&!c.stopped&&["Hot","Warm"].includes(c.status)).length,"#8b5cf6","HotWarm"]].map(([l,v,col,sf])=>(
+              <div key={l} onClick={()=>{setCustStatusF(sf);setView("customers");}} style={{background:"#fff",border:"2px solid "+col+"50",borderRadius:14,padding:"16px 20px",cursor:"pointer",transition:"box-shadow 0.15s"}} onMouseEnter={e=>e.currentTarget.style.boxShadow="0 4px 16px rgba(15,23,42,.1)"} onMouseLeave={e=>e.currentTarget.style.boxShadow="none"}>
                 <div style={{fontSize:22,fontWeight:900,color:col}}>{v}</div>
                 <div style={{fontSize:12,color:"#64748b",marginTop:4,fontWeight:600}}>{l}</div>
               </div>
@@ -3123,8 +3124,20 @@ function OwnerPortal({custs,stockData,billedChassis,statusData,role,user,mBr,sav
 
         {/* ── ALL CUSTOMERS TABLE ── */}
         {view==="customers"&&(()=>{
-          const filt=custTableQ.trim().length<2?custs:custs.filter(c=>(c.name+" "+c.phone+" "+(c.model||"")+" "+(c.salesman||"")).toLowerCase().includes(custTableQ.toLowerCase()));
+          const thisM2=td().slice(0,7);
+          let base=custs;
+          if(custStatusF==="Billed")base=custs.filter(c=>c.billed);
+          else if(custStatusF==="Booked")base=custs.filter(c=>c.booking&&!c.billed);
+          else if(custStatusF==="BilledThisM")base=custs.filter(c=>c.billed&&(c.billedDate||"").startsWith(thisM2));
+          else if(custStatusF==="HotWarm")base=custs.filter(c=>!c.billed&&!c.stopped&&["Hot","Warm"].includes(c.status));
+          else if(custStatusF!=="All")base=custs.filter(c=>c.status===custStatusF);
+          const filt=custTableQ.trim().length<2?base:base.filter(c=>(c.name+" "+c.phone+" "+(c.model||"")+" "+(c.salesman||"")).toLowerCase().includes(custTableQ.toLowerCase()));
+          const SFBTNS=["All","Hot","Warm","Cold","Booked","Billed","BilledThisM","HotWarm"];
+          const SFLABELS={BilledThisM:"Billed This Month",HotWarm:"Hot+Warm"};
           return(<>
+            <div style={{display:"flex",gap:6,flexWrap:"wrap",marginBottom:12}}>
+              {["All","Hot","Warm","Cold","Booked","Billed","BilledThisM","HotWarm"].map(s=><button key={s} onClick={()=>setCustStatusF(s)} style={{padding:"5px 12px",borderRadius:20,fontSize:11,fontWeight:600,cursor:"pointer",border:"none",background:custStatusF===s?"#3b82f6":"#e2e8f0",color:custStatusF===s?"#fff":"#64748b"}}>{SFLABELS[s]||s}</button>)}
+            </div>
             <input placeholder="🔍 Search name, phone, model, salesman…" value={custTableQ} onChange={e=>setCustTableQ(e.target.value)} style={{width:"100%",padding:"11px 16px",border:"2px solid #6b8fb5",borderRadius:10,fontSize:14,marginBottom:16,boxSizing:"border-box",outline:"none"}}/>
             <div style={{background:"#fff",border:"2px solid #6b8fb5",borderRadius:14,overflow:"auto"}}>
               <table style={{width:"100%",borderCollapse:"collapse",minWidth:900}}>
