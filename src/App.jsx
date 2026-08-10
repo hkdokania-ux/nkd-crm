@@ -2578,6 +2578,7 @@ function UserMgmt({nkdUsers,onSave,notify}){
   const [newRole,setNewRole]=useState("manager");
   const [newName,setNewName]=useState("");
   const [newPin,setNewPin]=useState("");
+  const [newBranch,setNewBranch]=useState(BRANCHES[0]);
   // Salesman add form
   const [newSmName,setNewSmName]=useState("");
   const [newSmPhone,setNewSmPhone]=useState("");
@@ -2590,8 +2591,10 @@ function UserMgmt({nkdUsers,onSave,notify}){
     if(newPin.length<4){notify("❌ PIN must be at least 4 digits");return;}
     const already=(users[newRole]||[]).find(u=>u.name.toLowerCase()===newName.trim().toLowerCase());
     if(already){notify("❌ Name already exists for this role");return;}
-    save({...users,[newRole]:[...(users[newRole]||[]),{name:newName.trim(),pin:newPin}]});
-    setNewName("");setNewPin("");notify("✅ "+ROLE_LABEL[newRole]+" account added");
+    const userObj={name:newName.trim(),pin:newPin};
+    if(newRole==="manager")userObj.branch=newBranch;
+    save({...users,[newRole]:[...(users[newRole]||[]),userObj]});
+    setNewName("");setNewPin("");setNewBranch(BRANCHES[0]);notify("✅ "+ROLE_LABEL[newRole]+" account added");
   }
   function removeUser(role,name){
     if((users[role]||[]).length<=1){notify("❌ Must keep at least one account per role");return;}
@@ -2675,7 +2678,7 @@ function UserMgmt({nkdUsers,onSave,notify}){
       {/* Add new non-salesman user */}
       <div style={{background:"rgba(249,115,22,0.05)",border:"2px dashed #f97316",borderRadius:14,padding:"16px 18px"}}>
         <div style={{fontWeight:700,fontSize:13,color:"#f97316",marginBottom:12}}>➕ Add Manager / Owner / Admin / Tech Account</div>
-        <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr auto",gap:10,alignItems:"end"}}>
+        <div style={{display:"grid",gridTemplateColumns:newRole==="manager"?"1fr 1fr 1fr 1fr auto":"1fr 1fr 1fr auto",gap:10,alignItems:"end"}}>
           <div><div style={{fontSize:11,color:"#64748b",fontWeight:600,marginBottom:4}}>Role</div>
             <select style={{...inp,margin:0}} value={newRole} onChange={e=>setNewRole(e.target.value)}>
               <option value="manager">Manager</option><option value="owner">Owner</option><option value="admin">Admin</option><option value="tech">Tech</option>
@@ -2684,6 +2687,11 @@ function UserMgmt({nkdUsers,onSave,notify}){
           <div><div style={{fontSize:11,color:"#64748b",fontWeight:600,marginBottom:4}}>Username</div>
             <input style={{...inp,margin:0}} value={newName} onChange={e=>setNewName(e.target.value)} placeholder="Full name"/>
           </div>
+          {newRole==="manager"&&<div><div style={{fontSize:11,color:"#64748b",fontWeight:600,marginBottom:4}}>Branch</div>
+            <select style={{...inp,margin:0}} value={newBranch} onChange={e=>setNewBranch(e.target.value)}>
+              {BRANCHES.map(b=><option key={b} value={b}>{b}</option>)}
+            </select>
+          </div>}
           <div><div style={{fontSize:11,color:"#64748b",fontWeight:600,marginBottom:4}}>PIN (min 4 digits)</div>
             <input type="password" style={{...inp,margin:0}} value={newPin} onChange={e=>setNewPin(e.target.value)} placeholder="••••"/>
           </div>
