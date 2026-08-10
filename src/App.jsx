@@ -908,7 +908,7 @@ function UploadsHub({stockData,statusData,onStockUpload,onStatusUpload,notify}){
   const rcCount=Object.keys(RC||{}).length;
   const uploads=[
     {
-      id:"ratechart",ic:"💰",title:"Rate Chart",color:"#f97316",bg:"rgba(249,115,22,0.08)",border:"rgba(249,115,22,0.4)",
+      id:"ratechart",ic:"💰",title:"Rate Chart",color:"#f97316",bg:"rgba(249,115,22,0.08)",border:"rgba(249,115,22,0.4)",mergeLabel:"➕ Add / Merge Models",
       desc:"Bajaj price list Excel — upload directly, no conversion needed",
       current:rcCount>0?rcCount+" models loaded":null,
       onFile:(file)=>parseRateChartFile(file,n=>notify("✅ Rate chart updated: "+n+" models"),e=>notify("❌ "+e)),
@@ -941,7 +941,7 @@ function UploadsHub({stockData,statusData,onStockUpload,onStatusUpload,notify}){
           </div>
           {u.current&&<div style={{background:"rgba(34,197,94,0.08)",border:"1px solid rgba(34,197,94,0.25)",borderRadius:9,padding:"6px 12px",marginBottom:10,fontSize:12,color:"#22c55e",fontWeight:600}}>✅ {u.current}</div>}
           <label style={{display:"block",background:u.bg,border:"1px dashed "+u.border,borderRadius:11,padding:"12px",cursor:"pointer",textAlign:"center"}}>
-            <div style={{fontSize:13,color:u.color,fontWeight:700}}>{u.current?"🔄 Replace":"📂 Choose Excel File"}</div>
+            <div style={{fontSize:13,color:u.color,fontWeight:700}}>{u.current?(u.mergeLabel||"🔄 Replace"):"📂 Choose Excel File"}</div>
             <div style={{fontSize:10,color:"#94a3b8",marginTop:2}}>.xlsx · .xls · .csv supported</div>
             <input type="file" accept=".xlsx,.xls,.csv" style={{display:"none"}} onChange={e=>{if(e.target.files&&e.target.files[0]){u.onFile(e.target.files[0]);e.target.value="";}}}/>
           </label>
@@ -3038,7 +3038,7 @@ function OwnerPortal({custs,stockData,billedChassis,statusData,role,user,mBr,sav
   const pendingApprovals=custs.filter(c=>c.billing&&c.managerApproval===null);
   const navItems=role==="admin"
     ?[{id:"uploads",l:"Uploads & Data",ic:"📤"},{id:"vault",l:"Document Vault",ic:"📁"}]
-    :[{id:"dashboard",l:"Dashboard",ic:"📊"},{id:"customers",l:"All Customers",ic:"👥"},{id:"approvals",l:"Approvals",ic:"✅",badge:pendingApprovals.length},{id:"team",l:"Team Performance",ic:"👔"},{id:"cashbook",l:"Cash Book",ic:"💰"},{id:"exchdue",l:"Exchanger Due",ic:"🔄"},{id:"stock",l:"Stock & Ageing",ic:"🏍️"},{id:"uploads",l:"Uploads",ic:"📤"},{id:"rcstatus",l:"RC / HSRP",ic:"📋"},{id:"reports",l:"Reports",ic:"📄"},{id:"users",l:"User Accounts",ic:"👤"},{id:"vault",l:"Document Vault",ic:"📁"}];
+    :[{id:"dashboard",l:"Dashboard",ic:"📊"},{id:"customers",l:"All Customers",ic:"👥"},{id:"approvals",l:"Approvals",ic:"✅",badge:pendingApprovals.length},{id:"team",l:"Team Performance",ic:"👔"},{id:"cashbook",l:"Cash Book",ic:"💰"},{id:"exchdue",l:"Exchanger Due",ic:"🔄"},{id:"stock",l:"Stock & Ageing",ic:"🏍️"},{id:"uploads",l:"Uploads",ic:"📤"},{id:"reports",l:"Reports",ic:"📄"},{id:"users",l:"User Accounts",ic:"👤"},{id:"vault",l:"Document Vault",ic:"📁"}];
   // tech = full owner powers
   const SB=({label})=>(<th style={{fontSize:11,color:"#64748b",fontWeight:700,textAlign:"left",padding:"7px 12px",borderBottom:"2px solid #6b8fb5",background:"#f8fafc"}}>{label}</th>);
   const TD=({v,col,bold})=>(<td style={{padding:"8px 12px",fontSize:13,color:col||"#1e293b",fontWeight:bold?700:400,borderBottom:"1px solid #e8eef8"}}>{v}</td>);
