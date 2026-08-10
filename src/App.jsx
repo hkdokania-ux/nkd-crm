@@ -2515,7 +2515,7 @@ function Reports({custs,onImportCust,nkdUsers}){
   );
 }
 
-function DocVault({custs,onImport}){
+function DocVault({custs,onImport,role}){
   const [open,setOpen]=useState(null);
   const [flt,setFlt]=useState("approved");
   const [repMonth,setRepMonth]=useState(new Date().toISOString().slice(0,7));
@@ -2527,9 +2527,16 @@ function DocVault({custs,onImport}){
     return hasDocs;
   });
   function exportDB(){
-    var blob=new Blob([JSON.stringify(custs,null,1)],{type:"application/json"});
+    const fname="NKD_Bajaj_Database_"+td()+".json";
+    const json=JSON.stringify(custs,null,1);
+    var blob=new Blob([json],{type:"application/json"});
     var a=document.createElement("a");a.href=URL.createObjectURL(blob);
-    a.download="NKD_Bajaj_Database_"+td()+".json";a.click();
+    a.download=fname;a.click();
+    // Also upload to Google Drive
+    try{
+      const b64=btoa(unescape(encodeURIComponent(json)));
+      fetch(DRIVE_UPLOAD_URL,{method:"POST",body:JSON.stringify({fileName:fname,fileData:"data:application/json;base64,"+b64,mimeType:"application/json",customerName:"_Backup",docType:"Database",monthFolder:"Backups",branch:""})}).catch(()=>{});
+    }catch(e){}
   }
   function importDB(file){
     var rd=new FileReader();
@@ -2544,10 +2551,10 @@ function DocVault({custs,onImport}){
       <div style={{display:"flex",gap:6,marginBottom:10}}>
         {[["approved","✅ Approved"],["billed","Billed"],["all","All"]].map(([k,l])=><button key={k} onClick={()=>setFlt(k)} style={{flex:1,padding:"7px",borderRadius:10,fontSize:11,fontWeight:700,cursor:"pointer",background:flt===k?"#dbeafe":"#6b8fb5",color:flt===k?"#60a5fa":"#8892a4",border:"1px solid "+(flt===k?"#3b82f6":"#6b8fb5")}}>{l}</button>)}
       </div>
-      <div style={{display:"flex",gap:7,marginBottom:14}}>
-        <button onClick={exportDB} style={{flex:1,background:"rgba(52,211,153,0.1)",border:"1px solid rgba(52,211,153,0.35)",borderRadius:11,padding:"11px",color:"#34d399",fontWeight:700,fontSize:12,cursor:"pointer"}}>⬇️ Export Full Database</button>
+      {role==="owner"&&<div style={{display:"flex",gap:7,marginBottom:14}}>
+        <button onClick={exportDB} style={{flex:1,background:"rgba(52,211,153,0.1)",border:"1px solid rgba(52,211,153,0.35)",borderRadius:11,padding:"11px",color:"#34d399",fontWeight:700,fontSize:12,cursor:"pointer"}}>⬇️ Export Full Database ☁️</button>
         <label style={{flex:1,background:"rgba(139,92,246,0.1)",border:"1px solid rgba(139,92,246,0.35)",borderRadius:11,padding:"11px",color:"#a78bfa",fontWeight:700,fontSize:12,cursor:"pointer",textAlign:"center"}}>⬆️ Import Database<input type="file" accept=".json" style={{display:"none"}} onChange={e=>e.target.files[0]&&importDB(e.target.files[0])}/></label>
-      </div>
+      </div>}
       {withDocs.length===0&&<div style={{color:"#64748b",textAlign:"center",padding:32,fontSize:13}}>{flt==="approved"?"No approved parties with documents yet":"No documents uploaded yet"}</div>}
       {withDocs.map(c=>{
         const keys=Object.keys(c.photos).filter(k=>c.photos[k]);
@@ -3233,7 +3240,7 @@ function OwnerPortal({custs,stockData,billedChassis,statusData,role,user,mBr,sav
         {view==="approvals"&&<div style={{maxWidth:800}}><Approvals custs={pendingApprovals} onApprove={onApprove} onOpen={c=>openCust(c,"billing")} onEditCalc={c=>openCust(c,"billing")} allC={custs} canApprove={true}/></div>}
 
         {/* ── VAULT ── */}
-        {view==="vault"&&<DocVault custs={custs} onImport={()=>{}}/>}
+        {view==="vault"&&<DocVault custs={custs} onImport={()=>{}} role={role}/>}
       </div>
       {/* ── FULL CUSTOMER DETAIL OVERLAY ── */}
       {docCust&&(
@@ -3598,7 +3605,7 @@ export default function App(){
           return{...c,reactivatedAt:td(),status:"Cold",stopped:false,attempts:0,alertDismissed:true,followupDate:aD(td(),dayOffset),salesman:sm2,remarks:(c.remarks||"")+"\n["+td()+"] REACTIVATED: cold pool — day "+(dayOffset+1)+" queue"};
         }));notify(ids.length+" reactivated — max 80 calls/day per executive, spread across days");}}/>}
         {view==="reports"&&<Reports custs={custs} onImportCust={rows=>{setCusts(p=>{const ex=new Set(p.map(c=>c.phone));return[...rows.filter(r=>!ex.has(r.phone)),...p];});}} nkdUsers={nkdUsers}/>}
-        {view==="vault"&&<DocVault custs={custs} onImport={data=>{setCusts(data);notify("✅ Database imported: "+data.length+" customers");}}/>}
+        {view==="vault"&&<DocVault custs={custs} onImport={data=>{setCusts(data);notify("✅ Database imported: "+data.length+" customers");}} role={role}/>}
         {view==="alerts"&&(
           <div>
             <div style={{fontWeight:800,fontSize:19,color:"#1e293b",marginBottom:14}}>⚠️ Manager Alerts</div>
