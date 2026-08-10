@@ -2357,7 +2357,8 @@ function Revival({items,onRevive}){
   );
 }
 
-function Reports({custs,onImportCust}){
+function Reports({custs,onImportCust,nkdUsers}){
+  const smList=(nkdUsers?.salesman||[]).map(s=>s.name);
   const allC=custs;
   const [brF,setBrF]=useState("All");
   const [repMonth,setRepMonth]=useState(new Date().toISOString().slice(0,7));
@@ -2456,14 +2457,16 @@ function Reports({custs,onImportCust}){
         </div>);})()}
       <div style={{fontSize:12,fontWeight:700,color:"#f59e0b",marginBottom:8}}>🔑 EXECUTIVE PASSWORDS</div>
       <div style={{background:"#ffffff",border:"1px solid #6b8fb5",borderRadius:12,padding:12,marginBottom:16}}>
-        {SM.map(s=>{const pws=ld("nkd_pw",{});const rec=pws[s]||{};
+        {smList.length===0&&<div style={{fontSize:12,color:"#94a3b8",textAlign:"center",padding:8}}>No sales executives added yet</div>}
+        {smList.map(s=>{const pws=ld("nkd_pw",{});const rec=pws[s]||{};
           return(<div key={s} style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"6px 0",borderBottom:"1px solid #1a1f2e"}}>
             <span style={{fontSize:12,color:"#1e293b"}}>{s} {rec.locked&&<span style={{color:"#ef4444",fontWeight:700,fontSize:10}}>🔒 LOCKED</span>}</span>
             <button onClick={()=>{const pws2=ld("nkd_pw",{});pws2[s]={pw:"1111",must:true,fails:0,locked:false};sv("nkd_pw",pws2);_dbSet("passwords",pws2);alert(s+" reset to 1111 — they must change it on next login");}} style={{background:"#c2d6ec",border:"1px solid #6b8fb5",borderRadius:8,padding:"5px 10px",fontSize:10,color:"#f59e0b",fontWeight:700,cursor:"pointer"}}>Reset → 1111</button>
           </div>);})}
       </div>
       <div style={{fontSize:12,fontWeight:700,color:"#64748b",marginBottom:8}}>SALESMAN SCOREBOARD</div>
-      {SM.map(s=>{
+      {smList.length===0&&<div style={{fontSize:12,color:"#94a3b8",textAlign:"center",padding:8}}>No sales executives added yet</div>}
+      {smList.map(s=>{
         const m=custs.filter(c=>c.salesman===s);const b=m.filter(c=>c.billed).length;const pct=m.length>0?Math.round(b/m.length*100):0;
         return(
           <div key={s} style={{background:"#ffffff",border:"1px solid #6b8fb5",borderRadius:12,padding:"12px 14px",marginBottom:8}}>
@@ -3193,7 +3196,7 @@ function OwnerPortal({custs,stockData,billedChassis,statusData,role,user,mBr,sav
         {view==="rcstatus"&&<div style={{maxWidth:900}}><RCHSRPSearch statusData={statusData} role={role} onUpload={saveStatusData} notify={notify}/></div>}
 
         {/* ── REPORTS ── */}
-        {view==="reports"&&<div style={{maxWidth:800}}><Reports custs={custs} onImportCust={()=>{}}/></div>}
+        {view==="reports"&&<div style={{maxWidth:800}}><Reports custs={custs} onImportCust={()=>{}} nkdUsers={nkdUsers}/></div>}
 
         {/* ── CASH BOOK ── */}
         {view==="cashbook"&&<CashBook custs={custs} smBranchMap={smBranchMap}/>}
@@ -3541,7 +3544,7 @@ export default function App(){
           const dayOffset=Math.floor((perDay[sm2]-1)/80);
           return{...c,reactivatedAt:td(),status:"Cold",stopped:false,attempts:0,alertDismissed:true,followupDate:aD(td(),dayOffset),salesman:sm2,remarks:(c.remarks||"")+"\n["+td()+"] REACTIVATED: cold pool — day "+(dayOffset+1)+" queue"};
         }));notify(ids.length+" reactivated — max 80 calls/day per executive, spread across days");}}/>}
-        {view==="reports"&&<Reports custs={custs} onImportCust={rows=>{setCusts(p=>{const ex=new Set(p.map(c=>c.phone));return[...rows.filter(r=>!ex.has(r.phone)),...p];});}}/>}
+        {view==="reports"&&<Reports custs={custs} onImportCust={rows=>{setCusts(p=>{const ex=new Set(p.map(c=>c.phone));return[...rows.filter(r=>!ex.has(r.phone)),...p];});}} nkdUsers={nkdUsers}/>}
         {view==="vault"&&<DocVault custs={custs} onImport={data=>{setCusts(data);notify("✅ Database imported: "+data.length+" customers");}}/>}
         {view==="alerts"&&(
           <div>
