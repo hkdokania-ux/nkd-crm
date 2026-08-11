@@ -343,7 +343,7 @@ function Login({onLogin,nkdUsers}){
     const roleList=users[role]||[];
     const match=roleList.find(u=>u.name.trim().toLowerCase()===uname.trim().toLowerCase()&&u.pin===pin);
     if(!match){alert("Wrong username or PIN");return;}
-    onLogin(role,match.name,(role==="manager")?br:null);
+    onLogin(role,match.name,(role==="manager")?(match.branch||br):null);
   }
   return(
     <div style={{minHeight:"100vh",background:"linear-gradient(160deg,#f0f7ff 0%,#f8fafc 100%)",display:"flex",alignItems:"center",justifyContent:"center",padding:16}}>
@@ -2604,7 +2604,7 @@ function UserMgmt({nkdUsers,onSave,notify}){
   const [newRole,setNewRole]=useState("manager");
   const [newName,setNewName]=useState("");
   const [newPin,setNewPin]=useState("");
-  const [newBranch,setNewBranch]=useState(BRANCHES[0]);
+  const [newBranches,setNewBranches]=useState([BRANCHES[0]]);
   // Salesman add form
   const [newSmName,setNewSmName]=useState("");
   const [newSmPhone,setNewSmPhone]=useState("");
@@ -2618,9 +2618,9 @@ function UserMgmt({nkdUsers,onSave,notify}){
     const already=(users[newRole]||[]).find(u=>u.name.toLowerCase()===newName.trim().toLowerCase());
     if(already){notify("❌ Name already exists for this role");return;}
     const userObj={name:newName.trim(),pin:newPin};
-    if(newRole==="manager")userObj.branch=newBranch;
+    if(newRole==="manager")userObj.branch=newBranches.length===1?newBranches[0]:newBranches;
     save({...users,[newRole]:[...(users[newRole]||[]),userObj]});
-    setNewName("");setNewPin("");setNewBranch(BRANCHES[0]);notify("✅ "+ROLE_LABEL[newRole]+" account added");
+    setNewName("");setNewPin("");setNewBranches([BRANCHES[0]]);notify("✅ "+ROLE_LABEL[newRole]+" account added");
   }
   function removeUser(role,name){
     if((users[role]||[]).length<=1){notify("❌ Must keep at least one account per role");return;}
@@ -2713,10 +2713,13 @@ function UserMgmt({nkdUsers,onSave,notify}){
           <div><div style={{fontSize:11,color:"#64748b",fontWeight:600,marginBottom:4}}>Username</div>
             <input style={{...inp,margin:0}} value={newName} onChange={e=>setNewName(e.target.value)} placeholder="Full name"/>
           </div>
-          {newRole==="manager"&&<div><div style={{fontSize:11,color:"#64748b",fontWeight:600,marginBottom:4}}>Branch</div>
-            <select style={{...inp,margin:0}} value={newBranch} onChange={e=>setNewBranch(e.target.value)}>
-              {BRANCHES.map(b=><option key={b} value={b}>{b}</option>)}
-            </select>
+          {newRole==="manager"&&<div><div style={{fontSize:11,color:"#64748b",fontWeight:600,marginBottom:6}}>Branch (select one or two)</div>
+            <div style={{display:"flex",flexDirection:"column",gap:5}}>
+              {BRANCHES.map(b=>{const checked=newBranches.includes(b);return(<label key={b} style={{display:"flex",alignItems:"center",gap:7,cursor:"pointer",fontSize:12,color:"#1e293b",fontWeight:checked?700:400}}>
+                <input type="checkbox" checked={checked} onChange={()=>setNewBranches(p=>checked&&p.length>1?p.filter(x=>x!==b):checked?p:[...p,b])} style={{accentColor:"#3b82f6",width:14,height:14}}/>
+                {b}
+              </label>);})}
+            </div>
           </div>}
           <div><div style={{fontSize:11,color:"#64748b",fontWeight:600,marginBottom:4}}>PIN (min 4 digits)</div>
             <input type="password" style={{...inp,margin:0}} value={newPin} onChange={e=>setNewPin(e.target.value)} placeholder="••••"/>
@@ -3471,7 +3474,8 @@ export default function App(){
   }
 
   const mBr=ld("nkd_br",BRANCHES[0]);
-  const myC=role==="salesman"?custs.filter(c=>c.salesman===user):role==="manager"?custs.filter(c=>(c.branch||smBranchMap[c.salesman])===mBr):custs; // owner/tech/admin see all
+  const mBrs=Array.isArray(mBr)?mBr:[mBr];
+  const myC=role==="salesman"?custs.filter(c=>c.salesman===user):role==="manager"?custs.filter(c=>mBrs.includes(c.branch||smBranchMap[c.salesman])):custs; // owner/tech/admin see all
   const due=[...myC.filter(c=>!c.billed&&!c.stopped&&c.followupDate<=td())].sort((a,b)=>{const today=td();const aOvd=a.followupDate<today?0:1,bOvd=b.followupDate<today?0:1;if(aOvd!==bOvd)return aOvd-bOvd;const o={Hot:0,Warm:1,Cold:2,Booked:3};return(o[a.status]??9)-(o[b.status]??9);});
   const pending=custs.filter(c=>c.billing&&c.managerApproval===null);
   const myPending=role==="salesman"?pending.filter(c=>c.salesman===user):pending;
@@ -3539,7 +3543,7 @@ export default function App(){
           {stack.current.length>0
             ?<button onClick={goBack} style={{display:"flex",alignItems:"center",gap:6,background:"#f1f5f9",border:"1px solid #6b8fb5",borderRadius:10,padding:"7px 12px",cursor:"pointer",fontSize:13,fontWeight:700,color:"#1e293b"}}>← Back</button>
             :<><div style={{width:38,height:38,borderRadius:11,background:"linear-gradient(135deg,#f97316,#ef4444)",display:"flex",alignItems:"center",justifyContent:"center",fontWeight:900,fontSize:17,color:"#fff",animation:"glow 3s ease infinite"}}>B</div>
-              <div><div style={{fontWeight:800,fontSize:13,color:"#1e293b"}}>NKD BAJAJ CRM</div><div style={{fontSize:10,color:"#94a3b8"}}>{user} · {role}{role==="manager"?" · "+mBr:""}</div></div>
+              <div><div style={{fontWeight:800,fontSize:13,color:"#1e293b"}}>NKD BAJAJ CRM</div><div style={{fontSize:10,color:"#94a3b8"}}>{user} · {role}{role==="manager"?" · "+(Array.isArray(mBr)?mBr.join(", "):mBr):""}</div></div>
             </>
           }
         </div>
@@ -3562,7 +3566,7 @@ export default function App(){
         {view==="customers"&&<CustList custs={myC} onOpen={openD} initF={custF} showSM={role!=="salesman"}/>}
         {view==="detail"&&sel&&<Detail cust={custs.find(c=>c.id===sel.id)||sel} role={role} onBack={goBack} onUpd={p=>upd(sel.id,p)} onLog={logF} onBill={()=>setBillOpen(true)} onBook={()=>setBookOpen(true)} notify={notify} initTab={dtab} clearInit={()=>setDtab(null)} onAddPayment={addPayment} onApprove={approveBill} curUser={user} onTransferReq={requestTransfer} onApproveTransfer={approveTransfer} onCorrectionReq={handleCorrectionReq}/>}
         {view==="uploads"&&<div style={{padding:"0 16px 80px"}}><UploadsHub stockData={stockData} statusData={statusData} onStockUpload={saveStockData} onStatusUpload={saveStatusData} notify={notify}/></div>}
-        {view==="stock"&&<div style={{padding:"0 16px 80px"}}><StockView stockData={stockData} billedChassis={billedChassis} role={role} userBranch={role==="salesman"?(smBranchMap[user]||BRANCHES[0]):role==="manager"?mBr:null} onUpload={saveStockData} notify={notify}/></div>}
+        {view==="stock"&&<div style={{padding:"0 16px 80px"}}><StockView stockData={stockData} billedChassis={billedChassis} role={role} userBranch={role==="salesman"?(smBranchMap[user]||BRANCHES[0]):role==="manager"?mBrs:null} onUpload={saveStockData} notify={notify}/></div>}
         {view==="rcstatus"&&<div style={{padding:"0 16px 80px"}}><RCHSRPSearch statusData={statusData} role={role} onUpload={saveStatusData} notify={notify}/></div>}
         {view==="approvals"&&<>
           {/* ── TOP PRIORITY: Correction requests awaiting Owner confirmation ── */}
