@@ -2293,7 +2293,7 @@ function BillingView({billing:b,cust,onAddPayment}){
   );
 }
 
-function Approvals({custs,onApprove,onOpen,onEditCalc,allC,canApprove}){
+function Approvals({custs,onApprove,onOpen,onEditCalc,allC,canApprove,role}){
   const [rem,setRem]=useState({});
   const rejected=(allC||[]).filter(c=>c.managerApproval==="rejected"&&!c.billed);
   return(
@@ -2362,7 +2362,7 @@ function Approvals({custs,onApprove,onOpen,onEditCalc,allC,canApprove}){
           <div style={{fontSize:11,color:"#64748b"}}>{c.model} · {c.salesman} · waiting for re-bill</div>
         </div>)}
       </div>}
-      <div style={{marginTop:16}}>
+      {(role==="owner"||role==="tech")&&<div style={{marginTop:16}}>
         <div style={{fontSize:12,fontWeight:800,color:"#f59e0b",marginBottom:8}}>🔑 EXECUTIVE PASSWORD RESETS</div>
         <div className="glass" style={{background:"#ffffff",borderRadius:14,padding:12}}>
           {SM.map(s=>{const pws=ld("nkd_pw",{});const rec=pws[s]||{};
@@ -2371,7 +2371,7 @@ function Approvals({custs,onApprove,onOpen,onEditCalc,allC,canApprove}){
               <button onClick={()=>{const p2=ld("nkd_pw",{});p2[s]={pw:"1111",must:true,fails:0,locked:false};sv("nkd_pw",p2);_dbSet("passwords",p2);alert(s+" reset to 1111 — they will set a new password on next login");}} style={{background:"#c2d6ec",border:"1px solid #6b8fb5",borderRadius:8,padding:"5px 10px",fontSize:10,color:"#f59e0b",fontWeight:700,cursor:"pointer"}}>Reset → 1111</button>
             </div>);})}
         </div>
-      </div>
+      </div>}
     </div>
   );
 }
@@ -3245,7 +3245,7 @@ function OwnerPortal({custs,stockData,billedChassis,statusData,role,user,mBr,sav
         {view==="users"&&isOwner(role)&&<UserMgmt nkdUsers={nkdUsers||DEFAULT_USERS} onSave={onSaveUsers} notify={notify}/>}
 
         {/* ── APPROVALS ── */}
-        {view==="approvals"&&<div style={{maxWidth:800}}><Approvals custs={pendingApprovals} onApprove={onApprove} onOpen={c=>openCust(c,"billing")} onEditCalc={c=>openCust(c,"billing")} allC={custs} canApprove={true}/></div>}
+        {view==="approvals"&&<div style={{maxWidth:800}}><Approvals custs={pendingApprovals} onApprove={onApprove} onOpen={c=>openCust(c,"billing")} onEditCalc={c=>openCust(c,"billing")} allC={custs} canApprove={true} role={role}/></div>}
 
         {/* ── VAULT ── */}
         {view==="vault"&&<DocVault custs={custs} onImport={()=>{}} role={role}/>}
@@ -3604,7 +3604,7 @@ export default function App(){
               </div>
             ))}
           </div>}
-          <Approvals custs={myPending} onApprove={approveBill} onOpen={openD} onEditCalc={c=>{setSel(c);setBillOpen(true);}} allC={myC} canApprove={role!=="salesman"}/>
+          <Approvals custs={myPending} onApprove={approveBill} onOpen={openD} onEditCalc={c=>{setSel(c);setBillOpen(true);}} allC={myC} canApprove={role!=="salesman"} role={role}/>
         </>}
         {view==="revival"&&<Revival items={revivable} onRevive={ids=>{let si=0;const perDay={};setCusts(p=>p.map(c=>{
           if(!ids.includes(c.id))return c;
