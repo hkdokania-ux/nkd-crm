@@ -3283,6 +3283,26 @@ function OwnerPortal({custs,stockData,billedChassis,statusData,role,user,mBr,sav
   );
 }
 
+function LandscapeNotice(){
+  const [dismissed,setDismissed]=useState(false);
+  const [isLandscape,setIsLandscape]=useState(()=>window.innerWidth>window.innerHeight&&window.innerHeight<500);
+  useEffect(()=>{
+    function check(){setIsLandscape(window.innerWidth>window.innerHeight&&window.innerHeight<500);}
+    window.addEventListener("resize",check);
+    return()=>window.removeEventListener("resize",check);
+  },[]);
+  useEffect(()=>{if(!isLandscape)setDismissed(false);},[isLandscape]);
+  if(!isLandscape||dismissed)return null;
+  return(
+    <div style={{position:"fixed",inset:0,zIndex:9999,background:"rgba(15,23,42,0.96)",display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",gap:16,padding:24}}>
+      <div style={{fontSize:56}}>🔄</div>
+      <div style={{color:"#fff",fontWeight:800,fontSize:20,textAlign:"center"}}>Rotate to Portrait</div>
+      <div style={{color:"#94a3b8",fontSize:13,textAlign:"center"}}>NKD Bajaj CRM works best in portrait mode</div>
+      <button onClick={()=>setDismissed(true)} style={{marginTop:8,background:"rgba(255,255,255,0.1)",border:"1px solid rgba(255,255,255,0.2)",borderRadius:10,padding:"10px 24px",color:"#fff",fontSize:13,cursor:"pointer"}}>Continue anyway</button>
+    </div>
+  );
+}
+
 export default function App(){
   const [role,setRole]=useState(ld("nkd_r","salesman"));
   const [user,setUser]=useState(ld("nkd_u",SM[0]));
@@ -3519,11 +3539,7 @@ export default function App(){
 
   return(
     <div style={{height:"100dvh",display:"flex",flexDirection:"column",background:"linear-gradient(160deg,#f0f7ff 0%,#e8f4ff 40%,#f8fafc 100%)",color:"#1e293b",fontFamily:"'Inter',-apple-system,sans-serif",maxWidth:480,margin:"0 auto",overflow:"hidden",paddingTop:"max(env(safe-area-inset-top),0px)"}}>
-      <div className="landscape-block" style={{display:"none",position:"fixed",inset:0,zIndex:9999,background:"#1e293b",flexDirection:"column",alignItems:"center",justifyContent:"center",gap:16}}>
-        <div style={{fontSize:60}}>🔄</div>
-        <div style={{color:"#fff",fontWeight:800,fontSize:20,textAlign:"center"}}>Please rotate to<br/>Portrait mode</div>
-        <div style={{color:"#94a3b8",fontSize:13,textAlign:"center"}}>NKD Bajaj CRM works best<br/>in portrait orientation</div>
-      </div>
+      <LandscapeNotice/>
       {notifPopup}
       <style>{`
         @import url('https://fonts.googleapis.com/css2?family=Sora:wght@400;600;700;800&display=swap');
