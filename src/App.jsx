@@ -3519,11 +3519,17 @@ export default function App(){
 
   return(
     <div style={{height:"100dvh",display:"flex",flexDirection:"column",background:"linear-gradient(160deg,#f0f7ff 0%,#e8f4ff 40%,#f8fafc 100%)",color:"#1e293b",fontFamily:"'Inter',-apple-system,sans-serif",maxWidth:480,margin:"0 auto",overflow:"hidden",paddingTop:"max(env(safe-area-inset-top),0px)"}}>
+      <div className="landscape-block" style={{display:"none",position:"fixed",inset:0,zIndex:9999,background:"#1e293b",flexDirection:"column",alignItems:"center",justifyContent:"center",gap:16}}>
+        <div style={{fontSize:60}}>🔄</div>
+        <div style={{color:"#fff",fontWeight:800,fontSize:20,textAlign:"center"}}>Please rotate to<br/>Portrait mode</div>
+        <div style={{color:"#94a3b8",fontSize:13,textAlign:"center"}}>NKD Bajaj CRM works best<br/>in portrait orientation</div>
+      </div>
       {notifPopup}
       <style>{`
         @import url('https://fonts.googleapis.com/css2?family=Sora:wght@400;600;700;800&display=swap');
         *{font-family:'Sora','Inter',-apple-system,sans-serif!important;-webkit-tap-highlight-color:transparent}
         body{background:#f0f7ff;overflow:hidden}
+        @media(orientation:landscape)and(max-height:500px){.landscape-block{display:flex!important}}
         @keyframes fadeUp{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:none}}
         @keyframes glow{0%,100%{box-shadow:0 0 14px rgba(249,115,22,.3)}50%{box-shadow:0 0 26px rgba(249,115,22,.5)}}
         @keyframes shimmer{0%{background-position:-200% 0}100%{background-position:200% 0}}
