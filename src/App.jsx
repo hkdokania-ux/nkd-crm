@@ -837,34 +837,53 @@ function CropModal({imgSrc,onDone,onClose}){
 }
 function DocGrid({cust,onUpload,docs}){
   const[cropSt,setCropSt]=useState(null);
+  const p=cust.photos||{};
+  const slotKey=(key,n)=>n===1?key:key+"_"+n;
+  function getPhotos(key){const arr=[];for(let n=1;n<=10;n++){const k=slotKey(key,n);if(p[k])arr.push({k,url:p[k]});else if(n>1)break;}return arr;}
+  function nextSlot(key){let n=1;while(p[slotKey(key,n)])n++;return n;}
   function pickFile(key,file){const rd=new FileReader();rd.onload=e=>setCropSt({key,src:e.target.result});rd.readAsDataURL(file);}
+  function pickMultiple(key,files){
+    let n=nextSlot(key);
+    Array.from(files).forEach((file,i)=>{const rd=new FileReader();rd.onload=e=>onUpload(slotKey(key,n+i),e.target.result);rd.readAsDataURL(file);});
+  }
   function onCropDone(dataUrl){if(cropSt)onUpload(cropSt.key,dataUrl);setCropSt(null);}
   return(
     <>
       {cropSt&&<CropModal imgSrc={cropSt.src} onDone={onCropDone} onClose={()=>setCropSt(null)}/>}
       <div style={{display:"flex",flexDirection:"column",gap:10}}>
         {docs.map(({key,l,ic})=>{
-          const existing=(cust.photos||{})[key];
+          const photos=getPhotos(key);
+          const hasPhotos=photos.length>0;
           return(
             <div key={key} style={{background:"#ffffff",border:"1px solid #6b8fb5",borderRadius:12,overflow:"hidden"}}>
               <div style={{padding:"10px 13px",display:"flex",justifyContent:"space-between",alignItems:"center"}}>
                 <div style={{display:"flex",alignItems:"center",gap:8}}><span style={{fontSize:18}}>{ic}</span><span style={{fontSize:13,color:"#334155"}}>{l}</span></div>
-                {existing&&<span style={{fontSize:11,color:"#22c55e",fontWeight:700}}>✓ Saved</span>}
+                {hasPhotos&&<span style={{fontSize:11,color:"#22c55e",fontWeight:700}}>✓ {photos.length} photo{photos.length>1?"s":""}</span>}
               </div>
-              {existing&&(
-                <div style={{position:'relative'}}>
-                  <img src={existing} alt={l} style={{width:"100%",maxHeight:400,objectFit:"contain",background:"#000",display:"block",cursor:"pointer"}} onClick={()=>window.open(existing,"_blank")}/>
-                  <button onClick={()=>setCropSt({key,src:existing})} style={{position:'absolute',top:8,right:8,background:'rgba(0,0,0,0.72)',border:'1px solid #60a5fa',borderRadius:8,padding:'6px 12px',color:'#60a5fa',fontSize:12,fontWeight:700,cursor:'pointer'}}>✏️ Edit / Crop</button>
+              {/* Thumbnail strip — all uploaded photos for this slot */}
+              {hasPhotos&&(
+                <div style={{display:"flex",gap:6,overflowX:"auto",padding:"0 13px 10px",WebkitOverflowScrolling:"touch"}}>
+                  {photos.map(({k,url})=>(
+                    <div key={k} style={{position:"relative",flexShrink:0}}>
+                      <img src={url} alt={l} style={{height:90,width:90,objectFit:"cover",borderRadius:9,cursor:"pointer",background:"#000",border:"1px solid #6b8fb5"}} onClick={()=>window.open(url,"_blank")}/>
+                      {k===key&&<button onClick={()=>setCropSt({key,src:url})} style={{position:"absolute",bottom:4,right:4,background:"rgba(0,0,0,0.75)",border:"none",borderRadius:5,padding:"2px 6px",color:"#93c5fd",fontSize:10,cursor:"pointer"}}>✏️</button>}
+                    </div>
+                  ))}
                 </div>
               )}
               <div style={{padding:"8px 13px 12px"}}>
-                <div style={{fontSize:11,color:"#64748b",marginBottom:6}}>{existing?"🔄 Replace:":"📎 Upload:"}</div>
+                <div style={{fontSize:11,color:"#64748b",marginBottom:6}}>{hasPhotos?"📎 Add more:":"📎 Upload:"}</div>
                 <div style={{display:"flex",gap:6}}>
                   <label style={{flex:1,display:"flex",alignItems:"center",justifyContent:"center",gap:5,background:"linear-gradient(135deg,#1e3a5f,#2a4a7f)",border:"1px solid #3b5fa0",borderRadius:9,padding:"9px 6px",fontSize:12,color:"#93c5fd",cursor:"pointer",fontWeight:600}}>
                     📷 Camera<input type="file" accept="image/*" capture="environment" onChange={e=>{if(e.target.files&&e.target.files[0]){pickFile(key,e.target.files[0]);e.target.value="";}}} style={{display:"none"}}/>
                   </label>
                   <label style={{flex:1,display:"flex",alignItems:"center",justifyContent:"center",gap:5,background:"rgba(203,213,225,0.08)",border:"1px dashed #4a6080",borderRadius:9,padding:"9px 6px",fontSize:12,color:"#94a3b8",cursor:"pointer",fontWeight:600}}>
-                    📁 Gallery<input type="file" accept="image/*" onChange={e=>{if(e.target.files&&e.target.files[0]){pickFile(key,e.target.files[0]);e.target.value="";}}} style={{display:"none"}}/>
+                    📁 Gallery (multi)<input type="file" accept="image/*" multiple onChange={e=>{
+                      if(!e.target.files||e.target.files.length===0)return;
+                      if(e.target.files.length===1){pickFile(key,e.target.files[0]);}
+                      else{pickMultiple(key,e.target.files);}
+                      e.target.value="";
+                    }} style={{display:"none"}}/>
                   </label>
                 </div>
               </div>
@@ -1947,7 +1966,6 @@ function BillingModal({cust,onClose,onSave,onDraft,notify,role,stockData,billedC
   const [amtDiffPopup,setAmtDiffPopup]=useState(false);
   const [amtDiffReason,setAmtDiffReason]=useState("");
   async function generateAndSendMR(){
-    if(mrSent){notify("MR already sent to customer — cannot resend","err");return;}
     const activePmts=(f.payments||[]).filter(p=>Number(p.amt||0)>0);
     if(activePmts.length===0){notify("⚠️ Enter at least one payment amount before generating MR","err");return;}
     try{
@@ -2067,6 +2085,24 @@ function BillingModal({cust,onClose,onSave,onDraft,notify,role,stockData,billedC
           </div>
         </div>
 
+        {isFin&&(
+          <div style={{marginBottom:14}}>
+            <div style={{fontSize:10,fontWeight:700,color:"#f59e0b",letterSpacing:0.8,marginBottom:6}}>💰 FINANCE DETAILS</div>
+            <div style={{background:"rgba(245,158,11,0.05)",border:"1px solid rgba(245,158,11,0.35)",borderRadius:12,padding:12}}>
+              <div><label style={{...lbl,fontSize:10}}>Finance Company Name *</label>
+                <select style={{...inp,fontSize:12,padding:"8px 10px"}} value={f.financeBank||""} onChange={e=>setF(p=>({...p,financeBank:e.target.value==="__other__"?"":e.target.value}))}>
+                  <option value="">— Select —</option>
+                  {["Bajaj Finance","HDFC Bank","Hero FinCorp","SBI","Axis Bank","ICICI Bank","Kotak Mahindra","Muthoot Finance","Shriram Finance","TVS Credit"].map(b=><option key={b} value={b}>{b}</option>)}
+                  <option value="__other__">Other (type below)</option>
+                </select>
+                {(!f.financeBank||!["Bajaj Finance","HDFC Bank","Hero FinCorp","SBI","Axis Bank","ICICI Bank","Kotak Mahindra","Muthoot Finance","Shriram Finance","TVS Credit"].includes(f.financeBank))&&(
+                  <input style={{...inp,fontSize:12,padding:"8px 10px",marginTop:6}} placeholder="Finance company name…" value={f.financeBank||""} onChange={e=>setF(p=>({...p,financeBank:e.target.value}))}/>
+                )}
+              </div>
+            </div>
+          </div>
+        )}
+
         <div style={{marginBottom:14}}>
           <div style={{fontSize:10,fontWeight:700,color:"#475569",letterSpacing:0.8,marginBottom:6}}>VEHICLE DETAILS</div>
           <div style={{background:"#ffffff",border:"1px solid #6b8fb5",borderRadius:12,padding:12}}>
@@ -2169,8 +2205,8 @@ function BillingModal({cust,onClose,onSave,onDraft,notify,role,stockData,billedC
                 </div>
               );})}
               <button onClick={()=>setF(q=>({...q,payments:[...(q.payments||[]),{mode:"Cash",amt:"",date:td(),ref:""}]}))} style={{width:"100%",background:"rgba(96,165,250,0.07)",border:"1px dashed rgba(96,165,250,0.3)",borderRadius:8,padding:"6px",color:"#60a5fa",fontSize:11,cursor:"pointer",marginBottom:8}}>+ Add Payment Entry</button>
-              {!mrSent&&<button onClick={generateAndSendMR} style={{width:"100%",background:"linear-gradient(135deg,#f97316,#ea580c)",border:"none",borderRadius:10,padding:"11px",color:"#fff",fontSize:13,fontWeight:700,cursor:"pointer",marginBottom:4}}>📲 Generate MR &amp; Send to Customer</button>}
-              {mrSent&&<div style={{fontSize:10,color:"#22c55e",textAlign:"center",marginBottom:4,padding:"8px",background:"rgba(34,197,94,0.08)",borderRadius:8,border:"1px solid rgba(34,197,94,0.2)"}}>✅ MR already sent to customer</div>}
+              <button onClick={generateAndSendMR} style={{width:"100%",background:mrSent?"linear-gradient(135deg,#16a34a,#15803d)":"linear-gradient(135deg,#f97316,#ea580c)",border:"none",borderRadius:10,padding:"11px",color:"#fff",fontSize:13,fontWeight:700,cursor:"pointer",marginBottom:4}}>{mrSent?"📲 Resend MR to Customer":"📲 Generate MR & Send to Customer"}</button>
+              {mrSent&&<div style={{fontSize:10,color:"#22c55e",textAlign:"center",marginBottom:4}}>✅ MR previously sent — tap above to resend</div>}
               <div style={{display:"flex",justifyContent:"space-between",padding:"5px 0",fontSize:12,fontWeight:700}}><span style={{color:"#64748b"}}>Total Received (J)</span><span style={{color:"#1e293b"}}>{fc(c.paid)}</span></div>
             </div>
             <div style={{display:"flex",alignItems:"center",padding:"4px 0",borderBottom:"1px solid #131820",gap:6,marginTop:4}}>
