@@ -1481,7 +1481,7 @@ function Detail({cust,role,onBack,onUpd,onLog,onBill,onBook,notify,initTab,clear
         </div>
       )}
 
-      {tab==="billing"&&cust.billing&&<BillingView billing={cust.billing} cust={cust} onAddPayment={onAddPayment}/>}
+      {tab==="billing"&&cust.billing&&<BillingView billing={cust.billing} cust={cust} onAddPayment={onAddPayment} role={role}/>}
       {tab==="billing"&&cust.billing&&cust.managerApproval===null&&role!=="salesman"&&onApprove&&(
         <div style={{background:"rgba(139,92,246,0.08)",border:"1px solid rgba(139,92,246,0.3)",borderRadius:14,padding:"12px 14px",marginTop:10}}>
           <div style={{fontSize:11,fontWeight:700,color:"#a78bfa",marginBottom:10}}>⏳ PENDING APPROVAL — Action Required</div>
@@ -1646,7 +1646,7 @@ function BookingModal({cust,onClose,onSave}){
   );
 }
 
-function AddModal({onClose,onSave,curUser,role,existing}){
+function AddModal({onClose,onSave,curUser,role,existing,smList}){
   const [f,setF]=useState({name:"",phone:"",fatherName:"",address:"",dob:"",aadhar:"",pan:"",modelCode:"",model:"",cat:"",enquiryDate:td(),status:"Hot",salesman:curUser,finance:"Cash",exchangeAsked:"",exchangeOffered:"",remarks:"",followupDate:"",nominee:"",nomineeRel:""});
   const [mSearch,setMSearch]=useState("");
   function cap(v){return String(v||"").toUpperCase();}
@@ -1694,7 +1694,7 @@ function AddModal({onClose,onSave,curUser,role,existing}){
           <div><label style={lbl}>Mode</label><div style={{display:"flex",gap:7}}>{["Cash","Finance"].map(s=><button key={s} onClick={()=>setF(p=>({...p,finance:s}))} style={{flex:1,background:f.finance===s?"#dbeafe":"#e2e8f0",border:"1px solid "+(f.finance===s?"#3b82f6":"#cbd5e1"),borderRadius:10,padding:10,color:f.finance===s?"#2563eb":"#374151",fontWeight:700,cursor:"pointer",fontSize:12}}>{s}</button>)}</div></div>
           <div><label style={lbl}>Expected Date of Purchase</label><input type="date" style={inp} value={f.expectedPurchaseDate||""} onChange={e=>setF(p=>({...p,expectedPurchaseDate:e.target.value}))}/></div>
           <div style={{background:"rgba(107,114,128,0.08)",border:"1px dashed #374151",borderRadius:10,padding:"9px 12px",fontSize:11,color:"#94a3b8"}}>🔒 Nominee &amp; Exchange details are entered at billing time</div>
-          {role!=="salesman"&&<div><label style={lbl}>Assign to</label><select style={inp} value={f.salesman} onChange={e=>setF(p=>({...p,salesman:e.target.value}))}>{SM.map(s=><option key={s}>{s}</option>)}</select></div>}
+          {role!=="salesman"&&<div><label style={lbl}>Assign to</label><select style={inp} value={f.salesman} onChange={e=>setF(p=>({...p,salesman:e.target.value}))}>{(smList||[]).map(s=><option key={s}>{s}</option>)}</select></div>}
           <div><label style={lbl}>Remarks</label><textarea rows={2} style={{...inp,resize:"none",textTransform:"uppercase"}} value={f.remarks} onChange={e=>setF(p=>({...p,remarks:e.target.value}))} onBlur={e=>setF(p=>({...p,remarks:cap(e.target.value)}))}/></div>
           <div><label style={lbl}>Followup Date (blank=auto)</label><input type="date" style={inp} value={f.followupDate} onChange={e=>setF(p=>({...p,followupDate:e.target.value}))}/></div>
           <button onClick={submit} style={{...btn("linear-gradient(135deg,#f97316,#ef4444)"),padding:15,fontSize:15,borderRadius:14,marginTop:4}}>Add Customer</button>
@@ -2233,7 +2233,7 @@ function BillingPayBox({K,custId,onAddPayment}){
     </div>
   );
 }
-function BillingView({billing:b,cust,onAddPayment}){
+function BillingView({billing:b,cust,onAddPayment,role}){
   const r=RC[cust.modelCode]||{};
   const c=b.calc||calcB(b,r);
   const [showR,setShowR]=useState(null);
@@ -2268,7 +2268,7 @@ function BillingView({billing:b,cust,onAddPayment}){
       {showR&&(
         <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.92)",zIndex:200,display:"flex",flexDirection:"column",padding:12}}>
           <div style={{display:"flex",gap:8,marginBottom:8}}>
-            <button onClick={()=>dlFile(showR,showR===b.calcHtml?"CalcSheet_":"MoneyReceipt_"+cust.name.replace(/ /g,"_")+".html")} style={{flex:1,background:"#dbeafe",border:"none",borderRadius:10,padding:11,color:"#60a5fa",fontWeight:700,fontSize:12,cursor:"pointer"}}>⬇️ Download</button>
+            {isPortalRole(role)&&<button onClick={()=>dlFile(showR,showR===b.calcHtml?"CalcSheet_":"MoneyReceipt_"+cust.name.replace(/ /g,"_")+".html")} style={{flex:1,background:"#dbeafe",border:"none",borderRadius:10,padding:11,color:"#60a5fa",fontWeight:700,fontSize:12,cursor:"pointer"}}>⬇️ Download</button>}
             <button onClick={()=>{try{ifr.current.contentWindow.print();}catch(e){alert("Print blocked here — use Download, open the file, then print/save as PDF");}}} style={{flex:1,background:"#c2d6ec",border:"none",borderRadius:10,padding:11,color:"#1e293b",fontWeight:700,fontSize:12,cursor:"pointer"}}>🖨️ Print</button>
             <button onClick={()=>setShowR(false)} style={{flex:1,background:"#c2d6ec",border:"none",borderRadius:10,padding:11,color:"#1e293b",fontWeight:700,fontSize:13,cursor:"pointer"}}>✕ Close</button>
           </div>
@@ -3635,7 +3635,7 @@ export default function App(){
       </div>
 
       {(view==="customers"||view==="dashboard")&&<button onClick={()=>setAddOpen(true)} style={{position:"fixed",bottom:78,right:20,width:58,height:56,borderRadius:28,background:"linear-gradient(135deg,#f97316,#ef4444)",border:"none",display:"flex",alignItems:"center",justifyContent:"center",cursor:"pointer",boxShadow:"0 6px 28px rgba(249,115,22,0.55)",zIndex:50,fontSize:28,color:"#fff",animation:"glow 3s ease infinite"}}>+</button>}
-      {addOpen&&<AddModal onClose={()=>setAddOpen(false)} onSave={d=>{addC(d);setAddOpen(false);}} curUser={user} role={role} existing={custs}/>}
+      {addOpen&&<AddModal onClose={()=>setAddOpen(false)} onSave={d=>{addC(d);setAddOpen(false);}} curUser={user} role={role} existing={custs} smList={(nkdUsers?.salesman||[]).map(s=>s.name)}/>}
       {bookOpen&&sel&&<BookingModal cust={custs.find(c=>c.id===sel.id)||sel} onClose={()=>setBookOpen(false)} onSave={bk=>{const cu=custs.find(c=>c.id===sel.id)||sel;
         var brc="<!DOCTYPE html><html><head><title>Booking Receipt</title><style>*{margin:0;padding:0;box-sizing:border-box}body{font-family:Arial;font-size:13px;padding:20px;color:#111}.logo{font-size:24px;font-weight:900;letter-spacing:2px;text-align:center}.hdr{text-align:center;border-bottom:2px solid #000;padding-bottom:10px;margin-bottom:14px}.hdr p{font-size:11px;color:#444;margin-top:2px}h2{text-align:center;font-size:17px;margin:10px 0 14px}.row{display:flex;justify-content:space-between;padding:5px 0;border-bottom:1px solid #eee}.v{font-weight:700}.total{display:flex;justify-content:space-between;padding:12px 0;border-top:2px solid #000;font-size:17px;font-weight:900;margin-top:8px}.sigs{display:flex;justify-content:space-between;margin-top:40px}.sigs div{text-align:center;font-size:11px}</style></head><body><div class=hdr><div class=logo>NKD BAJAJ</div><p>Authorised Main Dealer — Bajaj Auto Ltd.</p><p>Hirak Road, Near Kamal Katesaria School, Dhanbad</p><p>Ph: 7033099006 | info@nkdbajaj.com</p></div><h2>BOOKING RECEIPT</h2><div class=row><span>Date</span><span class=v>"+bk.date+"</span></div><div class=row><span>Customer</span><span class=v>"+cu.name+"</span></div><div class=row><span>Phone</span><span class=v>"+cu.phone+"</span></div><div class=row><span>Model</span><span class=v>"+(cu.model||"")+" ("+(cu.modelCode||"")+")</span></div><div class=row><span>Mode</span><span class=v>"+bk.mode+"</span></div>"+(bk.note?"<div class=row><span>Note</span><span class=v>"+bk.note+"</span></div>":"")+"<div class=total><span>BOOKING AMOUNT RECEIVED</span><span>"+fc(bk.amt)+"</span></div><p style='font-size:11px;color:#666;margin-top:8px'>Balance payable at delivery. Subject to realization of payment.</p><div class=sigs><div>____________________<br/>Customer Sign</div><div>____________________<br/>For NKD Bajaj</div></div></body></html>";
         const newBk={...bk,receiptHtml:brc,savedAt:td()};
