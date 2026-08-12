@@ -598,6 +598,30 @@ function Dashboard({custs,role,onOpen,onNav,onNavF,onSvcDone,onTeamTap,onAddPaym
           </div>
         );
       })()}
+      {role==="salesman"&&(()=>{
+        const today=td();
+        const rows=[["Customer","Model","Type","Amount","Mode","Reference"]];
+        custs.forEach(c=>{
+          const allBks=c.bookings||(c.booking?[c.booking]:[]);
+          allBks.forEach(bk=>{if(bk&&bk.date===today&&Number(bk.amt||0)>0){rows.push([c.name,c.model||"","Booking",Number(bk.amt||0),bk.mode||"Cash",bk.ref||bk.note||""]);}});
+          if(c.billing&&c.billing.payments){c.billing.payments.forEach(p=>{if(p.date===today&&Number(p.amt||0)>0){rows.push([c.name,c.model||"","Payment",Number(p.amt||0),p.mode||"Cash",p.ref||""]);}}); }
+        });
+        const hasData=rows.length>1;
+        const total=hasData?rows.slice(1).reduce((s,r)=>s+r[3],0):0;
+        return(
+          <div style={{marginBottom:16}}>
+            <button onClick={()=>{
+              if(!hasData){notify("No collections recorded today","warn");return;}
+              const csv=rows.map(r=>r.join(",")).join("\n")+"\n\nTotal,,,"+total+",,";
+              dlFile(csv,"Collection_"+today+".csv","text/csv");
+              notify("✅ Today's collection downloaded");
+            }} style={{width:"100%",background:hasData?"linear-gradient(135deg,#3b82f6,#1d4ed8)":"#e2e8f0",border:"none",borderRadius:12,padding:"13px 16px",color:hasData?"#fff":"#94a3b8",fontSize:13,fontWeight:700,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",gap:8}}>
+              <span>📥</span>
+              <span>Today's Collection{hasData?" — "+rows.slice(1).length+" entries · "+fc(total):" — No entries yet"}</span>
+            </button>
+          </div>
+        );
+      })()}
       <div style={{fontSize:12,fontWeight:700,color:"#ef4444",marginBottom:8}}>🔥 HOT LEADS</div>
       {hot.length===0&&<div style={{color:"#64748b",fontSize:13,textAlign:"center",padding:24}}>No hot leads</div>}
       {hot.slice(0,4).map(c=><Card key={c.id} c={c} onClick={()=>onOpen(c)} showSM={role!=="salesman"}/>)}
@@ -1670,19 +1694,19 @@ function AddModal({onClose,onSave,curUser,role,existing,smList}){
     <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.88)",zIndex:150,display:"flex",alignItems:"flex-end"}}>
       <div style={{background:"#ffffff",width:"100%",borderRadius:"20px 20px 0 0",maxHeight:"94vh",overflowY:"auto",padding:"20px 16px 44px"}}>
         <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:16}}><div style={{fontWeight:800,fontSize:17,color:"#1e293b"}}>New Enquiry</div><button onClick={onClose} style={{background:"#c2d6ec",border:"none",borderRadius:8,width:32,height:32,cursor:"pointer",color:"#1e293b",fontSize:18}}>✕</button></div>
-        <div style={{display:"flex",flexDirection:"column",gap:10}}>
-          {[{k:"name",l:"Customer Name *"},{k:"phone",l:"Phone *",t:"tel"}].map(({k,l,t})=>(
-            <div key={k}><label style={lbl}>{l}</label><input type={t||"text"} autoComplete="off" readOnly onFocus={e=>e.target.removeAttribute("readOnly")} style={t!=="tel"?{...inp,textTransform:"uppercase"}:{...inp,borderColor:f[k]&&f[k].length!==10?"#ef4444":undefined}} value={f[k]||""} onChange={e=>{const v=t==="tel"?e.target.value.replace(/\D/g,"").slice(0,10):e.target.value;setF(p=>({...p,[k]:v}));}} {...(t!=="tel"?capBlur(k):{})}/>{t==="tel"&&f[k]&&f[k].length>0&&f[k].length!==10&&<div style={{fontSize:10,color:"#ef4444",marginTop:2}}>⚠️ Must be 10 digits ({f[k].length} entered)</div>}</div>
+        <form autoComplete="off" onSubmit={e=>e.preventDefault()} style={{display:"flex",flexDirection:"column",gap:10}}>
+          {[{k:"name",l:"Customer Name *",ac:"nkd-cname"},{k:"phone",l:"Phone *",t:"tel",ac:"nkd-cphone"}].map(({k,l,t,ac})=>(
+            <div key={k}><label style={lbl}>{l}</label><input type={t||"text"} autoComplete="new-password" name={ac} readOnly onFocus={e=>{e.target.removeAttribute("readOnly");e.target.setAttribute("autoComplete","new-password");}} style={t!=="tel"?{...inp,textTransform:"uppercase"}:{...inp,borderColor:f[k]&&f[k].length!==10?"#ef4444":undefined}} value={f[k]||""} onChange={e=>{const v=t==="tel"?e.target.value.replace(/\D/g,"").slice(0,10):e.target.value;setF(p=>({...p,[k]:v}));}} {...(t!=="tel"?capBlur(k):{})}/>{t==="tel"&&f[k]&&f[k].length>0&&f[k].length!==10&&<div style={{fontSize:10,color:"#ef4444",marginTop:2}}>⚠️ Must be 10 digits ({f[k].length} entered)</div>}</div>
           ))}
           <div><label style={lbl}>Model — search by code or name</label>
-            <input autoComplete="off" readOnly onFocus={e=>e.target.removeAttribute("readOnly")} style={{...inp,textTransform:"uppercase"}} value={mSearch} onChange={e=>{const v=e.target.value.toUpperCase();setMSearch(v);if(!v){pickM("");}}} placeholder="TYPE MODEL CODE OR NAME…" list="model-list"/>
+            <input autoComplete="new-password" name="nkd-cmodel" readOnly onFocus={e=>e.target.removeAttribute("readOnly")} style={{...inp,textTransform:"uppercase"}} value={mSearch} onChange={e=>{const v=e.target.value.toUpperCase();setMSearch(v);if(!v){pickM("");}}} placeholder="TYPE MODEL CODE OR NAME…" list="model-list"/>
             <datalist id="model-list">{filteredModels.map(([code,m])=><option key={code} value={code+" — "+m.n}/>)}</datalist>
             {mSearch&&filteredModels.length===1&&filteredModels[0][0]!==f.modelCode&&(()=>{const [code]=filteredModels[0];setTimeout(()=>pickM(code),0);return null;})()}
             {/* also support selecting from the datalist */}
             {mSearch&&(()=>{const match=allModels.find(([c,m])=>mSearch===c+" — "+m.n||mSearch===c);if(match&&match[0]!==f.modelCode)pickM(match[0]);return null;})()}
             {r&&<div style={{background:"rgba(96,165,250,0.07)",border:"1px solid rgba(96,165,250,0.2)",borderRadius:8,padding:"8px 10px",marginTop:5,fontSize:11}}><span style={{color:"#60a5fa",fontWeight:700}}>{f.modelCode} — {r.n}</span><br/><span style={{color:"#64748b"}}>Ex-Showroom: </span><b style={{color:"#1e293b"}}>{fc(r.ex)}</b><span style={{color:"#64748b"}}> | On-Road: </span><b style={{color:"#34d399"}}>{fc(r.onRoad)}</b></div>}
           </div>
-          <div><label style={lbl}>Address</label><input autoComplete="off" readOnly onFocus={e=>e.target.removeAttribute("readOnly")} style={{...inp,textTransform:"uppercase"}} value={f.address||""} onChange={e=>setF(p=>({...p,address:e.target.value}))} {...capBlur("address")}/></div>
+          <div><label style={lbl}>Address</label><input autoComplete="new-password" name="nkd-caddr" readOnly onFocus={e=>e.target.removeAttribute("readOnly")} style={{...inp,textTransform:"uppercase"}} value={f.address||""} onChange={e=>setF(p=>({...p,address:e.target.value}))} {...capBlur("address")}/></div>
           <div><label style={lbl}>DOB</label>
             <input type="date" style={inp} value={f.dob||""} onChange={e=>setF(p=>({...p,dob:e.target.value}))} max={td()}/>
             {dobAge!==null&&dobAge<18&&<div style={{background:"rgba(239,68,68,0.1)",border:"1px solid #ef4444",borderRadius:7,padding:"5px 10px",marginTop:4,fontSize:11,color:"#ef4444",fontWeight:700}}>⚠️ Under 18 years — customer is a minor ({dobAge} yrs)</div>}
@@ -1698,7 +1722,7 @@ function AddModal({onClose,onSave,curUser,role,existing,smList}){
           <div><label style={lbl}>Remarks</label><textarea rows={2} style={{...inp,resize:"none",textTransform:"uppercase"}} value={f.remarks} onChange={e=>setF(p=>({...p,remarks:e.target.value}))} onBlur={e=>setF(p=>({...p,remarks:cap(e.target.value)}))}/></div>
           <div><label style={lbl}>Followup Date (blank=auto)</label><input type="date" style={inp} value={f.followupDate} onChange={e=>setF(p=>({...p,followupDate:e.target.value}))}/></div>
           <button onClick={submit} style={{...btn("linear-gradient(135deg,#f97316,#ef4444)"),padding:15,fontSize:15,borderRadius:14,marginTop:4}}>Add Customer</button>
-        </div>
+        </form>
       </div>
     </div>
   );
@@ -1921,7 +1945,7 @@ function BillingModal({cust,onClose,onSave,onDraft,notify,role,stockData,billedC
   const [mrPayCount,setMrPayCount]=useState(mrSent?(eb.payments||[]).length:0);
   const [amtDiffPopup,setAmtDiffPopup]=useState(false);
   const [amtDiffReason,setAmtDiffReason]=useState("");
-  function generateAndSendMR(){
+  async function generateAndSendMR(){
     if(mrSent){notify("MR already sent to customer — cannot resend","err");return;}
     const activePmts=(f.payments||[]).filter(p=>Number(p.amt||0)>0);
     if(activePmts.length===0){notify("⚠️ Enter at least one payment amount before generating MR","err");return;}
@@ -1929,16 +1953,32 @@ function BillingModal({cust,onClose,onSave,onDraft,notify,role,stockData,billedC
       const details={name:f.billName||cust.name,exchangeName:f.exchName,exchangePhone:f.exchPhone,exchangeAsked:f.exchModel,exchangeRegNo:f.exchRegNo,exchangeOffered:String(f.exv||""),fatherName:f.fatherName,fatherRel:f.fatherRel||"Father",address:cust.address,dob:f.dob,nominee:f.nominee,nomineeRel:f.nomineeRel,aadhar:f.aadhar,pan:f.pan};
       const tempBilling={...f,details,calc:c,paid:c.paid};
       const tempCust={...cust,...details,billing:tempBilling,billedDate:f.deliveryDate||td()};
-      // Send MR to customer and office (no calc sheet)
       const doc=makeMRDoc(tempCust,tempBilling,c);
       const mrFname="MR_"+cust.name.replace(/ /g,"_")+"_"+td()+".pdf";
-      sharePdf(doc,mrFname,cust.phone,"Please find your Money Receipt from NKD Bajaj, Dhanbad.",cust.name+" (Customer)");
-      const offNum=ld("nkd_office_wa",OFFICE_WA)||OFFICE_WA;
-      sharePdf(doc,mrFname,offNum,"MR for "+cust.name+" — "+cust.model,"Office");
+      // ── Try WhatsApp Cloud API (zero-tap, fully automatic) ──
+      let autoSent=false;
+      try{
+        const b64=doc.output("datauristring").split(",")[1];
+        const custMsg="Dear "+(f.billName||cust.name)+", your Money Receipt from NKD Bajaj, Dhanbad is attached. Thank you for choosing us! 🏍️";
+        const r=await fetch("/api/send-whatsapp",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({phone:cust.phone,pdfBase64:b64,filename:mrFname,message:custMsg})});
+        const j=await r.json();
+        if(j.success){
+          autoSent=true;
+          // Also send to office silently
+          const offNum=ld("nkd_office_wa",OFFICE_WA)||OFFICE_WA;
+          fetch("/api/send-whatsapp",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({phone:offNum,pdfBase64:b64,filename:mrFname,message:"MR for "+cust.name+" — "+cust.model+" ("+mrFname+")"})}).catch(()=>{});
+        }
+      }catch(apiErr){ /* API not configured — fall through to manual share */ }
+      // ── Fallback: manual share via navigator.share ──────────────────────
+      if(!autoSent){
+        sharePdf(doc,mrFname,cust.phone,"Please find your Money Receipt from NKD Bajaj, Dhanbad.",cust.name+" (Customer)");
+        const offNum=ld("nkd_office_wa",OFFICE_WA)||OFFICE_WA;
+        sharePdf(doc,mrFname,offNum,"MR for "+cust.name+" — "+cust.model,"Office");
+      }
       savePdfToDrive(doc,mrFname,cust.name,"MR",cust.branch||SM_BRANCH[cust.salesman]||"");
       setMrSent(true);
       setMrPayCount(f.payments?f.payments.length:0);
-      notify("✅ MR sent to customer & office");
+      notify(autoSent?"✅ MR sent automatically to customer via WhatsApp":"✅ MR sent to customer & office");
     }catch(e){notify("⚠️ Error generating MR: "+e.message,"err");}
   }
   function saveDraft(){
