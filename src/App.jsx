@@ -1717,7 +1717,7 @@ function AddModal({onClose,onSave,curUser,role,existing,smList}){
         <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:16}}><div style={{fontWeight:800,fontSize:17,color:"#1e293b"}}>New Enquiry</div><button onClick={onClose} style={{background:"#c2d6ec",border:"none",borderRadius:8,width:32,height:32,cursor:"pointer",color:"#1e293b",fontSize:18}}>✕</button></div>
         <form autoComplete="off" onSubmit={e=>e.preventDefault()} style={{display:"flex",flexDirection:"column",gap:10}}>
           {[{k:"name",l:"Customer Name *",ac:"nkd-cname"},{k:"phone",l:"Phone *",t:"tel",ac:"nkd-cphone"}].map(({k,l,t,ac})=>(
-            <React.Fragment key={k}>
+            <Fragment key={k}>
               <div><label style={lbl}>{l}</label><input type={t||"text"} autoComplete="new-password" name={ac} readOnly onFocus={e=>{e.target.removeAttribute("readOnly");e.target.setAttribute("autoComplete","new-password");}} style={t!=="tel"?{...inp,textTransform:"uppercase"}:{...inp,borderColor:f[k]&&f[k].length!==10?"#ef4444":undefined}} value={f[k]||""} onChange={e=>{const v=t==="tel"?e.target.value.replace(/\D/g,"").slice(0,10):e.target.value;setF(p=>({...p,[k]:v}));if(t==="tel")setPhoneMatches(v.length>=4?(existing||[]).filter(c=>c.phone&&c.phone.includes(v)).slice(0,5):[]);}} {...(t!=="tel"?capBlur(k):{})}/>{t==="tel"&&f[k]&&f[k].length>0&&f[k].length!==10&&<div style={{fontSize:10,color:"#ef4444",marginTop:2}}>⚠️ Must be 10 digits ({f[k].length} entered)</div>}</div>
               {k==="phone"&&phoneMatches.length>0&&(
                 <div style={{background:"#fff",border:"2px solid #f97316",borderRadius:10,overflow:"hidden",marginTop:-4,boxShadow:"0 4px 16px rgba(249,115,22,0.18)"}}>
@@ -1730,7 +1730,7 @@ function AddModal({onClose,onSave,curUser,role,existing,smList}){
                   <div style={{padding:"6px 12px",fontSize:10,color:"#f97316",fontWeight:700,background:"rgba(249,115,22,0.06)"}}>⚠️ Existing customer(s) with this number — check before adding</div>
                 </div>
               )}
-            </React.Fragment>
+            </Fragment>
           ))}
           <div><label style={lbl}>Model — search by code or name</label>
             <input autoComplete="new-password" name="nkd-cmodel" readOnly onFocus={e=>e.target.removeAttribute("readOnly")} style={{...inp,textTransform:"uppercase"}} value={mSearch} onChange={e=>{const v=e.target.value.toUpperCase();setMSearch(v);if(!v){pickM("");}}} placeholder="TYPE MODEL CODE OR NAME…" list="model-list"/>
