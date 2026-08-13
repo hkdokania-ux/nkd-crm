@@ -2104,14 +2104,8 @@ function BillingModal({cust,onClose,onSave,onDraft,notify,role,stockData,billedC
             <div style={{fontSize:10,fontWeight:700,color:"#f59e0b",letterSpacing:0.8,marginBottom:6}}>💰 FINANCE DETAILS</div>
             <div style={{background:"rgba(245,158,11,0.05)",border:"1px solid rgba(245,158,11,0.35)",borderRadius:12,padding:12}}>
               <div><label style={{...lbl,fontSize:10}}>Finance Company Name *</label>
-                <select style={{...inp,fontSize:12,padding:"8px 10px"}} value={f.financeBank||""} onChange={e=>setF(p=>({...p,financeBank:e.target.value==="__other__"?"":e.target.value}))}>
-                  <option value="">— Select —</option>
-                  {["Bajaj Finance","HDFC Bank","Hero FinCorp","SBI","Axis Bank","ICICI Bank","Kotak Mahindra","Muthoot Finance","Shriram Finance","TVS Credit"].map(b=><option key={b} value={b}>{b}</option>)}
-                  <option value="__other__">Other (type below)</option>
-                </select>
-                {(!f.financeBank||!["Bajaj Finance","HDFC Bank","Hero FinCorp","SBI","Axis Bank","ICICI Bank","Kotak Mahindra","Muthoot Finance","Shriram Finance","TVS Credit"].includes(f.financeBank))&&(
-                  <input style={{...inp,fontSize:12,padding:"8px 10px",marginTop:6}} placeholder="Finance company name…" value={f.financeBank||""} onChange={e=>setF(p=>({...p,financeBank:e.target.value}))}/>
-                )}
+                <input list="fin-bank-list" style={{...inp,fontSize:12,padding:"8px 10px"}} value={f.financeBank||""} onChange={e=>setF(p=>({...p,financeBank:e.target.value}))} placeholder="Type or select…"/>
+                <datalist id="fin-bank-list">{["Bajaj Finance","HDFC Bank","Hero FinCorp","SBI","Axis Bank","ICICI Bank","Kotak Mahindra","Muthoot Finance","Shriram Finance","TVS Credit"].map(b=><option key={b} value={b}/>)}</datalist>
               </div>
             </div>
           </div>
