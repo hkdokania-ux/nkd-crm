@@ -3450,7 +3450,12 @@ export default function App(){
 
   useEffect(()=>{
     Promise.all([
-      _dbGet("custs").then(d=>{if(d&&d.length){sv("nkd6",d);setCusts(d);}}),
+      _dbGet("custs").then(d=>{if(d&&d.length){
+        // Merge photos from localStorage (photos are stripped before Supabase save to keep payload small)
+        const local=ld("nkd6",null)||[];
+        const merged=d.map(sc=>{const lc=local.find(l=>l.id===sc.id);return(lc&&lc.photos&&Object.keys(lc.photos).length)?{...sc,photos:lc.photos}:sc;});
+        sv("nkd6",merged);setCusts(merged);
+      }}),
       _dbGet("passwords").then(d=>{if(d)sv("nkd_pw",d);}),
       _dbGet("rate_chart").then(d=>{if(d){sv("nkd_rc",d);try{Object.assign(RC,d);}catch(e){}}}),
       _dbGet("office_wa").then(d=>{if(d)sv("nkd_office_wa",d);}),
@@ -3464,7 +3469,9 @@ export default function App(){
   useEffect(()=>{
     if(!fbReady)return;
     sv("nkd6",custs);
-    _dbSet("custs",custs);
+    // Strip base64 photos before Supabase save — keeps payload small so upsert never fails silently
+    const slim=custs.map(c=>({...c,photos:{}}));
+    _dbSet("custs",slim);
   },[custs,fbReady]);
 
   function notify(msg,type){setToast({msg,type});setTimeout(()=>setToast(null),3000);}
