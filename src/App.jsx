@@ -2355,7 +2355,18 @@ function BillingView({billing:b,cust,onAddPayment,role}){
       {<div style={{marginBottom:12}}>
         <button onClick={()=>{const doc=makeMRDoc(cust,b,c);sharePdf(doc,"MR_"+cust.name.replace(/ /g,"_")+"_"+td()+".pdf",cust.phone,"Please find your Money Receipt from NKD Bajaj, Dhanbad.",cust.name+" (Customer)");}} style={{width:"100%",background:"rgba(37,211,102,0.1)",border:"1px solid rgba(37,211,102,0.35)",borderRadius:12,padding:13,color:"#22c55e",fontWeight:700,fontSize:13,cursor:"pointer",marginBottom:8}}>📲 Send Money Receipt PDF → Customer (WhatsApp)</button>
         <button onClick={()=>{const doc=makeCombinedDoc(cust,b,c);const num=ld("nkd_office_wa",OFFICE_WA)||OFFICE_WA;sharePdf(doc,"CalcSheet_MR_"+cust.name.replace(/ /g,"_")+"_"+td()+".pdf",num,"Calculation Sheet + Money Receipt for "+cust.name+" ("+cust.model+")","Office");}} style={{width:"100%",background:"rgba(249,115,22,0.1)",border:"1px solid rgba(249,115,22,0.35)",borderRadius:12,padding:13,color:"#f97316",fontWeight:700,fontSize:13,cursor:"pointer",marginBottom:8}}>🏢 Send Calc Sheet + MR (2 pages) PDF → Office</button>
-        <button onClick={()=>{const doc=makeCalcDoc(cust,b,c);const fn="CalcSheet_"+cust.name.replace(/ /g,"_")+"_"+td()+".pdf";sharePdf(doc,fn,null,null,"");}} style={{width:"100%",background:"rgba(99,102,241,0.1)",border:"1px solid rgba(99,102,241,0.35)",borderRadius:12,padding:13,color:"#6366f1",fontWeight:700,fontSize:13,cursor:"pointer",marginBottom:8}}>⬇️ Download Calc Sheet PDF</button>
+        <button onClick={()=>{
+          const doc=makeCalcDoc(cust,b,c);
+          const fn="CalcSheet_"+cust.name.replace(/ /g,"_")+"_"+td()+".pdf";
+          const blob=doc.output("blob");
+          const file=new File([blob],fn,{type:"application/pdf"});
+          if(navigator.share&&navigator.canShare&&navigator.canShare({files:[file]})){
+            navigator.share({files:[file],title:"NKD Bajaj",text:"Calculation Sheet — "+cust.name}).catch(()=>{});
+          }else{
+            const url=URL.createObjectURL(blob);
+            const a=document.createElement("a");a.href=url;a.download=fn;document.body.appendChild(a);a.click();document.body.removeChild(a);setTimeout(()=>URL.revokeObjectURL(url),3000);
+          }
+        }} style={{width:"100%",background:"rgba(99,102,241,0.1)",border:"1px solid rgba(99,102,241,0.35)",borderRadius:12,padding:13,color:"#6366f1",fontWeight:700,fontSize:13,cursor:"pointer",marginBottom:8}}>⬇️ Download Calc Sheet PDF</button>
         <div style={{display:"flex",gap:8}}>
           <button onClick={()=>setShowR(b.receiptHtml)} style={{flex:1,background:"rgba(96,165,250,0.08)",border:"1px solid rgba(96,165,250,0.25)",borderRadius:10,padding:10,color:"#60a5fa",fontWeight:700,fontSize:11,cursor:"pointer"}}>🧾 Preview MR</button>
           <button onClick={()=>b.calcHtml&&setShowR(b.calcHtml)} style={{flex:1,background:"rgba(245,158,11,0.08)",border:"1px solid rgba(245,158,11,0.25)",borderRadius:10,padding:10,color:"#f59e0b",fontWeight:700,fontSize:11,cursor:"pointer"}}>📊 Preview Calc</button>
