@@ -3451,10 +3451,21 @@ export default function App(){
   useEffect(()=>{
     Promise.all([
       _dbGet("custs").then(d=>{if(d&&d.length){
-        // Merge photos from localStorage (photos are stripped before Supabase save to keep payload small)
         const local=ld("nkd6",null)||[];
-        const merged=d.map(sc=>{const lc=local.find(l=>l.id===sc.id);return(lc&&lc.photos&&Object.keys(lc.photos).length)?{...sc,photos:lc.photos}:sc;});
-        sv("nkd6",merged);setCusts(merged);
+        const merged=d.map(sc=>{
+          const lc=local.find(l=>l.id===sc.id);
+          if(!lc)return sc;
+          // Prefer local if: local has billing and Supabase doesn't, OR local is newer
+          const scTs=sc.updatedAt||sc.billedDate||"";
+          const lcTs=lc.updatedAt||lc.billedDate||"";
+          const localNewer=(lcTs&&scTs&&lcTs>scTs)||(lc.billed&&!sc.billed)||(lc.billing&&!sc.billing);
+          return localNewer?{...sc,...lc}:{...sc,photos:lc.photos||sc.photos};
+        });
+        // Also add any local customers not yet in Supabase
+        const sbIds=new Set(d.map(c=>c.id));
+        const localOnly=local.filter(c=>!sbIds.has(c.id));
+        const all=[...merged,...localOnly];
+        sv("nkd6",all);setCusts(all);
       }}),
       _dbGet("passwords").then(d=>{if(d)sv("nkd_pw",d);}),
       _dbGet("rate_chart").then(d=>{if(d){sv("nkd_rc",d);try{Object.assign(RC,d);}catch(e){}}}),
