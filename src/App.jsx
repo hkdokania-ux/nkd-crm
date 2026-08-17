@@ -2369,18 +2369,18 @@ function BillingView({billing:b,cust,onAddPayment,role}){
         }} style={{width:"100%",background:"rgba(99,102,241,0.1)",border:"1px solid rgba(99,102,241,0.35)",borderRadius:12,padding:13,color:"#6366f1",fontWeight:700,fontSize:13,cursor:"pointer",marginBottom:8}}>⬇️ Download Calc Sheet PDF</button>
         <div style={{display:"flex",gap:8}}>
           <button onClick={()=>setShowR(b.receiptHtml)} style={{flex:1,background:"rgba(96,165,250,0.08)",border:"1px solid rgba(96,165,250,0.25)",borderRadius:10,padding:10,color:"#60a5fa",fontWeight:700,fontSize:11,cursor:"pointer"}}>🧾 Preview MR</button>
-          <button onClick={()=>b.calcHtml&&setShowR(b.calcHtml)} style={{flex:1,background:"rgba(245,158,11,0.08)",border:"1px solid rgba(245,158,11,0.25)",borderRadius:10,padding:10,color:"#f59e0b",fontWeight:700,fontSize:11,cursor:"pointer"}}>📊 Preview Calc</button>
+          <button onClick={()=>{const doc=makeCalcDoc(cust,b,c);setShowR("pdf::"+doc.output("datauristring"));}} style={{flex:1,background:"rgba(245,158,11,0.08)",border:"1px solid rgba(245,158,11,0.25)",borderRadius:10,padding:10,color:"#f59e0b",fontWeight:700,fontSize:11,cursor:"pointer"}}>📊 Preview Calc</button>
         </div>
         <div style={{fontSize:10,color:"#94a3b8",marginTop:6}}>On mobile — tapping Send opens WhatsApp share sheet directly. On desktop — PDF downloads then WhatsApp opens.</div>
       </div>}
       {showR&&(
         <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.92)",zIndex:200,display:"flex",flexDirection:"column",padding:12}}>
           <div style={{display:"flex",gap:8,marginBottom:8}}>
-            {isPortalRole(role)&&<button onClick={()=>dlFile(showR,showR===b.calcHtml?"CalcSheet_":"MoneyReceipt_"+cust.name.replace(/ /g,"_")+".html")} style={{flex:1,background:"#dbeafe",border:"none",borderRadius:10,padding:11,color:"#60a5fa",fontWeight:700,fontSize:12,cursor:"pointer"}}>⬇️ Download</button>}
+            {isPortalRole(role)&&<button onClick={()=>{if(showR&&showR.startsWith("pdf::")){const a=document.createElement("a");a.href=showR.slice(5);a.download="CalcSheet_"+cust.name.replace(/ /g,"_")+".pdf";a.click();}else{dlFile(showR,"MoneyReceipt_"+cust.name.replace(/ /g,"_")+".html");}}} style={{flex:1,background:"#dbeafe",border:"none",borderRadius:10,padding:11,color:"#60a5fa",fontWeight:700,fontSize:12,cursor:"pointer"}}>⬇️ Download</button>}
             <button onClick={()=>{try{ifr.current.contentWindow.print();}catch(e){alert("Print blocked here — use Download, open the file, then print/save as PDF");}}} style={{flex:1,background:"#c2d6ec",border:"none",borderRadius:10,padding:11,color:"#1e293b",fontWeight:700,fontSize:12,cursor:"pointer"}}>🖨️ Print</button>
             <button onClick={()=>setShowR(false)} style={{flex:1,background:"#c2d6ec",border:"none",borderRadius:10,padding:11,color:"#1e293b",fontWeight:700,fontSize:13,cursor:"pointer"}}>✕ Close</button>
           </div>
-          <iframe ref={ifr} srcDoc={showR} title="receipt" style={{flex:1,background:"#fff",borderRadius:12,border:"none",width:"100%"}}/>
+          {showR&&showR.startsWith("pdf::")?<iframe ref={ifr} src={showR.slice(5)} title="calc" style={{flex:1,background:"#fff",borderRadius:12,border:"none",width:"100%"}}/>:<iframe ref={ifr} srcDoc={showR} title="receipt" style={{flex:1,background:"#fff",borderRadius:12,border:"none",width:"100%"}}/>}
         </div>
       )}
       <div style={{background:cust.managerApproval==="approved"?"rgba(34,197,94,0.1)":"rgba(249,115,22,0.08)",border:"1px solid "+(cust.managerApproval==="approved"?"#22c55e":"rgba(249,115,22,0.4)"),borderRadius:11,padding:"11px 13px",marginBottom:12,fontSize:12,color:cust.managerApproval==="approved"?"#22c55e":"#f97316",fontWeight:600}}>{cust.managerApproval==="approved"?"✅ Billing Approved by Manager — record locked":cust.managerApproval==="rejected"?"❌ Rejected by Manager — correct the sheet and bill again (documents are retained)":"⏳ Awaiting Manager Approval"}</div>
@@ -3147,6 +3147,51 @@ function CashBook({custs,smBranchMap}){
     </div>
   );
 }
+function BackupRestore({custs,setCusts,notify}){
+  const [loading,setLoading]=useState(false);
+  const [backups,setBackups]=useState([]);
+  const [loaded,setLoaded]=useState(false);
+  async function loadBackups(){
+    setLoading(true);
+    const dates=[];
+    for(let i=0;i<7;i++){const d=new Date(Date.now()-i*86400000).toISOString().slice(0,10);dates.push(d);}
+    const results=await Promise.all(dates.map(d=>_dbGet("custs_backup_"+d).then(v=>v&&v.length?{date:d,count:v.length,data:v}:null)));
+    setBackups(results.filter(Boolean));
+    setLoaded(true);
+    setLoading(false);
+  }
+  function restore(bk){
+    if(!window.confirm("Restore "+bk.count+" customers from "+bk.date+"?\n\nThis will MERGE backup data with current — newer records are kept. Current data is NOT deleted."))return;
+    const local=ld("nkd6",null)||custs;
+    const merged=[...bk.data];
+    local.forEach(lc=>{
+      const idx=merged.findIndex(m=>m.id===lc.id);
+      const lcTs=lc.updatedAt||lc.billedDate||"";
+      if(idx===-1){merged.push(lc);}
+      else{const mTs=merged[idx].updatedAt||merged[idx].billedDate||"";if(lcTs>mTs||(!merged[idx].billing&&lc.billing))merged[idx]={...merged[idx],...lc};}
+    });
+    setCusts(merged);
+    sv("nkd6",merged);
+    notify("✅ Restored "+merged.length+" customers from "+bk.date+" backup — refresh to confirm");
+  }
+  return(
+    <div style={{background:"#fff",border:"2px solid #6b8fb5",borderRadius:16,padding:"20px 22px"}}>
+      <div style={{fontWeight:800,fontSize:16,color:"#1e293b",marginBottom:4}}>🔐 Data Backup & Restore</div>
+      <div style={{fontSize:11,color:"#94a3b8",marginBottom:14}}>Daily snapshots saved automatically. Use to recover lost customer/billing data.</div>
+      {!loaded&&<button onClick={loadBackups} disabled={loading} style={{background:"linear-gradient(135deg,#6366f1,#4f46e5)",border:"none",borderRadius:10,padding:"10px 20px",color:"#fff",fontWeight:700,fontSize:13,cursor:"pointer"}}>{loading?"Loading…":"📂 View Available Backups"}</button>}
+      {loaded&&backups.length===0&&<div style={{fontSize:12,color:"#94a3b8",padding:"12px 0"}}>No backups found yet — backups start saving from today onwards.</div>}
+      {loaded&&backups.map(bk=>(
+        <div key={bk.date} style={{display:"flex",alignItems:"center",justifyContent:"space-between",padding:"10px 12px",background:"rgba(99,102,241,0.05)",border:"1px solid rgba(99,102,241,0.2)",borderRadius:10,marginBottom:8}}>
+          <div>
+            <div style={{fontWeight:700,fontSize:13,color:"#1e293b"}}>📅 {bk.date}</div>
+            <div style={{fontSize:11,color:"#64748b",marginTop:2}}>{bk.count} customers in this snapshot</div>
+          </div>
+          <button onClick={()=>restore(bk)} style={{background:"linear-gradient(135deg,#f97316,#ea580c)",border:"none",borderRadius:9,padding:"8px 16px",color:"#fff",fontWeight:700,fontSize:12,cursor:"pointer"}}>↩ Restore</button>
+        </div>
+      ))}
+    </div>
+  );
+}
 function OwnerPortal({custs,stockData,billedChassis,statusData,role,user,mBr,saveStockData,saveStatusData,nkdUsers,onSaveUsers,notify,onUpd,onApprove,onLogout,onMobile}){
   const [view,setView]=useState(role==="admin"?"uploads":"dashboard");
   const [custTableQ,setCustTableQ]=useState("");
@@ -3337,7 +3382,10 @@ function OwnerPortal({custs,stockData,billedChassis,statusData,role,user,mBr,sav
               <RCHSRPSearch statusData={statusData} role={role} onUpload={saveStatusData} notify={notify}/>
             </div>
           </div>
-        ):<div style={{maxWidth:700}}><UploadsHub stockData={stockData} statusData={statusData} onStockUpload={saveStockData} onStatusUpload={saveStatusData} notify={notify}/></div>)}
+        ):<div style={{maxWidth:700,display:"flex",flexDirection:"column",gap:20}}>
+          <UploadsHub stockData={stockData} statusData={statusData} onStockUpload={saveStockData} onStatusUpload={saveStatusData} notify={notify}/>
+          {isOwner(role)&&<BackupRestore custs={custs} setCusts={setCusts} notify={notify}/>}
+        </div>)}
 
         {/* ── RC/HSRP ── */}
         {view==="rcstatus"&&<div style={{maxWidth:900}}><RCHSRPSearch statusData={statusData} role={role} onUpload={saveStatusData} notify={notify}/></div>}
@@ -3483,6 +3531,15 @@ export default function App(){
     // Strip base64 photos before Supabase save — keeps payload small so upsert never fails silently
     const slim=custs.map(c=>({...c,photos:{}}));
     _dbSet("custs",slim);
+    // Daily backup — saves a snapshot once per day to a separate key so data can be recovered
+    const today=td();
+    const lastBk=ld("nkd_last_bk","");
+    if(lastBk!==today&&custs.length>0){
+      _dbSet("custs_backup_"+today,slim);
+      sv("nkd_last_bk",today);
+      // Keep only last 7 backup keys (cleanup older ones)
+      for(let i=8;i<=30;i++){const old=new Date(Date.now()-i*86400000).toISOString().slice(0,10);_dbSet("custs_backup_"+old,null);}
+    }
   },[custs,fbReady]);
 
   function notify(msg,type){setToast({msg,type});setTimeout(()=>setToast(null),3000);}
