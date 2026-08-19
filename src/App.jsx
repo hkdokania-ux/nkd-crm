@@ -1643,12 +1643,13 @@ function BookingModal({cust,onClose,onSave}){
   const [mode,setMode]=useState("Cash");
   const [note,setNote]=useState("");
   const [proof,setProof]=useState(null);
+  const [bkDate,setBkDate]=useState(td());
   function pickProof(file){compressImg(file,setProof);}
   const existingBks=(cust.bookings||(cust.booking?[cust.booking]:[]));
   const totalBooked=existingBks.reduce((s,b)=>s+Number(b.amt||0),0);
   function submit(){
     if(!amt||Number(amt)<=0){alert("Enter booking amount");return;}
-    onSave({amt:Number(amt),date:td(),mode,note,proof});
+    onSave({amt:Number(amt),date:bkDate||td(),mode,note,proof});
   }
   return(
     <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.88)",zIndex:150,display:"flex",alignItems:"flex-end"}}>
@@ -1665,8 +1666,8 @@ function BookingModal({cust,onClose,onSave}){
           </div>
         )}
         <div style={{display:"flex",flexDirection:"column",gap:10}}>
-          <div style={{background:"rgba(139,92,246,0.06)",border:"1px solid rgba(139,92,246,0.2)",borderRadius:8,padding:"7px 10px",fontSize:11,color:"#a78bfa"}}>📅 Date will be auto-set to today ({fd(td())}) when saved</div>
           <div><label style={lbl}>Booking Amount ₹ *</label><input type="number" style={inp} value={amt} onChange={e=>setAmt(e.target.value)}/></div>
+          <div><label style={lbl}>Booking Date</label><input type="date" style={inp} value={bkDate} max={td()} onChange={e=>setBkDate(e.target.value)}/></div>
           <div><label style={lbl}>Mode</label><div style={{display:"flex",gap:7}}>{["Cash","UPI","Cheque"].map(m=><button key={m} onClick={()=>setMode(m)} style={{flex:1,background:mode===m?"#dbeafe":"#e2e8f0",border:"1px solid "+(mode===m?"#3b82f6":"#cbd5e1"),borderRadius:10,padding:10,color:mode===m?"#2563eb":"#374151",fontWeight:700,cursor:"pointer",fontSize:12}}>{m}</button>)}</div></div>
           <div><label style={lbl}>Notes</label><input style={inp} value={note} onChange={e=>setNote(e.target.value)} placeholder="e.g. balance on delivery"/></div>
           <div><label style={lbl}>Payment Proof (cheque / UPI screenshot)</label>
@@ -2194,7 +2195,7 @@ function BillingModal({cust,onClose,onSave,onDraft,notify,role,stockData,billedC
             <Tot label="Deal Price E = C − D" val={c.E} col="#a78bfa"/>
             <div style={{height:8}}/>
             <div style={{display:"flex",alignItems:"center",padding:"4px 0",borderBottom:"1px solid #131820",gap:8}}><span style={{fontSize:12,color:"#64748b",flex:1}}>− Booking Amount</span><span style={{fontSize:11,color:"#1e293b",fontWeight:700}}>{fc(f.bk||0)}</span></div>
-            <div style={{display:"flex",alignItems:"center",padding:"4px 0",borderBottom:"1px solid #131820",gap:8}}><span style={{fontSize:12,color:"#64748b",flex:1}}>Booking Date</span><span style={{fontSize:11,color:"#1e293b",fontWeight:700}}>{fd(f.bkDate)||"—"}</span></div>
+            <div style={{display:"flex",alignItems:"center",padding:"4px 0",borderBottom:"1px solid #131820",gap:8}}><span style={{fontSize:12,color:"#64748b",flex:1}}>Booking Date</span><input type="date" value={f.bkDate||td()} max={td()} onChange={e=>setF(p=>({...p,bkDate:e.target.value}))} style={{background:"#f1f5f9",border:"1px solid #6b8fb5",borderRadius:7,padding:"3px 7px",fontSize:11,color:"#1e293b",fontWeight:700}}/></div>
             <div style={{display:"flex",alignItems:"center",padding:"4px 0",borderBottom:"1px solid #131820",gap:8}}><span style={{fontSize:12,color:"#64748b",flex:1}}>− Exchange Value</span><span style={{fontSize:11,color:"#1e293b",fontWeight:700}}>{fc(f.exv||0)}</span><span style={{fontSize:9,color:"#94a3b8"}}>(from above)</span></div>
             <Tot label="Net G = E − F" val={c.G} col="#60a5fa"/>
             <Inp label="− Loan / Disbursement" k="loan" f={f} setF={setF}/>
