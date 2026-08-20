@@ -31,9 +31,21 @@ function uploadToDrive(fileName,dataUrl,mimeType,customerName,docType,cb){
     const monthFolder=new Date().toLocaleDateString("en-IN",{month:"long",year:"numeric"});
     fetch(DRIVE_UPLOAD_URL,{method:"POST",body:JSON.stringify({fileName,fileData:dataUrl,mimeType:mimeType||"image/jpeg",customerName,docType,monthFolder})})
       .then(r=>r.json())
-      .then(d=>{if(d&&d.success&&d.id){cb("https://drive.google.com/uc?id="+d.id+"&export=view",d.url);}else{cb(dataUrl,null);}})
+      .then(d=>{if(d&&d.success&&d.id){cb("https://lh3.googleusercontent.com/d/"+d.id,d.url);}else{cb(dataUrl,null);}})
       .catch(()=>cb(dataUrl,null));
   }catch(e){cb(dataUrl,null);}
+}
+function fixDriveUrl(url){
+  if(!url||typeof url!=="string")return url;
+  // Convert old broken format to working lh3 format
+  const m=url.match(/drive\.google\.com\/uc\?id=([^&]+)/);
+  if(m)return "https://lh3.googleusercontent.com/d/"+m[1];
+  return url;
+}
+function fixDriveUrls(c){
+  if(!c||!c.photos)return c;
+  const photos=Object.fromEntries(Object.entries(c.photos).map(([k,v])=>[k,fixDriveUrl(v)]));
+  return {...c,photos};
 }
 function compressImg(file,cb){
   try{
@@ -247,7 +259,7 @@ function calcB(f,r){
 }
 
 function seedData(){
-  const s=ld("nkd6",null);if(s)return s;
+  const s=ld("nkd6",null);if(s)return s.map(fixDriveUrls);
   const names=["Rajesh Verma","Sunil Gupta","Pooja Singh","Amit Sharma","Ravi Kumar","Meena Devi","Deepak Yadav","Sunita Prasad","Vijay Tiwari","Anita Kumari","Pankaj Jha","Kavita Singh","Rohit Sahu","Nisha Roy","Arun Mishra"];
   const codes=Object.keys(RC);
   const sts=["Hot","Warm","Hot","Cold","Warm","Hot","Warm","Cold","Hot","Warm","Hot","Booked","Warm","Hot","Cold"];
@@ -3545,7 +3557,7 @@ export default function App(){
         // Also add any local customers not yet in Supabase
         const sbIds=new Set(d.map(c=>c.id));
         const localOnly=local.filter(c=>!sbIds.has(c.id));
-        const all=[...merged,...localOnly];
+        const all=[...merged,...localOnly].map(fixDriveUrls);
         sv("nkd6",all);setCusts(all);
       }}),
       _dbGet("passwords").then(d=>{if(d)sv("nkd_pw",d);}),
