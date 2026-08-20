@@ -3530,7 +3530,8 @@ export default function App(){
     if(!fbReady)return;
     sv("nkd6",custs);
     // Strip base64 photos before Supabase save — keeps payload small so upsert never fails silently
-    const slim=custs.map(c=>({...c,photos:{}}));
+    // Drive URLs (https://...) are kept — only raw base64 data is removed
+    const slim=custs.map(c=>({...c,photos:Object.fromEntries(Object.entries(c.photos||{}).filter(([,v])=>v&&typeof v==="string"&&v.startsWith("http")))}));
     _dbSet("custs",slim);
     // Daily backup — saves a snapshot once per day to a separate key so data can be recovered
     const today=td();
