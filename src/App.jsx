@@ -1603,6 +1603,37 @@ function Detail({cust,role,onBack,onUpd,onLog,onBill,onBook,notify,initTab,clear
 
       {tab==="docs"&&(
         <div>
+          {(()=>{
+            const photos=cust.photos||{};
+            const b64Keys=Object.entries(photos).filter(([,v])=>v&&v.startsWith("data:")).map(([k])=>k);
+            const [syncing,setSyncing]=useState(false);
+            const [syncDone,setSyncDone]=useState(false);
+            if(!b64Keys.length&&!syncDone)return null;
+            if(syncDone)return(<div style={{background:"rgba(34,197,94,0.08)",border:"1px solid rgba(34,197,94,0.3)",borderRadius:10,padding:"9px 12px",marginBottom:10,fontSize:12,color:"#22c55e",fontWeight:600}}>✅ All photos synced to Google Drive</div>);
+            return(
+              <div style={{background:"rgba(249,115,22,0.07)",border:"1px solid rgba(249,115,22,0.3)",borderRadius:10,padding:"10px 12px",marginBottom:10}}>
+                <div style={{fontSize:12,color:"#f97316",fontWeight:700,marginBottom:4}}>⚠️ {b64Keys.length} photo{b64Keys.length>1?"s":""} not yet uploaded to Google Drive</div>
+                <div style={{fontSize:11,color:"#94a3b8",marginBottom:8}}>These are stored locally only. Tap below to upload them to Drive.</div>
+                <button disabled={syncing} onClick={async()=>{
+                  setSyncing(true);
+                  let done=0;
+                  const updatedPhotos={...photos};
+                  await Promise.all(b64Keys.map(k=>new Promise(resolve=>{
+                    uploadToDrive(k+"_"+Date.now()+".jpg",photos[k],"image/jpeg",cust.name,k,function(url,driveUrl){
+                      if(driveUrl||url.startsWith("http")){updatedPhotos[k]=url;done++;}
+                      resolve();
+                    });
+                  })));
+                  onUpd({photos:updatedPhotos});
+                  setSyncing(false);
+                  if(done>0)setSyncDone(true);
+                  else notify("⚠️ Drive upload failed — check connection","err");
+                }} style={{background:syncing?"#e2e8f0":"linear-gradient(135deg,#f97316,#ea580c)",border:"none",borderRadius:9,padding:"9px 16px",color:syncing?"#94a3b8":"#fff",fontWeight:700,fontSize:12,cursor:syncing?"not-allowed":"pointer"}}>
+                  {syncing?"⏳ Uploading…":"☁️ Sync "+b64Keys.length+" Photo"+(b64Keys.length>1?"s":"")+" to Drive"}
+                </button>
+              </div>
+            );
+          })()}
           <div style={{fontSize:11,fontWeight:700,color:"#a78bfa",marginBottom:8}}>ANYTIME (before or after billing)</div>
           <DocGrid cust={cust} onUpload={uploadPhoto} docs={[{key:"license",l:"Driving License (test ride)",ic:"🚦"},{key:"aadhar_photo",l:"Aadhar Card Photo",ic:"🪪"},{key:"pan_photo",l:"PAN Card Photo",ic:"🪪"},{key:"booking_proof",l:"Booking Payment Proof",ic:"💳"},{key:"exchange_eval",l:"Exchange Bike Evaluation (old RC + photos)",ic:"🏍️"}]}/>
           <div style={{fontSize:11,fontWeight:700,color:"#34d399",margin:"14px 0 8px"}}>AFTER BILLING</div>
