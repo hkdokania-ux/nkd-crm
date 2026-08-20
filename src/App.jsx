@@ -2594,6 +2594,46 @@ function Reports({custs,onImportCust,nkdUsers}){
           saveExcelToDrive(wb,fname2,repMonth);
         }} style={{width:"100%",background:"rgba(96,165,250,0.1)",border:"1px solid rgba(96,165,250,0.35)",borderRadius:11,padding:"13px",color:"#60a5fa",fontWeight:700,fontSize:13,cursor:"pointer"}}>💰 Export Accounts Team Report — {repMonth} ☁️</button>
       </div>
+      <div style={{fontSize:11,fontWeight:700,color:"#f59e0b",marginBottom:6,marginTop:4}}>🏢 BRANCH MANAGER REPORTS — {repMonth}</div>
+      <div style={{display:"flex",flexDirection:"column",gap:8,marginBottom:14}}>
+        {BRANCHES.map(br=>{
+          const brColor=br==="Hirak Road"?"#8b5cf6":br==="Saraidhela"?"#f97316":"#06b6d4";
+          const brBg=br==="Hirak Road"?"rgba(139,92,246,0.1)":br==="Saraidhela"?"rgba(249,115,22,0.1)":"rgba(6,182,212,0.1)";
+          const brBorder=br==="Hirak Road"?"rgba(139,92,246,0.35)":br==="Saraidhela"?"rgba(249,115,22,0.35)":"rgba(6,182,212,0.35)";
+          return(
+            <button key={br} onClick={()=>{
+              const brCusts=allC.filter(c=>(c.branch||smBranchMap[c.salesman])===br);
+              const brBilled=brCusts.filter(c=>c.billed&&(c.billedDate||"").startsWith(repMonth)&&c.billing&&c.billing.calc);
+              const brSM=(nkdUsers?.salesman||[]).filter(s=>s.branch===br);
+              const wb=XLSX.utils.book_new();
+              // Sheet 1: Billing Details
+              const H1=["Bill Date","Customer","Phone","Father Name","Model","Chassis","Engine","Colour","MR No","Pay Mode","Finance By","Ex-Showroom","On-Road","Deal Price","Booking","Loan","Balance","Paid","Excess","Diff","Salesman","Approved By"];
+              const rows1=brBilled.map(c=>{const b=c.billing,k=b.calc;
+                return[c.billedDate||"",c.name||"",c.phone||"",c.fatherName||"",c.model||"",b.chassis||"",b.engine||"",b.color||"",b.mrNo||"",b.payMode||"",b.financeBank||"Cash",k.ex,k.C,k.E,k.bk,k.loan,k.I,k.paid,k.excess||0,k.K,c.salesman||"",c.approvedBy||""];
+              });
+              const ws1=XLSX.utils.aoa_to_sheet([H1,...rows1]);
+              ws1["!cols"]=H1.map(()=>({wch:15}));
+              XLSX.utils.book_append_sheet(wb,ws1,"Billing — "+br);
+              // Sheet 2: Salesman Summary
+              const H2=["Salesman","Total Leads","Hot","Warm","Booked","Test Rides","Docs","Sold This Month","Revenue This Month","Total Sold"];
+              const rows2=brSM.map(({name:s})=>{
+                const all=brCusts.filter(c=>c.salesman===s);
+                const soldMonth=brBilled.filter(c=>c.salesman===s);
+                const rev=soldMonth.reduce((x,c)=>x+((c.billing?.calc?.E)||0),0);
+                return[s,all.length,all.filter(c=>c.status==="Hot"&&!c.billed).length,all.filter(c=>c.status==="Warm"&&!c.billed).length,all.filter(c=>c.booking&&!c.billed).length,all.filter(c=>c.testRide).length,all.filter(c=>c.photos&&Object.values(c.photos).some(v=>v)).length,soldMonth.length,rev,brCusts.filter(c=>c.billed&&c.salesman===s).length];
+              });
+              const ws2=XLSX.utils.aoa_to_sheet([H2,...rows2]);
+              ws2["!cols"]=H2.map(()=>({wch:18}));
+              XLSX.utils.book_append_sheet(wb,ws2,"Salesman — "+br);
+              const fname="NKD_"+br.replace(/ /g,"_")+"_Report_"+repMonth+".xlsx";
+              XLSX.writeFile(wb,fname);
+              saveExcelToDrive(wb,fname,repMonth);
+            }} style={{width:"100%",background:brBg,border:"1px solid "+brBorder,borderRadius:11,padding:"13px",color:brColor,fontWeight:700,fontSize:13,cursor:"pointer"}}>
+              📊 {br} Manager Report — {repMonth} ☁️
+            </button>
+          );
+        })}
+      </div>
       <div style={{display:"flex",gap:5,marginBottom:10,overflowX:"auto"}}>
         {["All",...BRANCHES].map(b=><button key={b} onClick={()=>setBrF(b)} style={{padding:"6px 12px",borderRadius:10,fontSize:11,fontWeight:700,cursor:"pointer",flexShrink:0,background:brF===b?"#dbeafe":"#e2e8f0",color:brF===b?"#2563eb":"#374151",border:"1px solid "+(brF===b?"#3b82f6":"#cbd5e1")}}>{b}</button>)}
       </div>
