@@ -531,7 +531,7 @@ function ExchDashGroup({exchName,list,onUpd,notify}){
     </div>
   );
 }
-function Dashboard({custs,role,onOpen,onNav,onNavF,onSvcDone,onTeamTap,onAddPayment,onUpd,notify}){
+function Dashboard({custs,role,onOpen,onNav,onNavF,onSvcDone,onTeamTap,onAddPayment,onUpd,notify,nkdUsers}){
   const hot=custs.filter(c=>c.status==="Hot"&&!c.billed);
   const stats=[
     {l:"Hot",st:"Hot",v:custs.filter(c=>c.status==="Hot"&&!c.billed).length,c:"#ef4444"},
@@ -641,7 +641,7 @@ function Dashboard({custs,role,onOpen,onNav,onNavF,onSvcDone,onTeamTap,onAddPaym
       {role!=="salesman"&&(
         <div style={{marginTop:16}}>
           <div style={{fontSize:12,fontWeight:700,color:"#64748b",marginBottom:8}}>TEAM</div>
-          {SM.map(s=>{
+          {(nkdUsers?.salesman||[]).map(({name:s})=>{
             const m=custs.filter(c=>c.salesman===s);
             const b=m.filter(c=>c.billed).length;
             const due=m.filter(c=>!c.billed&&!c.stopped&&c.followupDate<=td()).length;
@@ -2551,7 +2551,8 @@ function Revival({items,onRevive}){
   );
 }
 
-function Reports({custs,onImportCust,nkdUsers}){
+function Reports({custs,onImportCust,nkdUsers,smBranchMap:smBranchMapProp}){
+  const smBranchMap=smBranchMapProp||SM_BRANCH;
   const smList=(nkdUsers?.salesman||[]).map(s=>s.name);
   const allC=custs;
   const [brF,setBrF]=useState("All");
@@ -2660,9 +2661,10 @@ function Reports({custs,onImportCust,nkdUsers}){
           try{const lines=ev.target.result.split(/\r?\n/).filter(x=>x.trim());const hd=lines[0].toLowerCase().split(",").map(x=>x.trim());
           const gi=n=>hd.indexOf(n);const rows=[];const perDay={};
           for(let i=1;i<lines.length;i++){const c2=lines[i].split(",");const nm=(c2[gi("name")]||"").trim();const ph=(c2[gi("phone")]||"").replace(/\D/g,"").slice(-10);if(!nm||ph.length!==10)continue;
-            const sm2=(c2[gi("salesman")]||"").trim()||SM[i%SM.length];
+            const smArr=(nkdUsers?.salesman||[]).map(s=>s.name);const smFallback=smArr.length>0?smArr[i%smArr.length]:BRANCHES[0];
+            const sm2=(c2[gi("salesman")]||"").trim()||smFallback;
             perDay[sm2]=(perDay[sm2]||0)+1;const off=Math.floor((perDay[sm2]-1)/80);
-            rows.push({id:"OLD"+Date.now()+"_"+i,name:nm,phone:ph,model:(c2[gi("model")]||"").trim(),modelCode:"",cat:"",address:"",enquiryDate:(c2[gi("enquirydate")]||td()).trim()||td(),status:(c2[gi("status")]||"Cold").trim()||"Cold",salesman:sm2,branch:SM_BRANCH[sm2]||BRANCHES[0],finance:"Cash",remarks:"["+td()+"] IMPORTED: old customer data. "+((c2[gi("remarks")]||"").trim()),followupDate:aD(td(),off),attempts:0,stopped:false,billed:false,billedDate:null,photos:{},billing:null,managerApproval:null,callLog:[]});}
+            rows.push({id:"OLD"+Date.now()+"_"+i,name:nm,phone:ph,model:(c2[gi("model")]||"").trim(),modelCode:"",cat:"",address:"",enquiryDate:(c2[gi("enquirydate")]||td()).trim()||td(),status:(c2[gi("status")]||"Cold").trim()||"Cold",salesman:sm2,branch:smBranchMap[sm2]||BRANCHES[0],finance:"Cash",remarks:"["+td()+"] IMPORTED: old customer data. "+((c2[gi("remarks")]||"").trim()),followupDate:aD(td(),off),attempts:0,stopped:false,billed:false,billedDate:null,photos:{},billing:null,managerApproval:null,callLog:[]});}
           onImportCust(rows);alert("✅ Imported "+rows.length+" customers — spread at max 80 calls/day per executive for followup");}catch(err){alert("Could not read file — check column names");}
         };rd.readAsText(fl);e.target.value="";}} style={{width:"100%",background:"#c2d6ec",borderRadius:9,padding:8,fontSize:11,color:"#1e293b",border:"1px dashed #2a3040"}}/>
       </div>
@@ -3477,7 +3479,7 @@ function OwnerPortal({custs,stockData,billedChassis,statusData,role,user,mBr,sav
         {view==="rcstatus"&&<div style={{maxWidth:900}}><RCHSRPSearch statusData={statusData} role={role} onUpload={saveStatusData} notify={notify}/></div>}
 
         {/* ── REPORTS ── */}
-        {view==="reports"&&<div style={{maxWidth:800}}><Reports custs={custs} onImportCust={()=>{}} nkdUsers={nkdUsers}/></div>}
+        {view==="reports"&&<div style={{maxWidth:800}}><Reports custs={custs} onImportCust={()=>{}} nkdUsers={nkdUsers} smBranchMap={smBranchMap}/></div>}
 
         {/* ── CASH BOOK ── */}
         {view==="cashbook"&&<CashBook custs={custs} smBranchMap={smBranchMap}/>}
@@ -3853,7 +3855,7 @@ export default function App(){
       {/* ── SCROLLABLE CONTENT ── */}
       <div style={{flex:1,overflowY:"auto",WebkitOverflowScrolling:"touch",overscrollBehavior:"contain",touchAction:"pan-y",padding:16,paddingBottom:90}}>
         {role==="admin"&&view!=="vault"&&view!=="rcstatus"&&view!=="stock"&&view!=="uploads"&&setView("vault")}
-        {view==="dashboard"&&<Dashboard custs={myC} role={role} onOpen={openD} onNav={nav} onNavF={st=>{setCustF(st);nav("customers");}} onSvcDone={id=>{upd(id,{serviceDone:true});notify("Service marked done ✓");}} onTeamTap={s=>{setFSM(s);nav("followups");}} onAddPayment={addPayment} onUpd={upd} notify={notify}/>}
+        {view==="dashboard"&&<Dashboard custs={myC} role={role} onOpen={openD} onNav={nav} onNavF={st=>{setCustF(st);nav("customers");}} onSvcDone={id=>{upd(id,{serviceDone:true});notify("Service marked done ✓");}} onTeamTap={s=>{setFSM(s);nav("followups");}} onAddPayment={addPayment} onUpd={upd} notify={notify} nkdUsers={nkdUsers}/>}
         {view==="followups"&&<Followups items={due} onOpen={openD} onLog={logF} onCallLog={logCall} showSMFilter={role!=="salesman"} initSM={fSM} smList={role==="manager"?(nkdUsers?.salesman||[]).filter(s=>mBrs.includes(s.branch)).map(s=>s.name):(nkdUsers?.salesman||[]).map(s=>s.name)}/>}
         {view==="customers"&&<CustList custs={myC} onOpen={openD} initF={custF} showSM={role!=="salesman"}/>}
         {view==="detail"&&sel&&<Detail cust={custs.find(c=>c.id===sel.id)||sel} role={role} onBack={goBack} onUpd={p=>upd(sel.id,p)} onLog={logF} onBill={()=>setBillOpen(true)} onBook={()=>setBookOpen(true)} notify={notify} initTab={dtab} clearInit={()=>setDtab(null)} onAddPayment={addPayment} onApprove={approveBill} curUser={user} onTransferReq={requestTransfer} onApproveTransfer={approveTransfer} onCorrectionReq={handleCorrectionReq}/>}
@@ -3898,14 +3900,14 @@ export default function App(){
           </div>}
           <Approvals custs={myPending} onApprove={approveBill} onOpen={openD} onEditCalc={c=>{setSel(c);setBillOpen(true);}} allC={myC} canApprove={role!=="salesman"} role={role}/>
         </>}
-        {view==="revival"&&<Revival items={revivable} onRevive={ids=>{let si=0;const perDay={};setCusts(p=>p.map(c=>{
+        {view==="revival"&&<Revival items={revivable} onRevive={ids=>{let si=0;const perDay={};const revSMs=(nkdUsers?.salesman||[]).map(s=>s.name);setCusts(p=>p.map(c=>{
           if(!ids.includes(c.id))return c;
-          const sm2=SM[si++%SM.length];
+          const sm2=revSMs.length>0?revSMs[si++%revSMs.length]:(c.salesman||"");
           perDay[sm2]=(perDay[sm2]||0)+1;
           const dayOffset=Math.floor((perDay[sm2]-1)/80);
           return{...c,reactivatedAt:td(),status:"Cold",stopped:false,attempts:0,alertDismissed:true,followupDate:aD(td(),dayOffset),salesman:sm2,remarks:(c.remarks||"")+"\n["+td()+"] REACTIVATED: cold pool — day "+(dayOffset+1)+" queue"};
         }));notify(ids.length+" reactivated — max 80 calls/day per executive, spread across days");}}/>}
-        {view==="reports"&&<Reports custs={custs} onImportCust={rows=>{setCusts(p=>{const ex=new Set(p.map(c=>c.phone));return[...rows.filter(r=>!ex.has(r.phone)),...p];});}} nkdUsers={nkdUsers}/>}
+        {view==="reports"&&<Reports custs={custs} onImportCust={rows=>{setCusts(p=>{const ex=new Set(p.map(c=>c.phone));return[...rows.filter(r=>!ex.has(r.phone)),...p];});}} nkdUsers={nkdUsers} smBranchMap={smBranchMap}/>}
         {view==="vault"&&<DocVault custs={custs} onImport={data=>{setCusts(data);notify("✅ Database imported: "+data.length+" customers");}} role={role}/>}
         {view==="alerts"&&(
           <div>
