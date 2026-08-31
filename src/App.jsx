@@ -244,8 +244,12 @@ function ld(k,d){try{const v=localStorage.getItem(k);return v?JSON.parse(v):d;}c
 try{Object.assign(RC,ld("nkd_rc",{}));}catch(e){}
 
 function calcB(f,r){
-  const ex=Number(r?.ex||0),ca=Number(r?.cAcc||0),hdl=Number(r?.hdl||600);
-  const ins=Number(r?.ins||0),reg=Number(r?.reg||0),acc=Number(f.acc||0);
+  const ex=r?.ex?Number(r.ex):(f.ex!==undefined&&f.ex!==""?Number(f.ex):0);
+  const ca=f.ca!==undefined&&f.ca!==""?Number(f.ca):Number(r?.cAcc||0);
+  const hdl=f.hdl!==undefined&&f.hdl!==""?Number(f.hdl):Number(r?.hdl||600);
+  const ins=f.ins!==undefined&&f.ins!==""?Number(f.ins):Number(r?.ins||0);
+  const reg=f.reg!==undefined&&f.reg!==""?Number(f.reg):Number(r?.reg||0);
+  const acc=Number(f.acc||0);
   const tef=Number(f.tef||0),hyp=Number(f.hyp||0),amcV=f.addAmc?(Number(r?.amc)||0):0;
   const atw=Number(f.atw||0),rsa=Number(f.rsa||0);
   const B=hdl+ins+reg+ca+acc+tef+hyp+amcV+atw+rsa,C=ex+B;
@@ -1910,7 +1914,7 @@ function BillingModal({cust,onClose,onSave,onDraft,notify,role,stockData,billedC
     const max=nums.length?Math.max(...nums):0;
     return prefix+String(max+1).padStart(2,"0");
   }
-  const [f,setF]=useState({...eb,billName:eb.billName||cust.name,exchName:eb.exchName||cust.exchangeName||"",exchPhone:eb.exchPhone||cust.exchangePhone||eb.details?.exchangePhone||"",exchModel:eb.exchModel||cust.exchangeAsked||"",exchRegNo:eb.exchRegNo||cust.exchangeRegNo||"",bkDate:(cust.booking&&cust.booking.date)||td(),fatherName:eb.details?.fatherName||cust.fatherName||"",fatherRel:eb.details?.fatherRel||cust.fatherRel||"Father",dob:eb.details?.dob||cust.dob||"",aadhar:eb.details?.aadhar||cust.aadhar||"",pan:eb.details?.pan||cust.pan||"",nominee:eb.details?.nominee||cust.nominee||"",nomineeRel:eb.details?.nomineeRel||cust.nomineeRel||"",nomineeAge:eb.details?.nomineeAge||cust.nomineeAge||"",address:eb.details?.address||cust.address||"",hdl:eb.hdl!==undefined?eb.hdl:(r.hdl||600),ins:eb.ins!==undefined?eb.ins:(r.ins||0),reg:eb.reg!==undefined?eb.reg:(r.reg||0),acc:eb.acc||0,tef:eb.tef!==undefined?eb.tef:(isFin?500:0),hyp:eb.hyp!==undefined?eb.hyp:(isFin?500:0),addAmc:eb.addAmc||false,atw:eb.atw||0,rsa:eb.rsa||0,cof:eb.cof||0,sdis:eb.sdis||0,discRem:eb.discRem||"",discAmt:eb.discAmt||"",corp:eb.corp||0,bk:cust.totalBooking||(cust.bookings&&cust.bookings.reduce((s,b)=>s+Number(b.amt||0),0))||(cust.booking&&cust.booking.amt)||0,exv:eb.exv!==undefined?eb.exv:0,loan:eb.loan||0,payments:eb.payments&&eb.payments.length?eb.payments:(eb.paid||eb.payMode?[{mode:eb.payMode||"Cash",amt:Number(eb.paid||0),date:td(),ref:""}]:[{mode:"Cash",amt:0,date:td(),ref:""}]),chassis:eb.chassis||"",engine:eb.engine||"",color:eb.color||"",deliveryDate:eb.deliveryDate||td(),financeBank:eb.financeBank||"",registrationNo:eb.registrationNo||"",insuranceNo:eb.insuranceNo||"",mrNo:eb.mrNo||nextMrNo(),excessAmt:eb.excessAmt||"",excessRem:eb.excessRem||""});
+  const [f,setF]=useState({...eb,billName:eb.billName||cust.name,exchName:eb.exchName||cust.exchangeName||"",exchPhone:eb.exchPhone||cust.exchangePhone||eb.details?.exchangePhone||"",exchModel:eb.exchModel||cust.exchangeAsked||"",exchRegNo:eb.exchRegNo||cust.exchangeRegNo||"",bkDate:(cust.booking&&cust.booking.date)||td(),fatherName:eb.details?.fatherName||cust.fatherName||"",fatherRel:eb.details?.fatherRel||cust.fatherRel||"Father",dob:eb.details?.dob||cust.dob||"",aadhar:eb.details?.aadhar||cust.aadhar||"",pan:eb.details?.pan||cust.pan||"",nominee:eb.details?.nominee||cust.nominee||"",nomineeRel:eb.details?.nomineeRel||cust.nomineeRel||"",nomineeAge:eb.details?.nomineeAge||cust.nomineeAge||"",address:eb.details?.address||cust.address||"",hdl:eb.hdl!==undefined?eb.hdl:(r.hdl||600),ins:eb.ins!==undefined?eb.ins:(r.ins||0),reg:eb.reg!==undefined?eb.reg:(r.reg||0),ca:eb.ca!==undefined?eb.ca:(r.cAcc||0),ex:eb.ex!==undefined&&Number(eb.ex)>0?Number(eb.ex):0,acc:eb.acc||0,tef:eb.tef!==undefined?eb.tef:(isFin?500:0),hyp:eb.hyp!==undefined?eb.hyp:(isFin?500:0),addAmc:eb.addAmc||false,atw:eb.atw||0,rsa:eb.rsa||0,cof:eb.cof||0,sdis:eb.sdis||0,discRem:eb.discRem||"",discAmt:eb.discAmt||"",corp:eb.corp||0,bk:cust.totalBooking||(cust.bookings&&cust.bookings.reduce((s,b)=>s+Number(b.amt||0),0))||(cust.booking&&cust.booking.amt)||0,exv:eb.exv!==undefined?eb.exv:0,loan:eb.loan||0,payments:eb.payments&&eb.payments.length?eb.payments:(eb.paid||eb.payMode?[{mode:eb.payMode||"Cash",amt:Number(eb.paid||0),date:td(),ref:""}]:[{mode:"Cash",amt:0,date:td(),ref:""}]),chassis:eb.chassis||"",engine:eb.engine||"",color:eb.color||"",deliveryDate:eb.deliveryDate||td(),financeBank:eb.financeBank||"",registrationNo:eb.registrationNo||"",insuranceNo:eb.insuranceNo||"",mrNo:eb.mrNo||nextMrNo(),excessAmt:eb.excessAmt||"",excessRem:eb.excessRem||""});
   const c=calcB(f,r);
   const [chk,setChk]=useState(eb.checklist||{pdi:false,helmet:false,docs:false,service:false});
   const VER_ALL=[["nameV","Customer name verified"],["fatherV",(f.fatherRel||"Father")+" name verified"],["aadharV","Aadhar number verified"],["nomineeV","Nominee & relation added"],["chassisV","Chassis number verified"],["engineV","Engine number verified"],["colorV","Colour verified"]];
@@ -1962,7 +1966,8 @@ function BillingModal({cust,onClose,onSave,onDraft,notify,role,stockData,billedC
     const m=RC[code];
     setBillModelCode(code);
     setBmSearch(code?(code+" — "+(m?m.n:"")):"");
-    setF(p=>({...p,chassis:"",engine:"",color:"",billModelCode:code,billModelName:m?m.n:""}));
+    setF(p=>({...p,chassis:"",engine:"",color:"",billModelCode:code,billModelName:m?m.n:p.billModelName,
+      ...(m?{ins:m.ins||0,reg:m.reg||0,ca:m.cAcc||0,hdl:m.hdl||600,ex:0}:{})}));
   }
   const allBillModels=Object.entries(RC);
   const filteredBillModels=bmSearch?allBillModels.filter(([code,m])=>code.toUpperCase().includes(bmSearch)||m.n.toUpperCase().includes(bmSearch)):allBillModels;
@@ -2086,7 +2091,7 @@ function BillingModal({cust,onClose,onSave,onDraft,notify,role,stockData,billedC
     var payModeRows=activePmtsS.map(p=>"<div class=row><span>"+p.mode+(p.ref?" ("+p.ref+")":"")+"</span><span class=v>"+fc(Number(p.amt))+"</span></div>").join("");
     var calcHtml=html.replace("MONEY RECEIPT","CALCULATION SHEET (INTERNAL)").replace("</h2>","</h2>"+[payModeRows||("<div class=row><span>Payment Mode</span><span class=v>—</span></div>"),"<div class=row><span>MR No.</span><span class=v>"+(f.mrNo||"—")+"</span></div>","<div class=row><span>Financed By</span><span class=v>"+(f.financeBank||"Cash")+"</span></div>"].join("")+CALC_G);
     const details={name:f.billName||cust.name,exchangeName:f.exchName,exchangePhone:f.exchPhone,exchangeAsked:f.exchModel,exchangeRegNo:f.exchRegNo,exchangeOffered:String(f.exv||""),fatherName:f.fatherName,fatherRel:f.fatherRel||"Father",address:f.address||cust.address||"",dob:f.dob,nominee:f.nominee,nomineeRel:f.nomineeRel,nomineeAge:f.nomineeAge,aadhar:f.aadhar,pan:f.pan};
-    onSave({...f,billModelCode,billModelName:RC[billModelCode]?.n||cust.model,payMode:payModeSummary,paid:c.paid,calc:c,calcHtml:calcHtml,checklist:chk,verify:ver,verifyList:VER_ALL.map(([k,l])=>[k,l]),receiptHtml:html,amtDiff:amtDiff||null,details});
+    onSave({...f,billModelCode,billModelName:RC[billModelCode]?.n||f.billModelName||cust.model,payMode:payModeSummary,paid:c.paid,calc:c,calcHtml:calcHtml,checklist:chk,verify:ver,verifyList:VER_ALL.map(([k,l])=>[k,l]),receiptHtml:html,amtDiff:amtDiff||null,details});
     setBusy(true);
     notify(role==="salesman"?"✅ Sent to Manager for approval — receipt saved in Billing tab":"✅ Billed & approved — receipt saved in Billing tab");
     // Auto-save calc sheet to Drive silently on save
@@ -2111,7 +2116,7 @@ function BillingModal({cust,onClose,onSave,onDraft,notify,role,stockData,billedC
           <div style={{fontSize:12,color:"#94a3b8"}}>{cust.name} · {RC[billModelCode]?.n||cust.model} · <span style={{color:"#60a5fa",fontWeight:600}}>{billModelCode||cust.modelCode}</span></div>
         </div>
         <div style={{padding:"14px 16px 0"}}>
-        <div style={{background:"rgba(96,165,250,0.07)",border:"1px solid rgba(96,165,250,0.22)",borderRadius:11,padding:"9px 12px",marginBottom:14,fontSize:11,color:"#64748b",lineHeight:1.7}}>✓ <b style={{color:"#60a5fa"}}>Auto-filled:</b> Ex-Showroom {fc(r.ex)}, Insurance {fc(r.ins||0)}, Registration {fc(r.reg||0)}. Fill <b style={{color:"#f97316"}}>Teflon/Accessories/Hypo</b> manually.</div>
+        {r.ex?<div style={{background:"rgba(96,165,250,0.07)",border:"1px solid rgba(96,165,250,0.22)",borderRadius:11,padding:"9px 12px",marginBottom:14,fontSize:11,color:"#64748b",lineHeight:1.7}}>✓ <b style={{color:"#60a5fa"}}>Auto-filled:</b> Ex-Showroom {fc(r.ex)}, Insurance {fc(r.ins||0)}, Registration {fc(r.reg||0)}. Fill <b style={{color:"#f97316"}}>Teflon/Accessories/Hypo</b> manually.</div>:<div style={{background:"rgba(249,115,22,0.07)",border:"1px solid rgba(249,115,22,0.3)",borderRadius:11,padding:"9px 12px",marginBottom:14,fontSize:11,color:"#92400e",lineHeight:1.7}}>⚠️ <b>Model not in rate chart.</b> Enter model name, Ex-Showroom, Insurance, Registration &amp; Comp. Accessories manually in the Calculation Sheet below.</div>}
 
         <div style={{marginBottom:14}}>
           <div style={{fontSize:10,fontWeight:700,color:"#475569",letterSpacing:0.8,marginBottom:6}}>CUSTOMER KYC (required for billing)</div>
@@ -2228,11 +2233,24 @@ function BillingModal({cust,onClose,onSave,onDraft,notify,role,stockData,billedC
         <div style={{marginBottom:14}}>
           <div style={{fontSize:10,fontWeight:700,color:"#f97316",letterSpacing:0.8,marginBottom:6}}>CALCULATION SHEET</div>
           <div style={{background:"#ffffff",border:"1px solid #6b8fb5",borderRadius:12,padding:12}}>
-            <Row label="(A) Ex-Showroom" val={c.ex} auto={true}/>
-            <Row label="+ Comp. Accessories" val={c.ca} auto={true}/>
-            <Row label="+ Handling" val={c.hdl} auto={true}/>
-            <Row label="+ Insurance (5yr)" val={c.ins} auto={true}/>
-            <Row label="+ Registration" val={c.reg} auto={true}/>
+            {r.ex?(<>
+              <Row label="(A) Ex-Showroom" val={c.ex} auto={true}/>
+              <Row label="+ Comp. Accessories" val={c.ca} auto={true}/>
+              <Row label="+ Handling" val={c.hdl} auto={true}/>
+              <Row label="+ Insurance (5yr)" val={c.ins} auto={true}/>
+              <Row label="+ Registration" val={c.reg} auto={true}/>
+            </>):(<>
+              <div style={{background:"rgba(239,68,68,0.08)",border:"1px solid rgba(239,68,68,0.3)",borderRadius:7,padding:"5px 9px",marginBottom:6,fontSize:10,color:"#ef4444",fontWeight:700}}>⚠️ Model not in rate chart — enter amounts manually below</div>
+              <div style={{display:"flex",alignItems:"center",padding:"4px 0",borderBottom:"1px solid #131820",gap:8,marginBottom:4}}>
+                <span style={{fontSize:12,color:"#64748b",flex:1}}>Model Name (manual)</span>
+                <input type="text" value={f.billModelName||""} onChange={e=>setF(p=>({...p,billModelName:e.target.value.toUpperCase()}))} placeholder="e.g. PULSAR N150 STD" style={{width:140,background:"#f1f5f9",border:"1px solid #f97316",borderRadius:8,padding:"5px 8px",fontSize:12,color:"#1e293b",textAlign:"right",textTransform:"uppercase"}}/>
+              </div>
+              <Inp label="(A) Ex-Showroom" k="ex" f={f} setF={setF}/>
+              <Inp label="+ Comp. Accessories" k="ca" f={f} setF={setF}/>
+              <Inp label="+ Handling" k="hdl" f={f} setF={setF}/>
+              <Inp label="+ Insurance (5yr)" k="ins" f={f} setF={setF}/>
+              <Inp label="+ Registration" k="reg" f={f} setF={setF}/>
+            </>)}
             <div style={{background:"rgba(249,115,22,0.06)",borderRadius:7,padding:"6px 8px",margin:"6px 0 2px"}}><div style={{fontSize:9,color:"#f97316",fontWeight:700,marginBottom:4}}>MANUAL ENTRY</div>
               <Inp label="+ Accessories" k="acc" f={f} setF={setF}/>
               <Inp label="+ Teflon Coating" k="tef" f={f} setF={setF}/>
