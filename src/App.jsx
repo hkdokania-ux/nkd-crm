@@ -1277,7 +1277,7 @@ function StockView({stockData,billedChassis,role,userBranch,onUpload,notify}){
                     style={{display:"flex",alignItems:"center",gap:10,padding:"10px 14px",background:hasOwn?"rgba(59,130,246,0.06)":"#f8fafc",cursor:"pointer",userSelect:"none"}}>
                     <span style={{fontSize:16,transition:"transform 0.2s",display:"inline-block",transform:isOpen?"rotate(90deg)":"rotate(0deg)",color:"#6b8fb5"}}>▶</span>
                     <div style={{flex:1,minWidth:0}}>
-                      <div style={{fontWeight:700,fontSize:13,color:"#1e293b",whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis"}}>{(()=>{const rc=getGroupModelCode(rows);return rc?<><span style={{color:"#f97316"}}>{rc}</span>{" — "}{model}</>:model;})()}</div>
+                      <div style={{fontWeight:700,fontSize:13,color:"#1e293b",whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis"}}>{model}</div>
                       <div style={{display:"flex",gap:6,marginTop:2,flexWrap:"wrap"}}>
                         {hasOwn&&<span style={{fontSize:10,fontWeight:700,color:"#1d4ed8",background:"#dbeafe",padding:"1px 7px",borderRadius:6}}>📍 {ownRows.length} yours</span>}
                         {otherRows.length>0&&<span style={{fontSize:10,fontWeight:600,color:"#64748b",background:"#f1f5f9",padding:"1px 7px",borderRadius:6}}>{otherRows.length} other</span>}
