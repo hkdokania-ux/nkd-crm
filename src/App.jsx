@@ -1091,23 +1091,36 @@ function StockView({stockData,billedChassis,role,userBranch,onUpload,notify}){
   const chassisKey=findStockCol(keys,["chassis","frame","vin"]);
   const engineKey=findStockCol(keys,["engine"]);
   const colorKey=findStockCol(keys,["color","colour"]);
-  const nonVinKeys=keys.filter(k=>!k.toLowerCase().includes("vin"));
-  const modelKey=findStockCol(nonVinKeys,["model","variant","name","description","product","item"]);
+  // Exclude HSN Code entirely from any model/model-code detection — it's a tax code, not a vehicle code
+  const nonHsnKeys=keys.filter(k=>!k.toLowerCase().includes("hsn"));
+  const nonVinKeys=nonHsnKeys.filter(k=>!k.toLowerCase().includes("vin"));
+  // Model Code column — must contain both "model" and "code" (distinguishes from HSN Code, already excluded)
+  const modelCodeKey=nonHsnKeys.find(k=>{const kl=k.toLowerCase();return kl.includes("model")&&kl.includes("code");})||findStockCol(nonHsnKeys,["item code","vehicle code","code"]);
+  // Full model text — exclude code columns and "family"-only columns so we get the detailed model name, not the code or the family group
+  const nonCodeKeys=nonVinKeys.filter(k=>!k.toLowerCase().includes("code"));
+  const modelDetailKeys=nonCodeKeys.filter(k=>!k.toLowerCase().includes("family"));
+  const modelKey=findStockCol(modelDetailKeys,["model","variant","name","description","product","item"])||findStockCol(nonCodeKeys,["model","variant","name","description","product","item"]);
   const branchKey=findStockCol(keys,["branch","location","godown","store"]);
   const rcEntries=useMemo(()=>Object.entries(RC||{}),[]);
-  function getRcCode(modelName){
+  function fmtModelCode(raw){return String(raw||"").trim().toUpperCase().replace(/^0+(?=[A-Z0-9])/,"");}
+  function getModelCode(row){
+    if(modelCodeKey&&row[modelCodeKey])return fmtModelCode(row[modelCodeKey]);
+    // Fallback: exact-match model name against uploaded Rate Chart
+    const modelName=modelKey?row[modelKey]:null;
     if(!modelName)return null;
-    const nm=String(modelName).toUpperCase();
-    const words=nm.split(/[\s-]+/).filter(w=>w.length>1);
-    let best=null,bestScore=0;
-    rcEntries.forEach(([code,m])=>{
-      const mn=String(m.n||"").toUpperCase();
-      if(!mn)return;
-      if(mn===nm){best=code;bestScore=999;return;}
-      const score=words.filter(w=>mn.includes(w)).length;
-      if(score>bestScore){bestScore=score;best=code;}
-    });
-    return bestScore>=Math.max(1,Math.ceil(words.length*0.6))?best:null;
+    const nm=String(modelName).trim().toUpperCase().replace(/\s+/g," ");
+    const exact=rcEntries.find(([code,m])=>String(m.n||"").trim().toUpperCase().replace(/\s+/g," ")===nm);
+    return exact?exact[0]:null;
+  }
+  // For a group of rows sharing the same model name, use the MOST COMMON code —
+  // guards against a stray mistyped Model Code on one row skewing the whole group's badge
+  function getGroupModelCode(groupRows){
+    const counts={};
+    (groupRows||[]).forEach(row=>{const c=getModelCode(row);if(c)counts[c]=(counts[c]||0)+1;});
+    const entries=Object.entries(counts);
+    if(!entries.length)return null;
+    entries.sort((a,b)=>b[1]-a[1]);
+    return entries[0][0];
   }
   const dateKey=findStockCol(keys,["date","invoice","inward","receipt","received","entry","purchase","billing"]);
   const ageKey=findStockCol(keys,["age","days","ageing","aging","no of day","day"]);
@@ -1143,10 +1156,16 @@ function StockView({stockData,billedChassis,role,userBranch,onUpload,notify}){
     return{bg:"rgba(239,68,68,0.1)",border:"rgba(239,68,68,0.6)",col:"#dc2626",label:"OLD STOCK",tag:days+"d ⚠️"};
   }
 
+  const searchKeys=[modelKey,chassisKey,engineKey,colorKey,branchKey].filter(Boolean);
   const filtered=useMemo(()=>{
-    const base=q.trim().length<2?available:available.filter(r=>keys.some(k=>String(r[k]||"").toLowerCase().includes(q.toLowerCase())));
+    const ql=q.trim().toLowerCase();
+    const base=ql.length<2?available:available.filter(r=>{
+      const rcCode=getModelCode(r);
+      if(rcCode&&rcCode.toLowerCase().includes(ql))return true;
+      return searchKeys.some(k=>String(r[k]||"").toLowerCase().includes(ql));
+    });
     return [...base].sort((a,b)=>{const bs=branchSort(a,b);if(bs!==0)return bs;const da=getAge(a)??-1,db=getAge(b)??-1;return db-da;});
-  },[available,q,keys,userBranch,branchKey]);
+  },[available,q,searchKeys,userBranch,branchKey,modelKey]);
   const byModel=useMemo(()=>{
     if(!modelKey)return[];
     const map={};
@@ -1209,7 +1228,7 @@ function StockView({stockData,billedChassis,role,userBranch,onUpload,notify}){
           </div>
           {age!==null&&<span style={{fontSize:10,fontWeight:800,background:ab.bg,color:ab.col,padding:"2px 8px",borderRadius:10,border:"1px solid "+ab.border,flexShrink:0}}>{ab.tag}</span>}
         </div>
-        {modelKey&&(()=>{const rcCode=getRcCode(row[modelKey]);return(<div style={{fontWeight:800,fontSize:14,color:"#1e293b",marginBottom:2,letterSpacing:0.3}}>{rcCode&&<span style={{color:"#f97316"}}>{rcCode}</span>}{rcCode?" — ":""}{row[modelKey]}</div>);})()}
+        {modelKey&&(()=>{const rcCode=getModelCode(row);return(<div style={{fontWeight:800,fontSize:14,color:"#1e293b",marginBottom:2,letterSpacing:0.3}}>{rcCode&&<span style={{color:"#f97316"}}>{rcCode}</span>}{rcCode?" — ":""}{row[modelKey]}</div>);})()}
         <div style={{display:"flex",flexWrap:"wrap",gap:6,marginTop:4}}>
           {chassisKey&&<span style={{fontSize:11,color:"#60a5fa"}}>🔩 {row[chassisKey]}</span>}
           {engineKey&&<span style={{fontSize:11,color:"#64748b"}}>⚙️ {row[engineKey]}</span>}
@@ -1258,7 +1277,7 @@ function StockView({stockData,billedChassis,role,userBranch,onUpload,notify}){
                     style={{display:"flex",alignItems:"center",gap:10,padding:"10px 14px",background:hasOwn?"rgba(59,130,246,0.06)":"#f8fafc",cursor:"pointer",userSelect:"none"}}>
                     <span style={{fontSize:16,transition:"transform 0.2s",display:"inline-block",transform:isOpen?"rotate(90deg)":"rotate(0deg)",color:"#6b8fb5"}}>▶</span>
                     <div style={{flex:1,minWidth:0}}>
-                      <div style={{fontWeight:700,fontSize:13,color:"#1e293b",whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis"}}>{(()=>{const rc=getRcCode(model);return rc?<><span style={{color:"#f97316"}}>{rc}</span>{" — "}{model}</>:model;})()}</div>
+                      <div style={{fontWeight:700,fontSize:13,color:"#1e293b",whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis"}}>{(()=>{const rc=getGroupModelCode(rows);return rc?<><span style={{color:"#f97316"}}>{rc}</span>{" — "}{model}</>:model;})()}</div>
                       <div style={{display:"flex",gap:6,marginTop:2,flexWrap:"wrap"}}>
                         {hasOwn&&<span style={{fontSize:10,fontWeight:700,color:"#1d4ed8",background:"#dbeafe",padding:"1px 7px",borderRadius:6}}>📍 {ownRows.length} yours</span>}
                         {otherRows.length>0&&<span style={{fontSize:10,fontWeight:600,color:"#64748b",background:"#f1f5f9",padding:"1px 7px",borderRadius:6}}>{otherRows.length} other</span>}
