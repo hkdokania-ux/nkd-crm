@@ -955,7 +955,8 @@ function parseExcel(file,cb,errCb){
   rd.readAsArrayBuffer(file);
 }
 function parseRateChartFile(file,onDone,onErr){
-  function saveRC(obj){const existing=ld("nkd_rc",{});const merged={...existing,...obj};sv("nkd_rc",merged);_dbSet("rate_chart",merged);Object.assign(RC,merged);onDone(Object.keys(merged).length);}
+  let skippedRows=[];
+  function saveRC(obj){const existing=ld("nkd_rc",{});const merged={...existing,...obj};sv("nkd_rc",merged);_dbSet("rate_chart",merged);Object.assign(RC,merged);onDone(Object.keys(merged).length,skippedRows);}
   function parseNKDRows(rows){
     if(!rows||!rows.length)return{};
     // ── CHETAK transposed format: col-0 = row labels, col-1+ = model codes ──
@@ -993,20 +994,24 @@ function parseRateChartFile(file,onDone,onErr){
     const nkdStart=isNKD&&String(rows[0][0]||"").toUpperCase().includes("PD CODE")?0:1;
     if(isNKD){
       const obj={};let cat="OTHER";
+      const toNum=v=>{if(v==null||v==="")return null;if(typeof v==="number")return v;const n=Number(String(v).replace(/[,₹\s]/g,""));return isNaN(n)?null:n;};
       for(let i=nkdStart+1;i<rows.length;i++){
         const r=rows[i];if(!r||r[0]==null)continue;
-        const a=String(r[0]).trim(),b=r[1],c=r[2];
-        if(!b&&c!=null&&String(c).toUpperCase().includes("EX SHOWROOM")){cat=a.replace(/\s+$/,"");continue;}
-        if(!b||c==null||typeof c!=="number")continue;
-        const ex=Number(c)||0,cacc=typeof r[3]==="number"?r[3]:0,hdl=typeof r[4]==="number"?r[4]:600,ins=typeof r[5]==="number"?r[5]:0,amc=typeof r[12]==="number"?r[12]:0;
+        const a=String(r[0]).trim(),b=r[1],cRaw=r[2];
+        if(!b&&cRaw!=null&&String(cRaw).toUpperCase().includes("EX SHOWROOM")){cat=a.replace(/\s+$/,"");continue;}
+        const c=toNum(cRaw);
+        if(!b||c==null){if(a&&b)skippedRows.push(a+" — "+b);continue;}
+        const ex=c||0,cacc=toNum(r[3])||0,hdl=toNum(r[4])??600,ins=toNum(r[5])||0,amc=toNum(r[12])||0;
         let reg=0;
-        if(typeof r[6]==="number"){reg=Math.round(r[6]);}
+        const regNum=toNum(r[6]);
+        if(regNum!=null){reg=Math.round(regNum);}
         else if(typeof r[6]==="string"&&r[6].startsWith("=")){
           const pm=r[6].match(/\*(\d+)%/);const pct=pm?parseInt(pm[1])/100:0.07;
           const cs=[...r[6].matchAll(/\+(\d{4,})/g)].map(m=>parseInt(m[1]));
           reg=Math.round(ex*pct+cs.reduce((s,v)=>s+v,0));
         }
-        const onRoad=typeof r[11]==="number"?Math.round(r[11]):Math.round(ex+cacc+hdl+ins+reg+1700);
+        const onRoadNum=toNum(r[11]);
+        const onRoad=onRoadNum!=null?Math.round(onRoadNum):Math.round(ex+cacc+hdl+ins+reg+1700);
         const code=a.toUpperCase();
         if(code)obj[code]={n:String(b).trim(),cat,ex:Math.round(ex),cAcc:Math.round(cacc),hdl:Math.round(hdl),ins:Math.round(ins),reg,onRoad,amc:Math.round(amc)};
       }
@@ -1040,7 +1045,7 @@ function UploadsHub({stockData,statusData,onStockUpload,onStatusUpload,notify}){
       id:"ratechart",ic:"💰",title:"Rate Chart",color:"#f97316",bg:"rgba(249,115,22,0.08)",border:"rgba(249,115,22,0.4)",mergeLabel:"➕ Add / Merge Models",
       desc:"Bajaj price list Excel — upload directly, no conversion needed",
       current:rcCount>0?rcCount+" models loaded":null,
-      onFile:(file)=>parseRateChartFile(file,n=>n>0?notify("✅ Rate chart updated: "+n+" models"):notify("⚠️ No models found — check file format"),e=>notify("❌ "+e)),
+      onFile:(file)=>parseRateChartFile(file,(n,skipped)=>{if(n>0){notify("✅ Rate chart updated: "+n+" models"+(skipped&&skipped.length?" — ⚠️ "+skipped.length+" row(s) skipped (bad/missing price): "+skipped.slice(0,5).join(", ")+(skipped.length>5?"…":""):""));}else{notify("⚠️ No models found — check file format");}},e=>notify("❌ "+e)),
     },
     {
       id:"stock",ic:"🏍️",title:"Stock Statement",color:"#34d399",bg:"rgba(52,211,153,0.08)",border:"rgba(52,211,153,0.4)",
