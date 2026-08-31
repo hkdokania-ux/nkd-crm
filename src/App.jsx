@@ -1759,12 +1759,12 @@ function AddModal({onClose,onSave,curUser,role,existing,smList}){
   const r=RC[f.modelCode];
   return(
     <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.88)",zIndex:150,display:"flex",alignItems:"flex-end"}}>
-      <div style={{background:"#ffffff",width:"100%",borderRadius:"20px 20px 0 0",maxHeight:"94vh",overflowY:"auto",padding:"20px 16px 44px"}}>
+      <div style={{background:"#ffffff",width:"100%",borderRadius:"20px 20px 0 0",maxHeight:"94dvh",overflowY:"auto",padding:"20px 16px 44px"}}>
         <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:16}}><div style={{fontWeight:800,fontSize:17,color:"#1e293b"}}>New Enquiry</div><button onClick={onClose} style={{background:"#c2d6ec",border:"none",borderRadius:8,width:32,height:32,cursor:"pointer",color:"#1e293b",fontSize:18}}>✕</button></div>
         <form autoComplete="off" onSubmit={e=>e.preventDefault()} style={{display:"flex",flexDirection:"column",gap:10}}>
           {[{k:"name",l:"Customer Name *",ac:"nkd-cname"},{k:"phone",l:"Phone *",t:"tel",ac:"nkd-cphone"}].map(({k,l,t,ac})=>(
             <Fragment key={k}>
-              <div><label style={lbl}>{l}</label><input type={t||"text"} autoComplete="new-password" name={ac} readOnly onFocus={e=>{e.target.removeAttribute("readOnly");e.target.setAttribute("autoComplete","new-password");}} style={t!=="tel"?{...inp,textTransform:"uppercase"}:{...inp,borderColor:f[k]&&f[k].length!==10?"#ef4444":undefined}} value={f[k]||""} onChange={e=>{const v=t==="tel"?e.target.value.replace(/\D/g,"").slice(0,10):e.target.value;setF(p=>({...p,[k]:v}));if(t==="tel")setPhoneMatches(v.length>=4?(existing||[]).filter(c=>c.phone&&c.phone.includes(v)).slice(0,5):[]);}} {...(t!=="tel"?capBlur(k):{})}/>{t==="tel"&&f[k]&&f[k].length>0&&f[k].length!==10&&<div style={{fontSize:10,color:"#ef4444",marginTop:2}}>⚠️ Must be 10 digits ({f[k].length} entered)</div>}</div>
+              <div><label style={lbl}>{l}</label><input type={t||"text"} autoComplete="new-password" name={ac} style={t!=="tel"?{...inp,textTransform:"uppercase"}:{...inp,borderColor:f[k]&&f[k].length!==10?"#ef4444":undefined}} value={f[k]||""} onChange={e=>{const v=t==="tel"?e.target.value.replace(/\D/g,"").slice(0,10):e.target.value;setF(p=>({...p,[k]:v}));if(t==="tel")setPhoneMatches(v.length>=4?(existing||[]).filter(c=>c.phone&&c.phone.includes(v)).slice(0,5):[]);}} {...(t!=="tel"?capBlur(k):{})}/>{t==="tel"&&f[k]&&f[k].length>0&&f[k].length!==10&&<div style={{fontSize:10,color:"#ef4444",marginTop:2}}>⚠️ Must be 10 digits ({f[k].length} entered)</div>}</div>
               {k==="phone"&&phoneMatches.length>0&&(
                 <div style={{background:"#fff",border:"2px solid #f97316",borderRadius:10,overflow:"hidden",marginTop:-4,boxShadow:"0 4px 16px rgba(249,115,22,0.18)"}}>
                   {phoneMatches.map(m=>(
@@ -1779,14 +1779,14 @@ function AddModal({onClose,onSave,curUser,role,existing,smList}){
             </Fragment>
           ))}
           <div><label style={lbl}>Model — search by code or name</label>
-            <input autoComplete="new-password" name="nkd-cmodel" readOnly onFocus={e=>e.target.removeAttribute("readOnly")} style={{...inp,textTransform:"uppercase"}} value={mSearch} onChange={e=>{const v=e.target.value.toUpperCase();setMSearch(v);if(!v){pickM("");}}} placeholder="TYPE MODEL CODE OR NAME…" list="model-list"/>
+            <input autoComplete="new-password" name="nkd-cmodel" style={{...inp,textTransform:"uppercase"}} value={mSearch} onChange={e=>{const v=e.target.value.toUpperCase();setMSearch(v);if(!v){pickM("");}}} placeholder="TYPE MODEL CODE OR NAME…" list="model-list"/>
             <datalist id="model-list">{filteredModels.map(([code,m])=><option key={code} value={code+" — "+m.n}/>)}</datalist>
             {mSearch&&filteredModels.length===1&&filteredModels[0][0]!==f.modelCode&&(()=>{const [code]=filteredModels[0];setTimeout(()=>pickM(code),0);return null;})()}
             {/* also support selecting from the datalist */}
             {mSearch&&(()=>{const match=allModels.find(([c,m])=>mSearch===c+" — "+m.n||mSearch===c);if(match&&match[0]!==f.modelCode)pickM(match[0]);return null;})()}
             {r&&<div style={{background:"rgba(96,165,250,0.07)",border:"1px solid rgba(96,165,250,0.2)",borderRadius:8,padding:"8px 10px",marginTop:5,fontSize:11}}><span style={{color:"#60a5fa",fontWeight:700}}>{f.modelCode} — {r.n}</span><br/><span style={{color:"#64748b"}}>Ex-Showroom: </span><b style={{color:"#1e293b"}}>{fc(r.ex)}</b><span style={{color:"#64748b"}}> | On-Road: </span><b style={{color:"#34d399"}}>{fc(r.onRoad)}</b></div>}
           </div>
-          <div><label style={lbl}>Address</label><input autoComplete="new-password" name="nkd-caddr" readOnly onFocus={e=>e.target.removeAttribute("readOnly")} style={{...inp,textTransform:"uppercase"}} value={f.address||""} onChange={e=>setF(p=>({...p,address:e.target.value}))} {...capBlur("address")}/></div>
+          <div><label style={lbl}>Address</label><input autoComplete="new-password" name="nkd-caddr" style={{...inp,textTransform:"uppercase"}} value={f.address||""} onChange={e=>setF(p=>({...p,address:e.target.value}))} {...capBlur("address")}/></div>
           <div><label style={lbl}>DOB</label>
             <input type="date" style={inp} value={f.dob||""} onChange={e=>setF(p=>({...p,dob:e.target.value}))} max={td()}/>
             {dobAge!==null&&dobAge<18&&<div style={{background:"rgba(239,68,68,0.1)",border:"1px solid #ef4444",borderRadius:7,padding:"5px 10px",marginTop:4,fontSize:11,color:"#ef4444",fontWeight:700}}>⚠️ Under 18 years — customer is a minor ({dobAge} yrs)</div>}
@@ -1910,7 +1910,7 @@ function BillingModal({cust,onClose,onSave,onDraft,notify,role,stockData,billedC
     const max=nums.length?Math.max(...nums):0;
     return prefix+String(max+1).padStart(2,"0");
   }
-  const [f,setF]=useState({...eb,billName:eb.billName||cust.name,exchName:eb.exchName||cust.exchangeName||"",exchPhone:eb.exchPhone||cust.exchangePhone||eb.details?.exchangePhone||"",exchModel:eb.exchModel||cust.exchangeAsked||"",exchRegNo:eb.exchRegNo||cust.exchangeRegNo||"",bkDate:(cust.booking&&cust.booking.date)||td(),fatherName:eb.details?.fatherName||cust.fatherName||"",fatherRel:eb.details?.fatherRel||cust.fatherRel||"Father",dob:eb.details?.dob||cust.dob||"",aadhar:eb.details?.aadhar||cust.aadhar||"",pan:eb.details?.pan||cust.pan||"",nominee:eb.details?.nominee||cust.nominee||"",nomineeRel:eb.details?.nomineeRel||cust.nomineeRel||"",nomineeAge:eb.details?.nomineeAge||cust.nomineeAge||"",hdl:eb.hdl!==undefined?eb.hdl:(r.hdl||600),ins:eb.ins!==undefined?eb.ins:(r.ins||0),reg:eb.reg!==undefined?eb.reg:(r.reg||0),acc:eb.acc||0,tef:eb.tef!==undefined?eb.tef:(isFin?500:0),hyp:eb.hyp!==undefined?eb.hyp:(isFin?500:0),addAmc:eb.addAmc||false,atw:eb.atw||0,rsa:eb.rsa||0,cof:eb.cof||0,sdis:eb.sdis||0,discRem:eb.discRem||"",discAmt:eb.discAmt||"",corp:eb.corp||0,bk:cust.totalBooking||(cust.bookings&&cust.bookings.reduce((s,b)=>s+Number(b.amt||0),0))||(cust.booking&&cust.booking.amt)||0,exv:eb.exv!==undefined?eb.exv:0,loan:eb.loan||0,payments:eb.payments&&eb.payments.length?eb.payments:(eb.paid||eb.payMode?[{mode:eb.payMode||"Cash",amt:Number(eb.paid||0),date:td(),ref:""}]:[{mode:"Cash",amt:0,date:td(),ref:""}]),chassis:eb.chassis||"",engine:eb.engine||"",color:eb.color||"",deliveryDate:eb.deliveryDate||td(),financeBank:eb.financeBank||"",registrationNo:eb.registrationNo||"",insuranceNo:eb.insuranceNo||"",mrNo:eb.mrNo||nextMrNo(),excessAmt:eb.excessAmt||"",excessRem:eb.excessRem||""});
+  const [f,setF]=useState({...eb,billName:eb.billName||cust.name,exchName:eb.exchName||cust.exchangeName||"",exchPhone:eb.exchPhone||cust.exchangePhone||eb.details?.exchangePhone||"",exchModel:eb.exchModel||cust.exchangeAsked||"",exchRegNo:eb.exchRegNo||cust.exchangeRegNo||"",bkDate:(cust.booking&&cust.booking.date)||td(),fatherName:eb.details?.fatherName||cust.fatherName||"",fatherRel:eb.details?.fatherRel||cust.fatherRel||"Father",dob:eb.details?.dob||cust.dob||"",aadhar:eb.details?.aadhar||cust.aadhar||"",pan:eb.details?.pan||cust.pan||"",nominee:eb.details?.nominee||cust.nominee||"",nomineeRel:eb.details?.nomineeRel||cust.nomineeRel||"",nomineeAge:eb.details?.nomineeAge||cust.nomineeAge||"",address:eb.details?.address||cust.address||"",hdl:eb.hdl!==undefined?eb.hdl:(r.hdl||600),ins:eb.ins!==undefined?eb.ins:(r.ins||0),reg:eb.reg!==undefined?eb.reg:(r.reg||0),acc:eb.acc||0,tef:eb.tef!==undefined?eb.tef:(isFin?500:0),hyp:eb.hyp!==undefined?eb.hyp:(isFin?500:0),addAmc:eb.addAmc||false,atw:eb.atw||0,rsa:eb.rsa||0,cof:eb.cof||0,sdis:eb.sdis||0,discRem:eb.discRem||"",discAmt:eb.discAmt||"",corp:eb.corp||0,bk:cust.totalBooking||(cust.bookings&&cust.bookings.reduce((s,b)=>s+Number(b.amt||0),0))||(cust.booking&&cust.booking.amt)||0,exv:eb.exv!==undefined?eb.exv:0,loan:eb.loan||0,payments:eb.payments&&eb.payments.length?eb.payments:(eb.paid||eb.payMode?[{mode:eb.payMode||"Cash",amt:Number(eb.paid||0),date:td(),ref:""}]:[{mode:"Cash",amt:0,date:td(),ref:""}]),chassis:eb.chassis||"",engine:eb.engine||"",color:eb.color||"",deliveryDate:eb.deliveryDate||td(),financeBank:eb.financeBank||"",registrationNo:eb.registrationNo||"",insuranceNo:eb.insuranceNo||"",mrNo:eb.mrNo||nextMrNo(),excessAmt:eb.excessAmt||"",excessRem:eb.excessRem||""});
   const c=calcB(f,r);
   const [chk,setChk]=useState(eb.checklist||{pdi:false,helmet:false,docs:false,service:false});
   const VER_ALL=[["nameV","Customer name verified"],["fatherV",(f.fatherRel||"Father")+" name verified"],["aadharV","Aadhar number verified"],["nomineeV","Nominee & relation added"],["chassisV","Chassis number verified"],["engineV","Engine number verified"],["colorV","Colour verified"]];
@@ -2029,7 +2029,7 @@ function BillingModal({cust,onClose,onSave,onDraft,notify,role,stockData,billedC
     const activePmts=(f.payments||[]).filter(p=>Number(p.amt||0)>0);
     if(activePmts.length===0){notify("⚠️ Enter at least one payment amount before generating MR","err");return;}
     try{
-      const details={name:f.billName||cust.name,exchangeName:f.exchName,exchangePhone:f.exchPhone,exchangeAsked:f.exchModel,exchangeRegNo:f.exchRegNo,exchangeOffered:String(f.exv||""),fatherName:f.fatherName,fatherRel:f.fatherRel||"Father",address:cust.address,dob:f.dob,nominee:f.nominee,nomineeRel:f.nomineeRel,nomineeAge:f.nomineeAge,aadhar:f.aadhar,pan:f.pan};
+      const details={name:f.billName||cust.name,exchangeName:f.exchName,exchangePhone:f.exchPhone,exchangeAsked:f.exchModel,exchangeRegNo:f.exchRegNo,exchangeOffered:String(f.exv||""),fatherName:f.fatherName,fatherRel:f.fatherRel||"Father",address:f.address||cust.address||"",dob:f.dob,nominee:f.nominee,nomineeRel:f.nomineeRel,nomineeAge:f.nomineeAge,aadhar:f.aadhar,pan:f.pan};
       const tempBilling={...f,details,calc:c,paid:c.paid};
       const tempCust={...cust,...details,billing:tempBilling,billedDate:f.deliveryDate||td()};
       const doc=makeMRDoc(tempCust,tempBilling,c);
@@ -2061,7 +2061,7 @@ function BillingModal({cust,onClose,onSave,onDraft,notify,role,stockData,billedC
     }catch(e){notify("⚠️ Error generating MR: "+e.message,"err");}
   }
   function saveDraft(){
-    onDraft({...f,billModelCode,billModelName:RC[billModelCode]?.n||cust.model,payMode:(f.payments||[]).filter(p=>Number(p.amt||0)>0).map(p=>p.mode).join(" + ")||"—",paid:c.paid,calc:c,checklist:chk,verify:ver,details:{name:f.billName||cust.name,exchangeName:f.exchName,exchangePhone:f.exchPhone,exchangeAsked:f.exchModel,exchangeRegNo:f.exchRegNo,exchangeOffered:String(f.exv||""),fatherName:f.fatherName,fatherRel:f.fatherRel||"Father",address:cust.address,dob:f.dob,nominee:f.nominee,nomineeRel:f.nomineeRel,nomineeAge:f.nomineeAge,aadhar:f.aadhar,pan:f.pan}});
+    onDraft({...f,billModelCode,billModelName:RC[billModelCode]?.n||cust.model,payMode:(f.payments||[]).filter(p=>Number(p.amt||0)>0).map(p=>p.mode).join(" + ")||"—",paid:c.paid,calc:c,checklist:chk,verify:ver,details:{name:f.billName||cust.name,exchangeName:f.exchName,exchangePhone:f.exchPhone,exchangeAsked:f.exchModel,exchangeRegNo:f.exchRegNo,exchangeOffered:String(f.exv||""),fatherName:f.fatherName,fatherRel:f.fatherRel||"Father",address:f.address||cust.address||"",dob:f.dob,nominee:f.nominee,nomineeRel:f.nomineeRel,nomineeAge:f.nomineeAge,aadhar:f.aadhar,pan:f.pan}});
     notify("📋 Draft saved — reopen billing to continue");
     onClose();
   }
@@ -2085,7 +2085,7 @@ function BillingModal({cust,onClose,onSave,onDraft,notify,role,stockData,billedC
     var payModeSummary=activePmtsS.map(p=>p.mode+(p.ref?" ("+p.ref+")":"")).join(" + ")||"—";
     var payModeRows=activePmtsS.map(p=>"<div class=row><span>"+p.mode+(p.ref?" ("+p.ref+")":"")+"</span><span class=v>"+fc(Number(p.amt))+"</span></div>").join("");
     var calcHtml=html.replace("MONEY RECEIPT","CALCULATION SHEET (INTERNAL)").replace("</h2>","</h2>"+[payModeRows||("<div class=row><span>Payment Mode</span><span class=v>—</span></div>"),"<div class=row><span>MR No.</span><span class=v>"+(f.mrNo||"—")+"</span></div>","<div class=row><span>Financed By</span><span class=v>"+(f.financeBank||"Cash")+"</span></div>"].join("")+CALC_G);
-    const details={name:f.billName||cust.name,exchangeName:f.exchName,exchangePhone:f.exchPhone,exchangeAsked:f.exchModel,exchangeRegNo:f.exchRegNo,exchangeOffered:String(f.exv||""),fatherName:f.fatherName,fatherRel:f.fatherRel||"Father",address:cust.address,dob:f.dob,nominee:f.nominee,nomineeRel:f.nomineeRel,nomineeAge:f.nomineeAge,aadhar:f.aadhar,pan:f.pan};
+    const details={name:f.billName||cust.name,exchangeName:f.exchName,exchangePhone:f.exchPhone,exchangeAsked:f.exchModel,exchangeRegNo:f.exchRegNo,exchangeOffered:String(f.exv||""),fatherName:f.fatherName,fatherRel:f.fatherRel||"Father",address:f.address||cust.address||"",dob:f.dob,nominee:f.nominee,nomineeRel:f.nomineeRel,nomineeAge:f.nomineeAge,aadhar:f.aadhar,pan:f.pan};
     onSave({...f,billModelCode,billModelName:RC[billModelCode]?.n||cust.model,payMode:payModeSummary,paid:c.paid,calc:c,calcHtml:calcHtml,checklist:chk,verify:ver,verifyList:VER_ALL.map(([k,l])=>[k,l]),receiptHtml:html,amtDiff:amtDiff||null,details});
     setBusy(true);
     notify(role==="salesman"?"✅ Sent to Manager for approval — receipt saved in Billing tab":"✅ Billed & approved — receipt saved in Billing tab");
@@ -2119,6 +2119,8 @@ function BillingModal({cust,onClose,onSave,onDraft,notify,role,stockData,billedC
             <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:8}}>
               {/* Customer Name — full width, FIRST */}
               <div style={{gridColumn:"1 / -1"}}><label style={{...lbl,fontSize:10}}>Customer Name (as on bill) *</label><input type="text" value={f.billName||""} onChange={e=>setF(p=>({...p,billName:e.target.value}))} onBlur={e=>setF(p=>({...p,billName:String(e.target.value).toUpperCase()}))} style={{...inp,fontSize:12,padding:"8px 10px",textTransform:"uppercase"}}/></div>
+              {/* Address — full width */}
+              <div style={{gridColumn:"1 / -1"}}><label style={{...lbl,fontSize:10}}>Address * (for RC/documents)</label><textarea rows={2} value={f.address||""} onChange={e=>setF(p=>({...p,address:e.target.value}))} onBlur={e=>setF(p=>({...p,address:String(e.target.value).toUpperCase()}))} placeholder="FULL ADDRESS" style={{...inp,fontSize:12,padding:"8px 10px",textTransform:"uppercase",resize:"none",width:"100%",boxSizing:"border-box"}}/></div>
               {/* Father/Mother/Husband — spans full width, SECOND */}
               <div style={{gridColumn:"1 / -1"}}>
                 <label style={{...lbl,fontSize:10}}>{f.fatherRel||"Father"} Name *</label>
@@ -2130,7 +2132,7 @@ function BillingModal({cust,onClose,onSave,onDraft,notify,role,stockData,billedC
                     </button>
                   ))}
                 </div>
-                <input type="text" value={f.fatherName||""} onChange={e=>setF(p=>({...p,fatherName:e.target.value}))} onBlur={e=>setF(p=>({...p,fatherName:String(e.target.value).toUpperCase()}))} placeholder={(f.fatherRel||"Father")+"'s name"} style={{...inp,fontSize:12,padding:"8px 10px",textTransform:"uppercase"}}/>
+                <input type="text" value={f.fatherName||""} onChange={e=>setF(p=>({...p,fatherName:e.target.value.toUpperCase()}))} placeholder={(f.fatherRel||"Father")+"'s name"} style={{...inp,fontSize:12,padding:"8px 10px",textTransform:"uppercase"}}/>
               </div>
               {[{k:"dob",l:"Date of Birth",t:"date"},{k:"aadhar",l:"Aadhar No * (12 digits)",t:"aadhar"},{k:"pan",l:"PAN No"},{k:"nominee",l:"Nominee Name *"},{k:"nomineeRel",l:"Nominee Relation *"},{k:"nomineeAge",l:"Nominee Age",t:"number"}].map(({k,l,t})=>{
                 const age=k==="dob"&&f.dob?Math.floor((new Date()-new Date(f.dob))/31557600000):null;
@@ -2158,10 +2160,23 @@ function BillingModal({cust,onClose,onSave,onDraft,notify,role,stockData,billedC
           <div style={{marginBottom:14}}>
             <div style={{fontSize:10,fontWeight:700,color:"#f59e0b",letterSpacing:0.8,marginBottom:6}}>💰 FINANCE DETAILS</div>
             <div style={{background:"rgba(245,158,11,0.05)",border:"1px solid rgba(245,158,11,0.35)",borderRadius:12,padding:12}}>
-              <div><label style={{...lbl,fontSize:10}}>Finance Company Name *</label>
-                <input list="fin-bank-list" style={{...inp,fontSize:12,padding:"8px 10px"}} value={f.financeBank||""} onChange={e=>setF(p=>({...p,financeBank:e.target.value}))} placeholder="Type or select…"/>
-                <datalist id="fin-bank-list">{["Bajaj Finance","HDFC Bank","Hero FinCorp","SBI","Axis Bank","ICICI Bank","Kotak Mahindra","Muthoot Finance","Shriram Finance","TVS Credit"].map(b=><option key={b} value={b}/>)}</datalist>
-              </div>
+              {(()=>{
+                const FIN_LIST=["BACL","ICICI Bank","Chola Finance","Flipkart","Amazon","IDFC","IndusInd Bank","BOI","Ujjivan Bank","Tata Capital","Shriram Finance","L&T Finance","SBI","Bandhan Bank","Muthoot Finance","HDB","Others"];
+                const selVal=FIN_LIST.includes(f.financeBank)?f.financeBank:(f.financeBank&&f.financeBank!=="Others"?"Others":"");
+                return(<div>
+                  <label style={{...lbl,fontSize:10}}>Finance Company *</label>
+                  <select style={{...inp,fontSize:12,padding:"8px 10px"}} value={selVal} onChange={e=>{
+                    if(e.target.value==="Others"){setF(p=>({...p,financeBank:"Others"}));}
+                    else{setF(p=>({...p,financeBank:e.target.value}));}
+                  }}>
+                    <option value="">— Select Finance Company —</option>
+                    {FIN_LIST.map(b=><option key={b} value={b}>{b}</option>)}
+                  </select>
+                  {(selVal==="Others")&&(
+                    <input type="text" style={{...inp,fontSize:12,padding:"8px 10px",marginTop:8}} value={f.financeBank==="Others"?"":f.financeBank||""} onChange={e=>setF(p=>({...p,financeBank:e.target.value||"Others"}))} placeholder="Type finance company name…" autoFocus/>
+                  )}
+                </div>);
+              })()}
             </div>
           </div>
         )}
@@ -3637,6 +3652,12 @@ export default function App(){
   function addC(data){
     setCusts(p=>[{...data,branch:smBranchMap[data.salesman]||BRANCHES[0],id:"C"+Date.now(),attempts:0,stopped:false,billed:false,billedDate:null,photos:{},billing:null,managerApproval:null},...p]);
     notify("Customer added ✓");
+    // Send WhatsApp greeting to new customer
+    if(data.phone&&data.phone.length===10){
+      const model=data.model||data.modelCode||"";
+      const greeting="Hello "+data.name+"! 🙏\n\nGreetings from *NKD Bajaj, Dhanbad*.\n\nThank you for your enquiry"+(model?" regarding *"+model+"*":"")+".\n\nOur team will get in touch with you shortly. For any queries, feel free to reach us anytime.\n\n— NKD Bajaj Team";
+      window.open("https://wa.me/91"+data.phone+"?text="+encodeURIComponent(greeting),"_blank");
+    }
   }
 
   function logF(cust,out,note,nxt,extra){
@@ -3655,14 +3676,24 @@ export default function App(){
   function logCall(cust,dur){upd(cust.id,{callLog:[...(cust.callLog||[]),{date:td(),time:new Date().toLocaleTimeString("en-IN"),duration:dur,type:"call"}]});}
   function sendMRBoth(cust,billing,calc){
     try{
-      const doc=makeMRDoc(cust,billing,calc);
-      sharePdf(doc,"MR_"+cust.name.replace(/ /g,"_")+"_"+td()+".pdf",cust.phone,"Please find your Money Receipt from NKD Bajaj, Dhanbad.");
-      const br=cust.branch||SM_BRANCH[cust.salesman]||"";
-      savePdfToDrive(doc,"MR_"+cust.name.replace(/ /g,"_")+"_"+td()+".pdf",cust.name,"MR",br);
-      const offNum=ld("nkd_office_wa",OFFICE_WA)||OFFICE_WA;
+      // Only send MR to customer if payment was actually received
+      if(Number(calc.paid||0)>0){
+        const doc=makeMRDoc(cust,billing,calc);
+        sharePdf(doc,"MR_"+cust.name.replace(/ /g,"_")+"_"+td()+".pdf",cust.phone,"Please find your Money Receipt from NKD Bajaj, Dhanbad.");
+        const br=cust.branch||SM_BRANCH[cust.salesman]||"";
+        savePdfToDrive(doc,"MR_"+cust.name.replace(/ /g,"_")+"_"+td()+".pdf",cust.name,"MR",br);
+      }
+      // Office: upload calc+MR to Drive, then open WhatsApp to office with Drive link
+      const brOff=cust.branch||SM_BRANCH[cust.salesman]||"";
+      const offNum=(ld("nkd_office_wa",OFFICE_WA)||OFFICE_WA).replace(/\D/g,"");
       const doc2=makeCombinedDoc(cust,billing,calc);
-      sharePdf(doc2,"CalcMR_"+cust.name.replace(/ /g,"_")+"_"+td()+".pdf",offNum,"Calc Sheet + MR for "+cust.name+" ("+cust.model+") — Paid: "+fc(calc.paid)+" · Balance: "+fc(Math.max(calc.K,0)));
-      savePdfToDrive(doc2,"CalcMR_"+cust.name.replace(/ /g,"_")+"_"+td()+".pdf",cust.name,"CalcSheet",br);
+      const fname="CalcMR_"+cust.name.replace(/ /g,"_")+"_"+td()+".pdf";
+      const msg="📋 *BILLING DONE*\nCustomer: "+cust.name+"\nModel: "+(cust.model||cust.modelCode||"")+"\nMR No: "+(billing.mrNo||"—")+"\nPaid: "+fc(calc.paid)+(calc.K>0?"\n⚠️ Balance: "+fc(calc.K):"\n✅ Fully Paid")+"\nSalesman: "+(cust.salesman||"")+"\n\n📁 Calc Sheet saved in Drive — "+new Date().toLocaleDateString("en-IN",{month:"long",year:"numeric"})+" folder.";
+      uploadToDrive(fname,doc2.output("datauristring"),"application/pdf",cust.name,"CalcSheet",function(url){
+        savePdfToDrive(doc2,fname,cust.name,"CalcSheet",brOff);
+        const waUrl="https://wa.me/91"+offNum+"?text="+encodeURIComponent(msg+(url&&url.startsWith("http")?"\n\n🔗 "+url:""));
+        window.open(waUrl,"_blank");
+      });
     }catch(e){}
   }
 
@@ -3690,15 +3721,21 @@ export default function App(){
     const editLog=cust.billing?("\n["+td()+"] CALC SHEET EDITED by "+user):"";
     const updCust={...cust,remarks:(cust.remarks||"")+editLog,billed:true,billedDate:td(),status:"Billed",billing:data,billedBy:user,managerApproval:role==="salesman"?null:"approved",approvedBy:role==="salesman"?null:user,...data.details};
     upd(cust.id,updCust);
-    // Auto-send MR to customer + office if any payment was received
-    if(Number(data.paid||0)>0){
-      const r=RC[cust.modelCode]||{};
-      const calc=calcB(data,r);
-      sendMRBoth({...cust,...data.details,billing:data},data,calc);
-      notify("✅ Billed! MR sending to customer & office");
-    }else{
-      notify("✅ Billed! Receipt ready");
-    }
+    // Auto-generate & save monthly billing Excel to Drive
+    try{
+      const repMonth=new Date().toLocaleDateString("en-IN",{month:"long",year:"numeric"});
+      const curMonthPrefix=td().slice(0,7);
+      const allBilledThisMonth=[...custs.filter(c=>c.id!==cust.id&&c.billed&&c.billing&&(c.billedDate||"").startsWith(curMonthPrefix)),updCust];
+      const H=["Bill Date","Customer","Phone","Address","Father Name","Aadhar","PAN","Model","Code","Chassis","Engine","Colour","Delivery Date","MR No","Pay Mode","Financed By","Reg No","Salesman","Branch"];
+      const rows=allBilledThisMonth.map(c=>{const b=c.billing;return[c.billedDate||"",c.name||"",c.phone||"",c.address||"",c.fatherName||"",c.aadhar||"",c.pan||"",c.model||"",c.modelCode||"",b.chassis||"",b.engine||"",b.color||"",b.deliveryDate||"",b.mrNo||"",b.payMode||"",b.financeBank||"Cash",b.registrationNo||"",c.salesman||"",c.branch||""];});
+      const wb=XLSX.utils.book_new();const ws=XLSX.utils.aoa_to_sheet([H,...rows]);ws["!cols"]=H.map(()=>({wch:16}));XLSX.utils.book_append_sheet(wb,ws,"Billing");
+      saveExcelToDrive(wb,"NKD_Billing_"+repMonth+".xlsx",repMonth);
+    }catch(e){}
+    // Always send calc to office; send MR to customer only if payment received
+    const r=RC[cust.modelCode]||{};
+    const calc=calcB(data,r);
+    sendMRBoth({...cust,...data.details,billing:data},data,calc);
+    notify(Number(data.paid||0)>0?"✅ Billed! MR sending to customer & calc to office":"✅ Billed! Calc sheet sending to office");
   }
 
   function approveBill(id,ok,remark){
