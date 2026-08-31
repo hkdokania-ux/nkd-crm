@@ -1079,7 +1079,7 @@ function UploadsHub({stockData,statusData,onStockUpload,onStatusUpload,notify}){
     </div>
   );
 }
-function findStockCol(keys,words){return keys.find(k=>words.some(w=>k.toLowerCase().includes(w)))||null;}
+function findStockCol(keys,words){for(const w of words){const k=keys.find(k=>k.toLowerCase().includes(w));if(k)return k;}return null;}
 function cleanBranch(raw){const s=String(raw||"").toLowerCase();if(s.includes("chirkunda"))return"Chirkunda";if(s.includes("saraidhela")||s.includes("saraidela"))return"Saraidhela";if(s.includes("hirak")||s.includes("12967")||s.includes("nkd"))return"Hirak Road";return raw||"";}
 function excelDateToAge(raw){const n=typeof raw==="number"?raw:Number(raw);if(n>40000&&n<100000){const dt=new Date(Math.round((n-25569)*86400000));return Math.max(0,Math.floor((Date.now()-dt.getTime())/86400000));}return null;}
 function StockView({stockData,billedChassis,role,userBranch,onUpload,notify}){
@@ -1092,7 +1092,7 @@ function StockView({stockData,billedChassis,role,userBranch,onUpload,notify}){
   const engineKey=findStockCol(keys,["engine"]);
   const colorKey=findStockCol(keys,["color","colour"]);
   const nonVinKeys=keys.filter(k=>!k.toLowerCase().includes("vin"));
-  const modelKey=findStockCol(nonVinKeys,["model","variant","description","item","product","name"]);
+  const modelKey=findStockCol(nonVinKeys,["model","variant","name","description","product","item"]);
   const branchKey=findStockCol(keys,["branch","location","godown","store"]);
   const rcEntries=useMemo(()=>Object.entries(RC||{}),[]);
   function getRcCode(modelName){
