@@ -1088,10 +1088,12 @@ function StockView({stockData,billedChassis,role,userBranch,onUpload,notify}){
   const [openModels,setOpenModels]=useState(new Set());
   const rows=stockData||[];
   const keys=rows.length>0?Object.keys(rows[0]):[];
-  const chassisKey=findStockCol(keys,["chassis","frame"]);
+  const chassisKey=findStockCol(keys,["chassis","frame","vin"]);
   const engineKey=findStockCol(keys,["engine"]);
   const colorKey=findStockCol(keys,["color","colour"]);
-  const modelKey=findStockCol(keys,["model","name","variant"]);
+  const nonVinKeys=keys.filter(k=>!k.toLowerCase().includes("vin"));
+  const modelKey=findStockCol(nonVinKeys,["model","variant","description","item","product","name"]);
+  const modelCodeKey=findStockCol(keys,["model code","modelcode","code","type","item code","mat"]);
   const branchKey=findStockCol(keys,["branch","location","godown","store"]);
   const dateKey=findStockCol(keys,["date","invoice","inward","receipt","received","entry","purchase","billing"]);
   const ageKey=findStockCol(keys,["age","days","ageing","aging","no of day","day"]);
@@ -1193,12 +1195,12 @@ function StockView({stockData,billedChassis,role,userBranch,onUpload,notify}){
           </div>
           {age!==null&&<span style={{fontSize:10,fontWeight:800,background:ab.bg,color:ab.col,padding:"2px 8px",borderRadius:10,border:"1px solid "+ab.border,flexShrink:0}}>{ab.tag}</span>}
         </div>
-        {modelKey&&<div style={{fontWeight:700,fontSize:13,color:"#1e293b",marginBottom:5}}>{row[modelKey]}</div>}
-        <div style={{display:"flex",flexWrap:"wrap",gap:6}}>
+        {(modelCodeKey||modelKey)&&<div style={{fontWeight:800,fontSize:14,color:"#1e293b",marginBottom:2,letterSpacing:0.3}}>{modelCodeKey?String(row[modelCodeKey]||"").toUpperCase():""}{modelCodeKey&&modelKey?" — ":""}{modelKey?row[modelKey]:""}</div>}
+        <div style={{display:"flex",flexWrap:"wrap",gap:6,marginTop:4}}>
           {chassisKey&&<span style={{fontSize:11,color:"#60a5fa"}}>🔩 {row[chassisKey]}</span>}
           {engineKey&&<span style={{fontSize:11,color:"#64748b"}}>⚙️ {row[engineKey]}</span>}
           {colorKey&&<span style={{fontSize:11,color:"#a78bfa"}}>🎨 {row[colorKey]}</span>}
-          {dateKey&&row[dateKey]&&<span style={{fontSize:11,color:"#94a3b8"}}>📅 {String(row[dateKey]).slice(0,12)}</span>}
+          {dateKey&&row[dateKey]&&(()=>{const raw=row[dateKey];const n=typeof raw==="number"?raw:Number(raw);let ds="";if(!isNaN(n)&&n>40000&&n<100000){ds=new Date(Math.round((n-25569)*86400000)).toLocaleDateString("en-IN",{day:"2-digit",month:"short",year:"numeric"});}else{const s=String(raw).trim();const d=new Date(s);ds=isNaN(d)?s.slice(0,12):d.toLocaleDateString("en-IN",{day:"2-digit",month:"short",year:"numeric"});}return<span style={{fontSize:11,color:"#94a3b8"}}>📅 {ds}</span>;})()}
         </div>
         {age>90&&<div style={{fontSize:10,color:"#dc2626",fontWeight:700,marginTop:5}}>⚠️ Push for sale — in stock {age} days</div>}
       </div>
@@ -3470,6 +3472,19 @@ function OwnerPortal({custs,stockData,billedChassis,statusData,role,user,mBr,sav
         {/* ── UPLOADS ── */}
         {view==="uploads"&&(role==="admin"?(
           <div style={{display:"flex",flexDirection:"column",gap:24,maxWidth:900}}>
+            {/* ── RATE CHART SECTION ── */}
+            <div style={{background:"#fff",border:"2px solid #6b8fb5",borderRadius:16,padding:"20px 22px"}}>
+              <div style={{fontWeight:800,fontSize:16,color:"#1e293b",marginBottom:4}}>💰 Rate Chart</div>
+              <div style={{fontSize:11,color:"#94a3b8",marginBottom:12}}>Bajaj price list Excel — upload directly, no conversion needed</div>
+              <div style={{display:"flex",alignItems:"center",gap:12,marginBottom:8,flexWrap:"wrap"}}>
+                {Object.keys(RC||{}).length>0&&<span style={{fontSize:12,color:"#22c55e",fontWeight:600,background:"rgba(34,197,94,0.08)",border:"1px solid rgba(34,197,94,0.25)",borderRadius:8,padding:"4px 10px"}}>✅ {Object.keys(RC||{}).length} models loaded</span>}
+                <label style={{background:"rgba(249,115,22,0.08)",border:"1px dashed rgba(249,115,22,0.5)",borderRadius:10,padding:"8px 16px",cursor:"pointer",fontSize:12,color:"#f97316",fontWeight:700,whiteSpace:"nowrap"}}>
+                  {Object.keys(RC||{}).length>0?"➕ Add / Merge Models":"📂 Choose Excel File"}
+                  <input type="file" accept=".xlsx,.xls,.csv" style={{display:"none"}} onChange={e=>{if(e.target.files&&e.target.files[0]){parseRateChartFile(e.target.files[0],n=>n>0?notify("✅ Rate chart updated: "+n+" models"):notify("⚠️ No models found — check file format"),err=>notify("❌ "+err));e.target.value="";}}}/>
+                </label>
+                <span style={{fontSize:10,color:"#94a3b8"}}>.xlsx · .xls · .csv</span>
+              </div>
+            </div>
             {/* ── STOCK SECTION ── */}
             <div style={{background:"#fff",border:"2px solid #6b8fb5",borderRadius:16,padding:"20px 22px"}}>
               <div style={{fontWeight:800,fontSize:16,color:"#1e293b",marginBottom:4}}>🏍️ Stock Statement</div>
