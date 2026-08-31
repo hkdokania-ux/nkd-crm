@@ -2082,7 +2082,9 @@ function BillingModal({cust,onClose,onSave,onDraft,notify,role,stockData,billedC
   }
 
   const [busy,setBusy]=useState(false);
-  const [mrSent,setMrSent]=useState(!!(eb.receiptHtml||eb.mrNo||cust.billed));
+  // NOTE: eb.mrNo is auto-reserved as soon as the billing form opens (for sequential numbering) —
+  // it is NOT proof an MR was actually sent. Only receiptHtml (set on final submit) or cust.billed prove that.
+  const [mrSent,setMrSent]=useState(!!(eb.receiptHtml||cust.billed));
   const [mrPayCount,setMrPayCount]=useState(mrSent?(eb.payments||[]).length:0);
   const [amtDiffPopup,setAmtDiffPopup]=useState(false);
   const [amtDiffReason,setAmtDiffReason]=useState("");
@@ -2128,7 +2130,7 @@ function BillingModal({cust,onClose,onSave,onDraft,notify,role,stockData,billedC
   }
   function submit(){
     if(busy)return;
-    if(!mrSent&&!eb.receiptHtml&&!eb.mrNo&&!cust.billed&&c.K===0){notify("⚠️ Generate & Send MR first before saving the calculation sheet","err");return;}
+    if(!mrSent&&!eb.receiptHtml&&!cust.billed&&c.K===0){notify("⚠️ Generate & Send MR first before saving the calculation sheet","err");return;}
     if(!f.chassis){notify("Enter chassis number","err");return;}
     if(!f.aadhar||!f.fatherName||!f.nominee||!f.nomineeRel){notify("Fill KYC: Aadhar, Father name, Nominee & Relation","err");return;}
     if(c.C<0||c.E<0||c.G<0||c.I<0){alert("⚠️ Calculation error — a total has gone NEGATIVE.\nCheck discounts/booking/exchange amounts. No value can exceed the price above it.");return;}
