@@ -1048,10 +1048,10 @@ function UploadsHub({stockData,statusData,onStockUpload,onStatusUpload,notify}){
       onFile:(file)=>parseRateChartFile(file,(n,skipped)=>{if(n>0){notify("✅ Rate chart updated: "+n+" models"+(skipped&&skipped.length?" — ⚠️ "+skipped.length+" row(s) skipped (bad/missing price): "+skipped.slice(0,5).join(", ")+(skipped.length>5?"…":""):""));}else{notify("⚠️ No models found — check file format");}},e=>notify("❌ "+e)),
     },
     {
-      id:"stock",ic:"🏍️",title:"Stock Statement",color:"#34d399",bg:"rgba(52,211,153,0.08)",border:"rgba(52,211,153,0.4)",
+      id:"stock",ic:"🏍️",title:"Stock Statement",color:"#34d399",bg:"rgba(52,211,153,0.08)",border:"rgba(52,211,153,0.4)",mergeLabel:"➕ Add / Merge Stock",
       desc:"Branch-wise vehicle stock from dealership",
       current:stockData.length>0?stockData.length+" vehicles loaded":null,
-      onFile:(file)=>parseExcel(file,d=>{onStockUpload(d);notify("✅ Stock uploaded — "+d.length+" vehicles");},e=>notify("❌ "+e)),
+      onFile:(file)=>parseExcel(file,d=>{const merged=mergeStockRows(stockData,d);onStockUpload(merged);notify("✅ Stock updated — "+merged.length+" vehicles"+(stockData.length>0?" ("+d.length+" in this file merged with existing)":""));},e=>notify("❌ "+e)),
     },
     {
       id:"rcstatus",ic:"📋",title:"RC / HSRP Status",color:"#60a5fa",bg:"rgba(96,165,250,0.08)",border:"rgba(96,165,250,0.4)",
@@ -1085,6 +1085,22 @@ function UploadsHub({stockData,statusData,onStockUpload,onStatusUpload,notify}){
   );
 }
 function findStockCol(keys,words){for(const w of words){const k=keys.find(k=>k.toLowerCase().includes(w));if(k)return k;}return null;}
+// Merge newly uploaded stock rows into existing stock — matched by chassis/frame/VIN number.
+// Same chassis re-uploaded = updated in place; brand-new chassis (new model code, new batch, etc.) = added.
+// Existing vehicles not present in this particular upload are kept (not wiped), so partial/incremental stock sheets don't lose prior data.
+function mergeStockRows(existing,incoming){
+  if(!existing||!existing.length)return incoming||[];
+  if(!incoming||!incoming.length)return existing;
+  const exKeys=Object.keys(existing[0]||{});
+  const inKeys=Object.keys(incoming[0]||{});
+  const exChassisKey=findStockCol(exKeys,["chassis","frame","vin"]);
+  const inChassisKey=findStockCol(inKeys,["chassis","frame","vin"]);
+  if(!exChassisKey||!inChassisKey)return incoming; // can't reliably match rows — fall back to replace
+  const order=[];const map={};
+  existing.forEach(r=>{const c=String(r[exChassisKey]||"").trim().toUpperCase();if(c){if(!(c in map))order.push(c);map[c]=r;}});
+  incoming.forEach(r=>{const c=String(r[inChassisKey]||"").trim().toUpperCase();if(c){if(!(c in map))order.push(c);map[c]=r;}});
+  return order.map(c=>map[c]);
+}
 function cleanBranch(raw){const s=String(raw||"").toLowerCase();if(s.includes("chirkunda"))return"Chirkunda";if(s.includes("saraidhela")||s.includes("saraidela"))return"Saraidhela";if(s.includes("hirak")||s.includes("12967")||s.includes("nkd"))return"Hirak Road";return raw||"";}
 function excelDateToAge(raw){const n=typeof raw==="number"?raw:Number(raw);if(n>40000&&n<100000){const dt=new Date(Math.round((n-25569)*86400000));return Math.max(0,Math.floor((Date.now()-dt.getTime())/86400000));}return null;}
 function StockView({stockData,billedChassis,role,userBranch,onUpload,notify}){
@@ -3531,8 +3547,8 @@ function OwnerPortal({custs,stockData,billedChassis,statusData,role,user,mBr,sav
               <div style={{display:"flex",alignItems:"center",gap:12,marginBottom:16,flexWrap:"wrap"}}>
                 {stockData.length>0&&<span style={{fontSize:12,color:"#22c55e",fontWeight:600,background:"rgba(34,197,94,0.08)",border:"1px solid rgba(34,197,94,0.25)",borderRadius:8,padding:"4px 10px"}}>✅ {stockData.length} vehicles loaded</span>}
                 <label style={{background:"rgba(52,211,153,0.08)",border:"1px dashed rgba(52,211,153,0.5)",borderRadius:10,padding:"8px 16px",cursor:"pointer",fontSize:12,color:"#34d399",fontWeight:700,whiteSpace:"nowrap"}}>
-                  {stockData.length>0?"🔄 Replace Excel":"📂 Choose Excel File"}
-                  <input type="file" accept=".xlsx,.xls,.csv" style={{display:"none"}} onChange={e=>{if(e.target.files&&e.target.files[0]){parseExcel(e.target.files[0],d=>{saveStockData(d);notify("✅ Stock uploaded — "+d.length+" vehicles");},err=>notify("❌ "+err));e.target.value="";}}}/>
+                  {stockData.length>0?"➕ Add / Merge Stock":"📂 Choose Excel File"}
+                  <input type="file" accept=".xlsx,.xls,.csv" style={{display:"none"}} onChange={e=>{if(e.target.files&&e.target.files[0]){parseExcel(e.target.files[0],d=>{const merged=mergeStockRows(stockData,d);saveStockData(merged);notify("✅ Stock updated — "+merged.length+" vehicles"+(stockData.length>0?" ("+d.length+" in this file merged with existing)":""));},err=>notify("❌ "+err));e.target.value="";}}}/>
                 </label>
                 <span style={{fontSize:10,color:"#94a3b8"}}>.xlsx · .xls · .csv</span>
               </div>
