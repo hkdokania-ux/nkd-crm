@@ -3738,14 +3738,22 @@ export default function App(){
   function notify(msg,type){setToast({msg,type});setTimeout(()=>setToast(null),3000);}
   function upd(id,patch){setCusts(p=>p.map(c=>c.id===id?{...c,...patch,updatedAt:td()}:c));}
 
-  function addC(data){
+  async function addC(data){
     setCusts(p=>[{...data,branch:smBranchMap[data.salesman]||BRANCHES[0],id:"C"+Date.now(),attempts:0,stopped:false,billed:false,billedDate:null,photos:{},billing:null,managerApproval:null},...p]);
     notify("Customer added ✓");
-    // Send WhatsApp greeting to new customer
+    // Send WhatsApp greeting to new customer — zero-tap via Cloud API, falls back to manual wa.me link
     if(data.phone&&data.phone.length===10){
       const model=data.model||data.modelCode||"";
-      const greeting="Hello "+data.name+"! 🙏\n\nGreetings from *NKD Bajaj, Dhanbad*.\n\nThank you for your enquiry"+(model?" regarding *"+model+"*":"")+".\n\nOur team will get in touch with you shortly. For any queries, feel free to reach us anytime.\n\n— NKD Bajaj Team";
-      window.open("https://wa.me/91"+data.phone+"?text="+encodeURIComponent(greeting),"_blank");
+      const greeting="Hello "+data.name+"! 🙏\n\nGreetings from *NKD Bajaj, Dhanbad*.\n\nThank you for your enquiry"+(model?" regarding *"+model+"*":"")+". We are happy to serve you!\n\nFor any queries, feel free to reach us anytime.\n\n— NKD Bajaj Team";
+      let autoSent=false;
+      try{
+        const r=await fetch("/api/send-whatsapp",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({phone:data.phone,message:greeting})});
+        const j=await r.json();
+        if(j.success)autoSent=true;
+      }catch(apiErr){ /* API not configured or failed — fall through to manual */ }
+      if(!autoSent){
+        window.open("https://wa.me/91"+data.phone+"?text="+encodeURIComponent(greeting),"_blank");
+      }
     }
   }
 
