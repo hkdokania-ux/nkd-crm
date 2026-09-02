@@ -2182,16 +2182,17 @@ function BillingModal({cust,onClose,onSave,onDraft,notify,role,stockData,billedC
   }
   function submit(){
     if(busy)return;
-    if(!mrSent&&!eb.receiptHtml&&!cust.billed&&c.K===0){notify("⚠️ Generate & Send MR first before saving the calculation sheet","err");return;}
+    // MR is only required when actual cash/bank payment was collected now (c.paid>0).
+    // If the deal is fully settled via Booking + Exchange + Loan alone (paid=0, K=0), there's nothing to receipt — allow saving without MR.
+    if(!mrSent&&!eb.receiptHtml&&!cust.billed&&c.paid>0){notify("⚠️ Generate & Send MR first before saving the calculation sheet","err");return;}
     if(!f.chassis){notify("Enter chassis number","err");return;}
     if(!f.aadhar||!f.fatherName||!f.nominee||!f.nomineeRel){notify("Fill KYC: Aadhar, Father name, Nominee & Relation","err");return;}
     if(c.C<0||c.E<0||c.G<0||c.I<0){alert("⚠️ Calculation error — a total has gone NEGATIVE.\nCheck discounts/booking/exchange amounts. No value can exceed the price above it.");return;}
-    if(c.K<0){alert("⚠️ Payment Received ("+fc(c.paid)+") is MORE than balance due ("+fc(c.I)+").\nCorrect the Payment Received amount.");return;}
     const missing=VER_ALL.filter(([k])=>!ver[k]);
     if(missing.length>0){alert("⚠️ Cannot submit — verify these first:\n\n"+missing.map(([,l])=>"☐ "+l).join("\n"));return;}
-    // If any balance outstanding — show owner approval popup first
-    if(c.K>0){setAmtDiffPopup(true);return;}
-    doSubmit(null);
+    // Allow saving regardless of K (balance difference) — no longer forces a mandatory
+    // owner-approval popup for K>0 or a hard block for K<0. The difference is simply recorded.
+    doSubmit(c.K!==0?{amt:c.K,reason:c.K>0?"Balance outstanding":"Excess received",status:"auto",recordedAt:td()}:null);
   }
   function doSubmit(amtDiff){
     var html=buildReceipt();
@@ -2795,7 +2796,7 @@ function Reports({custs,onImportCust,nkdUsers,smBranchMap:smBranchMapProp}){
   const [repMonth,setRepMonth]=useState(new Date().toISOString().slice(0,7));
   custs=brF==="All"?custs:custs.filter(c=>(c.branch||smBranchMap[c.salesman])===brF);
   const billed=custs.filter(c=>c.billed);
-  const billedForMonth=allC.filter(c=>c.billed&&(c.billedDate||"").startsWith(repMonth));
+  const billedForMonth=allC.filter(c=>c.billed&&((c.billing&&c.billing.deliveryDate)||c.billedDate||"").startsWith(repMonth));
   const conv=custs.length>0?((billed.length/custs.length)*100).toFixed(1):0;
   const cats={};custs.forEach(c=>{if(c.cat)cats[c.cat]=(cats[c.cat]||0)+1;});
   return(
@@ -2841,7 +2842,7 @@ function Reports({custs,onImportCust,nkdUsers,smBranchMap:smBranchMapProp}){
           return(
             <button key={br} onClick={()=>{
               const brCusts=allC.filter(c=>(c.branch||smBranchMap[c.salesman])===br);
-              const brBilled=brCusts.filter(c=>c.billed&&(c.billedDate||"").startsWith(repMonth)&&c.billing&&c.billing.calc);
+              const brBilled=brCusts.filter(c=>c.billed&&((c.billing&&c.billing.deliveryDate)||c.billedDate||"").startsWith(repMonth)&&c.billing&&c.billing.calc);
               const brSM=(nkdUsers?.salesman||[]).filter(s=>s.branch===br);
               const wb=XLSX.utils.book_new();
               // Sheet 1: Billing Details
@@ -2956,7 +2957,7 @@ function DocVault({custs,onImport,role}){
   const [open,setOpen]=useState(null);
   const [flt,setFlt]=useState("approved");
   const [repMonth,setRepMonth]=useState(new Date().toISOString().slice(0,7));
-  const billedForMonth=custs.filter(c=>c.billed&&(c.billedDate||"").startsWith(repMonth));
+  const billedForMonth=custs.filter(c=>c.billed&&((c.billing&&c.billing.deliveryDate)||c.billedDate||"").startsWith(repMonth));
   const withDocs=custs.filter(c=>{
     const hasDocs=c.photos&&Object.keys(c.photos).filter(k=>c.photos[k]).length>0;
     if(flt==="approved")return hasDocs&&c.billed&&c.managerApproval==="approved";
@@ -3965,13 +3966,15 @@ export default function App(){
     const editLog=cust.billing?("\n["+td()+"] CALC SHEET EDITED by "+user):"";
     const updCust={...cust,remarks:(cust.remarks||"")+editLog,billed:true,billedDate:td(),status:"Billed",billing:data,billedBy:user,managerApproval:role==="salesman"?null:"approved",approvedBy:role==="salesman"?null:user,...data.details};
     upd(cust.id,updCust);
-    // Auto-generate & save monthly billing Excel to Drive
+    // Auto-generate & save monthly billing Excel to Drive — grouped by DELIVERY DATE month, not bill date
+    // (a vehicle billed on the last day of a month but delivered next month belongs in next month's file)
     try{
-      const repMonth=new Date().toLocaleDateString("en-IN",{month:"long",year:"numeric"});
-      const curMonthPrefix=td().slice(0,7);
-      const allBilledThisMonth=[...custs.filter(c=>c.id!==cust.id&&c.billed&&c.billing&&(c.billedDate||"").startsWith(curMonthPrefix)),updCust];
-      const H=["Bill Date","Customer","Phone","Address","Father Name","Aadhar","PAN","Model","Code","Chassis","Engine","Colour","Delivery Date","MR No","Pay Mode","Financed By","Reg No","Salesman","Branch"];
-      const rows=allBilledThisMonth.map(c=>{const b=c.billing;return[c.billedDate||"",c.name||"",c.phone||"",c.address||"",c.fatherName||"",c.aadhar||"",c.pan||"",c.model||"",c.modelCode||"",b.chassis||"",b.engine||"",b.color||"",b.deliveryDate||"",b.mrNo||"",b.payMode||"",b.financeBank||"Cash",b.registrationNo||"",c.salesman||"",c.branch||""];});
+      const delivDate=data.deliveryDate||td();
+      const delivPrefix=delivDate.slice(0,7);
+      const repMonth=new Date(delivPrefix+"-01").toLocaleDateString("en-IN",{month:"long",year:"numeric"});
+      const allDeliveredThisMonth=[...custs.filter(c=>c.id!==cust.id&&c.billed&&c.billing&&((c.billing.deliveryDate||c.billedDate||"")).startsWith(delivPrefix)),updCust];
+      const H=["Bill Date","Delivery Date","Customer","Phone","Address","Father Name","Aadhar","PAN","Model","Code","Chassis","Engine","Colour","MR No","Pay Mode","Financed By","Reg No","Salesman","Branch"];
+      const rows=allDeliveredThisMonth.map(c=>{const b=c.billing;return[c.billedDate||"",b.deliveryDate||"",c.name||"",c.phone||"",c.address||"",c.fatherName||"",c.aadhar||"",c.pan||"",c.model||"",c.modelCode||"",b.chassis||"",b.engine||"",b.color||"",b.mrNo||"",b.payMode||"",b.financeBank||"Cash",b.registrationNo||"",c.salesman||"",c.branch||""];});
       const wb=XLSX.utils.book_new();const ws=XLSX.utils.aoa_to_sheet([H,...rows]);ws["!cols"]=H.map(()=>({wch:16}));XLSX.utils.book_append_sheet(wb,ws,"Billing");
       saveExcelToDrive(wb,"NKD_Billing_"+repMonth+".xlsx",repMonth);
     }catch(e){}
