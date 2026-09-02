@@ -3918,7 +3918,11 @@ export default function App(){
           const scTs=sc.updatedAt||sc.billedDate||"";
           const lcTs=lc.updatedAt||lc.billedDate||"";
           const localNewer=(lcTs&&scTs&&lcTs>scTs)||(lc.billed&&!sc.billed)||(lc.billing&&!sc.billing);
-          return localNewer?{...sc,...lc}:{...sc,photos:lc.photos||sc.photos};
+          // Photos: never let a stale local copy hide documents another device already synced to Drive.
+          // Supabase only ever holds already-synced (https) photo URLs (base64 is stripped before save),
+          // so cloud always wins per-key; local only fills in keys the cloud doesn't have yet (pending uploads).
+          const mergedPhotos={...(lc.photos||{}),...(sc.photos||{})};
+          return localNewer?{...sc,...lc,photos:mergedPhotos}:{...sc,photos:mergedPhotos};
         });
         // Also add any local customers not yet in Supabase
         const sbIds=new Set(d.map(c=>c.id));
