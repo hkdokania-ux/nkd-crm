@@ -1597,18 +1597,18 @@ function Detail({cust,role,onBack,onUpd,onLog,onBill,onBook,notify,initTab,clear
         <div>
           {edit?(
             <div style={{display:"flex",flexDirection:"column",gap:10}}>
-              {[{k:"name",l:"Name"+(cust.billed?" 🔒":""),lock:cust.billed},{k:"phone",l:"Phone"+(cust.billed?" 🔒":""),t:"tel",lock:cust.billed}].map(({k,l,t,lock})=>(
+              {[{k:"name",l:"Name"+(cust.billed&&role==="salesman"?" 🔒":""),lock:cust.billed&&role==="salesman"},{k:"phone",l:"Phone"+(cust.billed&&role==="salesman"?" 🔒":""),t:"tel",lock:cust.billed&&role==="salesman"}].map(({k,l,t,lock})=>(
                 <div key={k}><label style={lbl}>{l}</label><input type={t||"text"} disabled={lock} style={{...inp,opacity:lock?0.5:1,borderColor:t==="tel"&&f[k]&&f[k].length!==10?"#ef4444":undefined}} value={f[k]||""} onChange={e=>{const v=t==="tel"?e.target.value.replace(/\D/g,"").slice(0,10):e.target.value;setF(p=>({...p,[k]:v}));}}/>{t==="tel"&&f[k]&&f[k].length>0&&f[k].length!==10&&<div style={{fontSize:10,color:"#ef4444",marginTop:2}}>⚠️ Must be 10 digits ({f[k].length} entered)</div>}{lock&&<div style={{fontSize:10,color:"#6366f1",marginTop:3}}>🔒 Locked after billing — use Billing tab → Request Correction</div>}</div>
               ))}
-              <div><label style={lbl}>{"Model Code"+(cust.billed?" 🔒":"")+" — type to search"}</label>
-                <input style={{...inp,textTransform:"uppercase",opacity:cust.billed?0.5:1}} disabled={cust.billed} value={mSearch} onChange={e=>{const v=e.target.value.toUpperCase();setMSearch(v);if(!v)pickM("");}} placeholder="TYPE CODE OR MODEL NAME…" list="detail-model-list"/>
-                {cust.billed&&<div style={{fontSize:10,color:"#6366f1",marginTop:3}}>🔒 Locked after billing — use Billing tab → Request Correction</div>}
+              <div><label style={lbl}>{"Model Code"+(cust.billed&&role==="salesman"?" 🔒":"")+" — type to search"}</label>
+                <input style={{...inp,textTransform:"uppercase",opacity:cust.billed&&role==="salesman"?0.5:1}} disabled={cust.billed&&role==="salesman"} value={mSearch} onChange={e=>{const v=e.target.value.toUpperCase();setMSearch(v);if(!v)pickM("");}} placeholder="TYPE CODE OR MODEL NAME…" list="detail-model-list"/>
+                {cust.billed&&role==="salesman"&&<div style={{fontSize:10,color:"#6366f1",marginTop:3}}>🔒 Locked after billing — use Billing tab → Request Correction</div>}
                 <datalist id="detail-model-list">{filteredModels.map(([code,m])=><option key={code} value={code+" — "+m.n}/>)}</datalist>
                 {!cust.billed&&mSearch&&(()=>{const match=allModels.find(([c,m])=>mSearch===c+" — "+m.n.toUpperCase()||mSearch===c||(c+" — "+m.n).toUpperCase()===mSearch);if(match&&match[0]!==f.modelCode){pickM(match[0]);}return null;})()}
                 {RC[f.modelCode]&&<div style={{fontSize:11,color:"#60a5fa",marginTop:4}}>{f.modelCode} · On-Road: {fc(RC[f.modelCode].onRoad)}</div>}
               </div>
               <div><label style={lbl}>Address</label><textarea rows={2} style={{...inp,resize:"none",textTransform:"uppercase"}} value={f.address||""} onChange={e=>setF(p=>({...p,address:e.target.value.toUpperCase()}))}/></div>
-              {[{k:"fatherName",l:"Father/Mother",lock:cust.billed},{k:"dob",l:"DOB",t:"date",lock:cust.billed},{k:"aadhar",l:"Aadhar",lock:cust.billed},{k:"pan",l:"PAN",lock:cust.billed},...(cust.billed?[{k:"nominee",l:"Nominee"},{k:"nomineeRel",l:"Nom. Relation"},{k:"exchangeName",l:"Exchanger Name"},{k:"exchangeAsked",l:"Exchange Bike Model"},{k:"exchangeRegNo",l:"Old Vehicle Reg No"},{k:"exchangeOffered",l:"Exchange Value ₹",lock:cust.billed}]:[])].map(({k,l,t,lock})=>(
+              {[{k:"fatherName",l:"Father/Mother",lock:cust.billed&&role==="salesman"},{k:"dob",l:"DOB",t:"date",lock:cust.billed&&role==="salesman"},{k:"aadhar",l:"Aadhar",lock:cust.billed&&role==="salesman"},{k:"pan",l:"PAN",lock:cust.billed&&role==="salesman"},...(cust.billed?[{k:"nominee",l:"Nominee"},{k:"nomineeRel",l:"Nom. Relation"},{k:"exchangeName",l:"Exchanger Name"},{k:"exchangeAsked",l:"Exchange Bike Model"},{k:"exchangeRegNo",l:"Old Vehicle Reg No"},{k:"exchangeOffered",l:"Exchange Value ₹",lock:cust.billed&&role==="salesman"}]:[])].map(({k,l,t,lock})=>(
                 <div key={k}><label style={lbl}>{l+(lock?" 🔒":"")}</label><input type={t||"text"} disabled={!!lock} style={{...inp,opacity:lock?0.5:1}} value={f[k]||""} onChange={e=>setF(p=>({...p,[k]:e.target.value}))}/>{lock&&<div style={{fontSize:10,color:"#6366f1",marginTop:3}}>🔒 Locked — use Billing tab → Request Correction</div>}</div>
               ))}
               <div><label style={lbl}>Status</label><select style={inp} value={f.status} onChange={e=>setF(p=>({...p,status:e.target.value}))}>{["Hot","Warm","Cold","Booked","Lost"].map(s=><option key={s}>{s}</option>)}</select></div>
@@ -1681,7 +1681,7 @@ function Detail({cust,role,onBack,onUpd,onLog,onBill,onBook,notify,initTab,clear
         </div>
       )}
 
-      {tab==="billing"&&cust.billing&&<BillingView billing={cust.billing} cust={cust} onAddPayment={onAddPayment} role={role}/>}
+      {tab==="billing"&&cust.billing&&<BillingView billing={cust.billing} cust={cust} onAddPayment={onAddPayment} role={role} onEditCalc={role!=="salesman"?onBill:null}/>}
       {tab==="billing"&&cust.billing&&cust.managerApproval===null&&role!=="salesman"&&onApprove&&(
         <div style={{background:"rgba(139,92,246,0.08)",border:"1px solid rgba(139,92,246,0.3)",borderRadius:14,padding:"12px 14px",marginTop:10}}>
           <div style={{fontSize:11,fontWeight:700,color:"#a78bfa",marginBottom:10}}>⏳ PENDING APPROVAL — Action Required</div>
@@ -2519,7 +2519,7 @@ function BillingPayBox({K,custId,onAddPayment}){
     </div>
   );
 }
-function BillingView({billing:b,cust,onAddPayment,role}){
+function BillingView({billing:b,cust,onAddPayment,role,onEditCalc}){
   const r=RC[cust.modelCode]||{};
   const c=b.calc||calcB(b,r);
   const [showR,setShowR]=useState(null);
@@ -2573,7 +2573,8 @@ function BillingView({billing:b,cust,onAddPayment,role}){
           {showR&&showR.startsWith("pdf::")?<iframe ref={ifr} src={showR.slice(5)} title="calc" style={{flex:1,background:"#fff",borderRadius:12,border:"none",width:"100%"}}/>:<iframe ref={ifr} srcDoc={showR} title="receipt" style={{flex:1,background:"#fff",borderRadius:12,border:"none",width:"100%"}}/>}
         </div>
       )}
-      <div style={{background:cust.managerApproval==="approved"?"rgba(34,197,94,0.1)":"rgba(249,115,22,0.08)",border:"1px solid "+(cust.managerApproval==="approved"?"#22c55e":"rgba(249,115,22,0.4)"),borderRadius:11,padding:"11px 13px",marginBottom:12,fontSize:12,color:cust.managerApproval==="approved"?"#22c55e":"#f97316",fontWeight:600}}>{cust.managerApproval==="approved"?"✅ Billing Approved by Manager — record locked":cust.managerApproval==="rejected"?"❌ Rejected by Manager — correct the sheet and bill again (documents are retained)":"⏳ Awaiting Manager Approval"}</div>
+      <div style={{background:cust.managerApproval==="approved"?"rgba(34,197,94,0.1)":"rgba(249,115,22,0.08)",border:"1px solid "+(cust.managerApproval==="approved"?"#22c55e":"rgba(249,115,22,0.4)"),borderRadius:11,padding:"11px 13px",marginBottom:12,fontSize:12,color:cust.managerApproval==="approved"?"#22c55e":"#f97316",fontWeight:600}}>{cust.managerApproval==="approved"?(role==="salesman"?"✅ Billing Approved by Manager — record locked":"✅ Billing Approved — you can still edit below (Manager/Owner)"):cust.managerApproval==="rejected"?"❌ Rejected by Manager — correct the sheet and bill again (documents are retained)":"⏳ Awaiting Manager Approval"}</div>
+      {onEditCalc&&<button onClick={onEditCalc} style={{width:"100%",background:"rgba(245,158,11,0.1)",border:"1px solid rgba(245,158,11,0.4)",borderRadius:12,padding:13,color:"#f59e0b",fontWeight:700,fontSize:13,cursor:"pointer",marginBottom:12}}>✏️ Edit Calculation Sheet</button>}
       {b.checklist&&<div style={{background:"#ffffff",border:"1px solid #6b8fb5",borderRadius:12,padding:12,marginBottom:10}}>
         <div style={{fontSize:10,fontWeight:700,color:"#34d399",marginBottom:8}}>DELIVERY CHECKLIST</div>
         {[["pdi","PDI done"],["helmet","Helmet given"],["docs","Documents handed"],["service","Service explained"]].map(([k,l])=><div key={k} style={{fontSize:12,padding:"3px 0",color:b.checklist[k]?"#22c55e":"#ef4444"}}>{b.checklist[k]?"✅":"❌"} {l}</div>)}
