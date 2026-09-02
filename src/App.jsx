@@ -1454,11 +1454,26 @@ function Detail({cust,role,onBack,onUpd,onLog,onBill,onBook,notify,initTab,clear
   const allModels=Object.entries(RC);
   const filteredModels=mSearch?allModels.filter(([code,m])=>code.toUpperCase().includes(mSearch.toUpperCase())||m.n.toUpperCase().includes(mSearch.toUpperCase())):allModels;
   function uploadPhoto(key,fileOrDataUrl){
+    function attempt(dataUrl,mime,tryNum){
+      uploadToDrive(key+"_"+Date.now()+".jpg",dataUrl,mime||"image/jpeg",cust.name,key,function(url){
+        const ok=url&&typeof url==="string"&&url.startsWith("http");
+        if(ok){
+          onUpd({photos:{...(cust.photos||{}),[key]:url}});
+          notify("✅ Saved to Google Drive");
+        }else if(tryNum<2){
+          setTimeout(()=>attempt(dataUrl,mime,tryNum+1),1500);
+        }else{
+          // Real failure — be honest about it, not a false "Saved" message.
+          // Photo stays local (base64) so it's visible on THIS device, but it won't
+          // sync to other devices until "Sync Photos to Drive" (above) succeeds.
+          onUpd({photos:{...(cust.photos||{}),[key]:dataUrl}});
+          notify("⚠️ Drive upload failed — saved on this device only. Use 'Sync Photos to Drive' above once you have better signal.","err");
+        }
+      });
+    }
     function doUpload(dataUrl,mime){
       onUpd({photos:{...(cust.photos||{}),[key]:dataUrl}});notify("Uploading to Drive…");
-      uploadToDrive(key+"_"+Date.now()+".jpg",dataUrl,mime||"image/jpeg",cust.name,key,function(url){
-        onUpd({photos:{...(cust.photos||{}),[key]:url}});notify("✅ Saved to Google Drive");
-      });
+      attempt(dataUrl,mime,0);
     }
     if(typeof fileOrDataUrl==="string"){doUpload(fileOrDataUrl,"image/jpeg");return;}
     compressImg(fileOrDataUrl,function(dataUrl){doUpload(dataUrl,fileOrDataUrl.type||"image/jpeg");
@@ -2638,7 +2653,7 @@ function Approvals({custs,onApprove,onOpen,onEditCalc,allC,canApprove,role}){
               </div>}
               <div style={{fontSize:10,fontWeight:700,color:"#a78bfa",margin:"10px 0 6px"}}>DOCUMENT CHECKLIST</div>
               <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:5,marginBottom:8}}>
-                {[["aadhar_photo","Aadhar"],["pan_photo","PAN"],["booking_proof","Booking Proof"],["invoice","Invoice"],["insurance","Insurance"],["moneyreceipt","Money Receipt"],["mr","MR"],["do_letter","DO"]].map(([k,l])=>{
+                {[["aadhar_photo","Aadhar"],["pan_photo","PAN"],["booking_proof","Booking Proof"],["invoice","Invoice"],["insurance","Insurance"],["registration","RC"],["moneyreceipt","Money Receipt"],["delivery","Delivery Photo"],["exchange","Exchange Handover"],["mr","MR"],["do_letter","DO"]].map(([k,l])=>{
                   const has=(c.photos||{})[k];
                   return(<div key={k} style={{display:"flex",alignItems:"center",gap:6,background:has?"rgba(34,197,94,0.08)":"rgba(107,114,128,0.08)",border:"1px solid "+(has?"rgba(34,197,94,0.3)":"#6b8fb5"),borderRadius:8,padding:"5px 8px"}}>
                     {has?<img src={c.photos[k]} alt={l} style={{width:26,height:26,objectFit:"cover",borderRadius:5}}/>:<span style={{fontSize:14}}>⬜</span>}
