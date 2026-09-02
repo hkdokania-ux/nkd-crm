@@ -1202,7 +1202,13 @@ function StockView({stockData,billedChassis,role,userBranch,onUpload,notify}){
   const dateKey=findStockCol(keys,["date","invoice","inward","receipt","received","entry","purchase","billing"]);
   const ageKey=findStockCol(keys,["age","days","ageing","aging","no of day","day"]);
   const available=rows.filter(r=>!billedChassis.includes(String(r[chassisKey]||"").trim().toUpperCase()));
-  function isMyBranch(row){if(!userBranch||!branchKey)return false;return String(row[branchKey]||"").toLowerCase().includes(userBranch.toLowerCase());}
+  function isMyBranch(row){
+    if(!userBranch||!branchKey)return false;
+    const val=String(row[branchKey]||"").toLowerCase();
+    // userBranch is a plain string for salesmen, but an ARRAY of branches for managers (multi-branch) — handle both
+    const targets=Array.isArray(userBranch)?userBranch:[userBranch];
+    return targets.some(b=>b&&val.includes(String(b).toLowerCase()));
+  }
   function branchSort(a,b){if(isMyBranch(a)&&!isMyBranch(b))return -1;if(!isMyBranch(a)&&isMyBranch(b))return 1;return 0;}
 
   function getAge(row){
@@ -1320,7 +1326,7 @@ function StockView({stockData,billedChassis,role,userBranch,onUpload,notify}){
   return(
     <div>
       <div style={{fontWeight:800,fontSize:19,color:"#1e293b",marginBottom:2}}>🏍️ Stock</div>
-      {userBranch&&<div style={{fontSize:11,color:"#1d4ed8",fontWeight:700,marginBottom:4}}>📍 Your branch: {userBranch}</div>}
+      {userBranch&&<div style={{fontSize:11,color:"#1d4ed8",fontWeight:700,marginBottom:4}}>📍 Your branch: {Array.isArray(userBranch)?userBranch.join(", "):userBranch}</div>}
       <div style={{fontSize:11,color:"#94a3b8",marginBottom:10}}>{rows.length>0?available.length+" available · "+billedChassis.length+" billed":"No stock uploaded yet"}</div>
 
       {/* Tab toggle */}
@@ -1371,7 +1377,7 @@ function StockView({stockData,billedChassis,role,userBranch,onUpload,notify}){
                       {/* Own branch first */}
                       {ownRows.length>0&&(
                         <div style={{marginTop:8}}>
-                          {userBranch&&otherRows.length>0&&<div style={{fontSize:10,fontWeight:700,color:"#1d4ed8",marginBottom:6,paddingLeft:2}}>📍 {userBranch}</div>}
+                          {userBranch&&otherRows.length>0&&<div style={{fontSize:10,fontWeight:700,color:"#1d4ed8",marginBottom:6,paddingLeft:2}}>📍 {Array.isArray(userBranch)?userBranch.join(", "):userBranch}</div>}
                           {[...ownRows].sort((a,b)=>(getAge(b)||0)-(getAge(a)||0)).map((row,i)=><StockCard key={"o"+i} row={{...row,__age:getAge(row)}} i={i}/>)}
                         </div>
                       )}
