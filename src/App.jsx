@@ -1432,8 +1432,12 @@ function RCHSRPSearch({statusData,role,onUpload,notify}){
     </div>
   );
 }
-function Detail({cust,role,onBack,onUpd,onLog,onBill,onBook,notify,initTab,clearInit,onAddPayment,onApprove,curUser,onTransferReq,onApproveTransfer,onCorrectionReq}){
+function Detail({cust,role,onBack,onUpd,onLog,onBill,onBook,notify,initTab,clearInit,onAddPayment,onApprove,curUser,onTransferReq,onApproveTransfer,onCorrectionReq,smList,onReassign,onEscalate,onResolveEscalation}){
   const [tab,setTab]=useState(initTab||"info");
+  const [reassignOpen,setReassignOpen]=useState(false);
+  const [reassignTo,setReassignTo]=useState("");
+  const [escalateOpen,setEscalateOpen]=useState(false);
+  const [escalateReason,setEscalateReason]=useState("");
   useEffect(()=>{if(initTab){setTab(initTab);clearInit&&clearInit();}},[initTab]);
   const [edit,setEdit]=useState(false);
   const [corrModal,setCorrModal]=useState(false);
@@ -1522,6 +1526,54 @@ function Detail({cust,role,onBack,onUpd,onLog,onBill,onBook,notify,initTab,clear
           </div>
         </div>
       )}
+
+      {/* ── MANAGER/OWNER: direct reassignment (no request cycle) ── */}
+      {role!=="salesman"&&!cust.billed&&onReassign&&(
+        <div style={{background:"rgba(139,92,246,0.06)",border:"1px solid rgba(139,92,246,0.3)",borderRadius:12,padding:"11px 13px",marginBottom:12}}>
+          {!reassignOpen?(
+            <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",gap:10}}>
+              <div style={{fontSize:12,color:"#8b5cf6",fontWeight:700}}>👤 Assigned to <b>{cust.salesman||"—"}</b></div>
+              <button onClick={()=>{setReassignTo(cust.salesman||"");setReassignOpen(true);}} style={{background:"rgba(139,92,246,0.12)",border:"1px solid rgba(139,92,246,0.4)",borderRadius:9,padding:"7px 12px",color:"#8b5cf6",fontSize:11,fontWeight:700,cursor:"pointer",whiteSpace:"nowrap"}}>🔀 Reassign</button>
+            </div>
+          ):(
+            <div>
+              <div style={{fontSize:11,color:"#8b5cf6",fontWeight:700,marginBottom:6}}>🔀 REASSIGN LEAD</div>
+              <select value={reassignTo} onChange={e=>setReassignTo(e.target.value)} style={{...inp,fontSize:12,padding:"8px 10px",marginBottom:8}}>
+                {(smList||[]).map(s=><option key={s} value={s}>{s}</option>)}
+              </select>
+              <div style={{display:"flex",gap:8}}>
+                <button onClick={()=>{if(reassignTo&&reassignTo!==cust.salesman){onReassign(cust.id,reassignTo);}setReassignOpen(false);}} style={{flex:1,background:"linear-gradient(135deg,#8b5cf6,#7c3aed)",border:"none",borderRadius:9,padding:"9px",color:"#fff",fontSize:12,fontWeight:700,cursor:"pointer"}}>✅ Confirm</button>
+                <button onClick={()=>setReassignOpen(false)} style={{flex:1,background:"#e2e8f0",border:"1px solid #6b8fb5",borderRadius:9,padding:"9px",color:"#1e293b",fontSize:12,fontWeight:700,cursor:"pointer"}}>Cancel</button>
+              </div>
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* ── ESCALATION / COMPLAINT ── */}
+      {cust.escalation&&!cust.escalation.resolved?(
+        <div style={{background:"rgba(239,68,68,0.08)",border:"2px solid rgba(239,68,68,0.4)",borderRadius:12,padding:"11px 13px",marginBottom:12}}>
+          <div style={{fontSize:12,color:"#ef4444",fontWeight:800,marginBottom:4}}>🚩 ESCALATED</div>
+          <div style={{fontSize:12,color:"#1e293b",marginBottom:6}}><b>Reason:</b> {cust.escalation.reason}</div>
+          <div style={{fontSize:11,color:"#64748b",marginBottom:8}}>Flagged by {cust.escalation.by} · {fd(cust.escalation.at)}</div>
+          {role!=="salesman"&&onResolveEscalation&&<button onClick={()=>{onResolveEscalation(cust.id);}} style={{width:"100%",background:"rgba(34,197,94,0.12)",border:"1px solid rgba(34,197,94,0.4)",borderRadius:9,padding:"9px",color:"#22c55e",fontSize:12,fontWeight:700,cursor:"pointer"}}>✅ Mark Resolved</button>}
+        </div>
+      ):(onEscalate&&(
+        <div style={{marginBottom:12}}>
+          {!escalateOpen?(
+            <button onClick={()=>setEscalateOpen(true)} style={{width:"100%",background:"rgba(239,68,68,0.06)",border:"1px dashed rgba(239,68,68,0.4)",borderRadius:12,padding:"10px",color:"#ef4444",fontSize:12,fontWeight:700,cursor:"pointer"}}>🚩 Escalate / Flag Complaint</button>
+          ):(
+            <div style={{background:"rgba(239,68,68,0.06)",border:"1px solid rgba(239,68,68,0.35)",borderRadius:12,padding:"11px 13px"}}>
+              <div style={{fontSize:11,color:"#ef4444",fontWeight:700,marginBottom:6}}>🚩 ESCALATE THIS CUSTOMER</div>
+              <textarea rows={2} value={escalateReason} onChange={e=>setEscalateReason(e.target.value)} placeholder="Reason (e.g. customer complaint, delivery delay, service issue)…" style={{...inp,fontSize:12,padding:"8px 10px",resize:"none",marginBottom:8}}/>
+              <div style={{display:"flex",gap:8}}>
+                <button onClick={()=>{if(escalateReason.trim()){onEscalate(cust.id,escalateReason.trim());setEscalateReason("");setEscalateOpen(false);}}} style={{flex:1,background:"linear-gradient(135deg,#ef4444,#dc2626)",border:"none",borderRadius:9,padding:"9px",color:"#fff",fontSize:12,fontWeight:700,cursor:"pointer"}}>🚩 Flag It</button>
+                <button onClick={()=>setEscalateOpen(false)} style={{flex:1,background:"#e2e8f0",border:"1px solid #6b8fb5",borderRadius:9,padding:"9px",color:"#1e293b",fontSize:12,fontWeight:700,cursor:"pointer"}}>Cancel</button>
+              </div>
+            </div>
+          )}
+        </div>
+      ))}
 
       {lastR&&<div style={{background:"rgba(249,115,22,0.07)",border:"1px solid rgba(249,115,22,0.22)",borderRadius:11,padding:"10px 12px",marginBottom:12}}><div style={{fontSize:9,color:"#f97316",fontWeight:800,letterSpacing:0.6,marginBottom:3}}>📋 LAST REMARK</div><div style={{fontSize:13,color:"#1e293b",lineHeight:1.5}}>{lastR.replace(/^\[.*?\]\s*/,"").replace(/^[A-Z_]+:\s*/,"")}</div></div>}
 
@@ -2559,6 +2611,20 @@ function Approvals({custs,onApprove,onOpen,onEditCalc,allC,canApprove,role}){
               <div style={{fontSize:10,fontWeight:700,color:"#a78bfa",marginBottom:6}}>FULL CALCULATION SHEET</div>
               {[["(A) Ex-Showroom",fc(cl.ex)],["+ Comp.Acc",fc(cl.ca)],["+ Handling",fc(cl.hdl)],["+ Insurance",fc(cl.ins)],["+ Registration",fc(cl.reg)],["+ Accessories",fc(cl.acc)],["+ Teflon",fc(cl.tef)],["+ Hypo",fc(cl.hyp)],["+ AMC",fc(cl.amcV)],["TOTAL C",fc(cl.C)],["− Discounts (D)",fc(cl.D)],["DEAL PRICE E",fc(cl.E)],["− Booking",fc(cl.bk)],["− Exchange",fc(cl.exv)],["− Loan",fc(cl.loan)],["Balance (I)",fc(cl.I)],["Paid (J)",fc(cl.paid)]].map(([k,v])=><div key={k} style={{display:"flex",justifyContent:"space-between",fontSize:12,padding:"3px 0",borderBottom:"1px solid #131820"}}><span style={{color:k.includes("TOTAL")||k.includes("DEAL")?"#e2e6f0":"#5a6478",fontWeight:k.includes("TOTAL")||k.includes("DEAL")?700:400}}>{k}</span><span style={{color:"#1e293b",fontWeight:600}}>{v}</span></div>)}
               <div style={{display:"flex",justifyContent:"space-between",fontSize:14,padding:"8px 0 2px",fontWeight:800}}><span style={{color:"#1e293b"}}>Difference K</span><span style={{color:cl.K===0?"#22c55e":"#ef4444"}}>{fc(cl.K)}</span></div>
+              {(()=>{const totalDisc=Math.abs(cl.cof||0)+Math.abs(cl.sdis||0)+Math.abs(cl.corp||0)+Math.abs(c.billing?.discAmt||0);const pct=cl.ex>0?(totalDisc/cl.ex)*100:0;if(pct<5)return null;return(
+                <div style={{background:"rgba(239,68,68,0.1)",border:"1px solid rgba(239,68,68,0.4)",borderRadius:9,padding:"8px 10px",margin:"6px 0",fontSize:11,color:"#ef4444",fontWeight:700}}>🚩 HIGH DISCOUNT — {fc(totalDisc)} ({pct.toFixed(1)}% of Ex-Showroom) — please review before approving</div>
+              );})()}
+              {(()=>{
+                const d=c.billing?.details||{};
+                const kycFields=[["aadhar",d.aadhar||c.aadhar,"Aadhar No"],["fatherName",d.fatherName||c.fatherName,"Father/Guardian Name"],["nominee",d.nominee||c.nominee,"Nominee Name"],["nomineeRel",d.nomineeRel||c.nomineeRel,"Nominee Relation"],["address",d.address||c.address,"Address"],["dob",d.dob||c.dob,"DOB"]];
+                const missing=kycFields.filter(([,v])=>!v);
+                return(<div style={{marginBottom:6}}>
+                  <div style={{fontSize:10,fontWeight:700,color:missing.length?"#ef4444":"#22c55e",margin:"10px 0 6px"}}>{missing.length?"⚠️ KYC INCOMPLETE ("+missing.length+" MISSING)":"✅ KYC COMPLETE"}</div>
+                  <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:4}}>
+                    {kycFields.map(([k,v,l])=>(<div key={k} style={{fontSize:10,padding:"4px 7px",borderRadius:7,background:v?"rgba(34,197,94,0.08)":"rgba(239,68,68,0.1)",border:"1px solid "+(v?"rgba(34,197,94,0.3)":"rgba(239,68,68,0.4)"),color:v?"#22c55e":"#ef4444",fontWeight:600}}>{v?"✅":"❌"} {l}</div>))}
+                  </div>
+                </div>);
+              })()}
               {c.billing&&c.billing.verify&&<div>
                 <div style={{fontSize:10,fontWeight:700,color:"#ef4444",margin:"10px 0 6px"}}>SALESMAN VERIFICATION</div>
                 <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:4,marginBottom:8}}>
@@ -2616,6 +2682,85 @@ function Approvals({custs,onApprove,onOpen,onEditCalc,allC,canApprove,role}){
               <button onClick={()=>{const p2=ld("nkd_pw",{});p2[s]={pw:"1111",must:true,fails:0,locked:false};sv("nkd_pw",p2);_dbSet("passwords",p2);alert(s+" reset to 1111 — they will set a new password on next login");}} style={{background:"#c2d6ec",border:"1px solid #6b8fb5",borderRadius:8,padding:"5px 10px",fontSize:10,color:"#f59e0b",fontWeight:700,cursor:"pointer"}}>Reset → 1111</button>
             </div>);})}
         </div>
+      </div>}
+    </div>
+  );
+}
+
+function FinanceTracker({custs,onUpd,onOpen}){
+  const [filter,setFilter]=useState("Pending");
+  const FIN_STATUSES=["Pending","File Login","Approved","Disbursed"];
+  const daysSince=d=>{if(!d)return null;return Math.floor((Date.now()-new Date(d).getTime())/86400000);};
+  const filtered=custs.filter(c=>filter==="All"||((c.financeStatus||"Pending")===filter));
+  const sorted=[...filtered].sort((a,b)=>{const da=daysSince(a.billedDate)??0,db=daysSince(b.billedDate)??0;return db-da;});
+  const counts={};FIN_STATUSES.forEach(s=>counts[s]=custs.filter(c=>(c.financeStatus||"Pending")===s).length);
+  return(
+    <div>
+      <div style={{fontWeight:800,fontSize:19,color:"#1e293b",marginBottom:4}}>💳 Finance File Tracker</div>
+      <div style={{fontSize:11,color:"#94a3b8",marginBottom:14}}>{custs.length} vehicles financed — track disbursement status</div>
+      <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr 1fr",gap:6,marginBottom:14}}>
+        {FIN_STATUSES.map(s=>(
+          <div key={s} onClick={()=>setFilter(filter===s?"All":s)} style={{background:filter===s?"#78350f":"#ffffff",border:"1px solid "+(filter===s?"#f59e0b":"#6b8fb5"),borderRadius:12,padding:"10px 6px",textAlign:"center",cursor:"pointer"}}>
+            <div style={{fontSize:16,fontWeight:900,color:filter===s?"#fbbf24":(s==="Disbursed"?"#22c55e":s==="Pending"?"#ef4444":"#f59e0b")}}>{counts[s]}</div>
+            <div style={{fontSize:9,color:filter===s?"#fbbf24":"#94a3b8",fontWeight:700,marginTop:2}}>{s.toUpperCase()}</div>
+          </div>
+        ))}
+      </div>
+      {filter!=="All"&&<button onClick={()=>setFilter("All")} style={{background:"transparent",border:"none",color:"#60a5fa",fontSize:11,fontWeight:700,cursor:"pointer",marginBottom:10}}>Show All</button>}
+      {sorted.length===0&&<div style={{textAlign:"center",padding:"28px 20px",borderRadius:16,background:"#ffffff"}}><div style={{fontSize:32,marginBottom:6}}>✅</div><div style={{fontWeight:700,fontSize:14,color:"#1e293b"}}>Nothing here</div></div>}
+      {sorted.map(c=>{
+        const days=daysSince(c.billedDate);
+        const stuck=days!==null&&days>7&&(c.financeStatus||"Pending")!=="Disbursed";
+        return(
+          <div key={c.id} style={{background:"#ffffff",border:"1px solid "+(stuck?"rgba(239,68,68,0.4)":"#6b8fb5"),borderRadius:14,padding:"12px 14px",marginBottom:10}}>
+            <div onClick={()=>onOpen(c)} style={{cursor:"pointer",marginBottom:8}}>
+              <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start"}}>
+                <div><div style={{fontWeight:700,fontSize:14,color:"#1e293b"}}>{c.name}</div><div style={{fontSize:11,color:"#64748b"}}>{c.model} · {c.financeBank||c.billing?.financeBank||"—"}</div></div>
+                {stuck&&<span style={{fontSize:9,fontWeight:800,background:"rgba(239,68,68,0.12)",color:"#ef4444",padding:"2px 7px",borderRadius:6,whiteSpace:"nowrap"}}>⚠️ {days}d stuck</span>}
+              </div>
+              <div style={{fontSize:10,color:"#94a3b8",marginTop:2}}>{c.salesman} · Billed {fd(c.billedDate)}</div>
+            </div>
+            <div style={{display:"flex",gap:5,flexWrap:"wrap"}}>
+              {FIN_STATUSES.map(s=>(
+                <button key={s} onClick={()=>onUpd(c.id,{financeStatus:s,remarks:(c.remarks||"")+"\n["+td()+"] FINANCE: "+s})} style={{background:(c.financeStatus||"Pending")===s?"#78350f":"#f1f5f9",border:"1px solid "+((c.financeStatus||"Pending")===s?"#f59e0b":"#6b8fb5"),borderRadius:14,padding:"5px 11px",fontSize:11,color:(c.financeStatus||"Pending")===s?"#fbbf24":"#8892a4",fontWeight:700,cursor:"pointer"}}>{s}</button>
+              ))}
+            </div>
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
+function TeamMsgComposer({smList,onSend,sentMsgs}){
+  const [open,setOpen]=useState(false);
+  const [text,setText]=useState("");
+  const [to,setTo]=useState("All");
+  return(
+    <div style={{marginBottom:18}}>
+      {!open?(
+        <button onClick={()=>setOpen(true)} style={{width:"100%",background:"rgba(96,165,250,0.08)",border:"1px dashed rgba(96,165,250,0.4)",borderRadius:12,padding:"12px",color:"#3b82f6",fontSize:12,fontWeight:700,cursor:"pointer"}}>📣 Send Message to Team</button>
+      ):(
+        <div style={{background:"#ffffff",border:"1px solid rgba(96,165,250,0.4)",borderRadius:13,padding:"12px 14px"}}>
+          <div style={{fontSize:12,fontWeight:800,color:"#3b82f6",marginBottom:8}}>📣 TEAM MESSAGE</div>
+          <select value={to} onChange={e=>setTo(e.target.value)} style={{...inp,fontSize:12,padding:"8px 10px",marginBottom:8}}>
+            <option value="All">Everyone</option>
+            {(smList||[]).map(s=><option key={s} value={s}>{s}</option>)}
+          </select>
+          <textarea rows={3} value={text} onChange={e=>setText(e.target.value)} placeholder="e.g. Push Pulsar 125 — old stock, 900+ days in godown" style={{...inp,fontSize:12,padding:"8px 10px",resize:"none",marginBottom:8}}/>
+          <div style={{display:"flex",gap:8}}>
+            <button onClick={()=>{if(text.trim()){onSend(text.trim(),to==="All"?null:to);setText("");setOpen(false);}}} style={{flex:1,background:"linear-gradient(135deg,#3b82f6,#2563eb)",border:"none",borderRadius:9,padding:"9px",color:"#fff",fontSize:12,fontWeight:700,cursor:"pointer"}}>📤 Send</button>
+            <button onClick={()=>setOpen(false)} style={{flex:1,background:"#e2e8f0",border:"1px solid #6b8fb5",borderRadius:9,padding:"9px",color:"#1e293b",fontSize:12,fontWeight:700,cursor:"pointer"}}>Cancel</button>
+          </div>
+        </div>
+      )}
+      {sentMsgs&&sentMsgs.length>0&&<div style={{marginTop:10}}>
+        <div style={{fontSize:10,color:"#94a3b8",fontWeight:700,marginBottom:6}}>RECENTLY SENT</div>
+        {sentMsgs.map(m=>(
+          <div key={m.id} style={{fontSize:11,color:"#64748b",background:"#f8fafc",borderRadius:8,padding:"7px 10px",marginBottom:5}}>
+            <b style={{color:"#3b82f6"}}>→ {m.to}</b>: {m.text}
+          </div>
+        ))}
       </div>}
     </div>
   );
@@ -3674,6 +3819,7 @@ export default function App(){
   function saveUsers(data){setNkdUsers(data);sv("nkd_users",data);_dbSet("nkd_users",data);}
   const smBranchMap=useMemo(()=>{const m={...SM_BRANCH};(nkdUsers.salesman||[]).forEach(s=>{if(s.name&&s.branch)m[s.name]=s.branch;});return m;},[nkdUsers]);
   const [payNotifs,setPayNotifs]=useState(()=>ld("nkd_pnotifs",[]));
+  const [teamMsgs,setTeamMsgs]=useState(()=>ld("nkd_teammsgs",[]));
   const billedChassis=useMemo(()=>custs.filter(c=>c.billed&&c.billing&&c.billing.chassis).map(c=>String(c.billing.chassis).trim().toUpperCase()),[custs]);
   const stack=useRef([]);
   function nav(v){if(v!==view){stack.current.push(view);setView(v);}}
@@ -3714,6 +3860,7 @@ export default function App(){
       _dbGet("payment_notifs").then(d=>{if(d){sv("nkd_pnotifs",d);setPayNotifs(d);}}),
       _dbGet("nkd_stock").then(d=>{if(d&&d.length){sv("nkd_stock",d);setStockData(d);}}),
       _dbGet("nkd_rcstatus").then(d=>{if(d&&d.length){sv("nkd_rcstatus",d);setStatusData(d);}}),
+      _dbGet("team_msgs").then(d=>{if(d){sv("nkd_teammsgs",d);setTeamMsgs(d);}}),
     ]).catch(()=>{}).finally(()=>setFbReady(true));
   },[]);
 
@@ -3899,6 +4046,38 @@ export default function App(){
     }
   }
 
+  // Manager/Owner: direct reassignment — no request/approval cycle needed (unlike salesman-initiated transferReq)
+  function reassignLead(id,newSalesman){
+    const cu=custs.find(c=>c.id===id);if(!cu)return;
+    const prev=cu.salesman;
+    upd(id,{salesman:newSalesman,branch:smBranchMap[newSalesman]||cu.branch,remarks:(cu.remarks||"")+"\n["+td()+"] Reassigned from "+prev+" to "+newSalesman+" by "+user});
+    notify("🔀 Lead reassigned to "+newSalesman);
+  }
+  // Escalation / complaint flagging — separate from normal followup pipeline
+  function escalateLead(id,reason){
+    upd(id,{escalation:{reason,by:user,at:new Date().toISOString(),resolved:false}});
+    const cu=custs.find(c=>c.id===id);
+    const msg="🚩 CUSTOMER ESCALATION\nCustomer: "+(cu?cu.name:"")+"\nSalesman: "+(cu?cu.salesman:"")+"\nReason: "+reason+"\nFlagged by: "+user;
+    fetch("https://wa.me/91"+OFFICE_WA+"?text="+encodeURIComponent(msg)).catch(()=>{});
+    notify("🚩 Escalation flagged — office notified");
+  }
+  function resolveEscalation(id,resolutionNote){
+    const cu=custs.find(c=>c.id===id);if(!cu||!cu.escalation)return;
+    upd(id,{escalation:{...cu.escalation,resolved:true,resolvedBy:user,resolvedAt:new Date().toISOString(),resolutionNote:resolutionNote||""}});
+    notify("✅ Escalation resolved");
+  }
+  // Team messaging — manager/owner broadcasts to all salesmen or one specific salesman
+  function sendTeamMsg(text,toSalesman){
+    const msg={id:Date.now(),text,to:toSalesman||"All",by:user,at:new Date().toISOString(),readBy:[]};
+    const updM=[msg,...teamMsgs].slice(0,50);
+    setTeamMsgs(updM);sv("nkd_teammsgs",updM);_dbSet("team_msgs",updM);
+    notify("📣 Message sent to "+(toSalesman||"team"));
+  }
+  function markMsgRead(id){
+    const updM=teamMsgs.map(m=>m.id===id&&!m.readBy.includes(user)?{...m,readBy:[...m.readBy,user]}:m);
+    setTeamMsgs(updM);sv("nkd_teammsgs",updM);_dbSet("team_msgs",updM);
+  }
+
   const mBr=ld("nkd_br",BRANCHES[0]);
   const mBrs=Array.isArray(mBr)?mBr:[mBr];
   const myC=role==="salesman"?custs.filter(c=>c.salesman===user):role==="manager"?custs.filter(c=>mBrs.includes(c.branch||smBranchMap[c.salesman])):custs; // owner/tech/admin see all
@@ -3909,6 +4088,10 @@ export default function App(){
   // Correction requests awaiting owner's final confirmation (manager already approved)
   const pendingCorrections=(role==="owner"||role==="admin"||role==="tech")?custs.filter(c=>c.correctionReq?.status==="manager_approved"):[];
   const revivable=custs.filter(c=>{if(c.billed)return false;const base=c.reactivatedAt||c.enquiryDate;return((new Date()-new Date(base))/(864e5*30))>=6;});
+  const escalations=myC.filter(c=>c.escalation&&!c.escalation.resolved);
+  const financeCustomers=myC.filter(c=>c.billed&&c.finance==="Finance");
+  const myMsgs=teamMsgs.filter(m=>m.to==="All"||m.to===user);
+  const unreadMsgs=myMsgs.filter(m=>!m.readBy.includes(user));
 
   function openD(c,tab){setSel(c);if(tab)setDtab(tab);nav("detail");window.scrollTo({top:0,behavior:"instant"});}
 
@@ -3941,7 +4124,7 @@ export default function App(){
     /></>;
   }
 
-  const navItems=role==="admin"?[{id:"vault",l:"Document Vault",ic:"📁"},{id:"uploads",l:"Uploads",ic:"📤"},{id:"stock",l:"Stock",ic:"🏍️"},{id:"rcstatus",l:"RC/HSRP",ic:"🔍"}]:[{id:"dashboard",l:"Home",ic:"🏠"},{id:"followups",l:"Followup",ic:"📞",badge:due.length},{id:"customers",l:"Customers",ic:"👥"},{id:"stock",l:"Stock",ic:"🏍️"},{id:"rcstatus",l:"RC/HSRP",ic:"🔍"},{id:"approvals",l:role==="salesman"?"My Pending":"Approve",ic:"✅",badge:myPending.length+(role!=="salesman"?pendingTransfers.length:0)+pendingCorrections.length},...(role!=="salesman"?[{id:"revival",l:"Revival",ic:"🔄"}]:[]),...(isOwner(role)||role==="manager"?[{id:"reports",l:"Reports",ic:"📊"}]:[]),...(isOwner(role)?[{id:"vault",l:"Vault",ic:"📁"}]:[]),...(isOwner(role)?[{id:"uploads",l:"Uploads",ic:"📤"}]:[]),...(role!=="salesman"&&alerts.length>0?[{id:"alerts",l:"Alerts",ic:"⚠️",badge:alerts.length}]:[])];
+  const navItems=role==="admin"?[{id:"vault",l:"Document Vault",ic:"📁"},{id:"uploads",l:"Uploads",ic:"📤"},{id:"stock",l:"Stock",ic:"🏍️"},{id:"rcstatus",l:"RC/HSRP",ic:"🔍"}]:[{id:"dashboard",l:"Home",ic:"🏠"},{id:"followups",l:"Followup",ic:"📞",badge:due.length},{id:"customers",l:"Customers",ic:"👥"},{id:"stock",l:"Stock",ic:"🏍️"},{id:"rcstatus",l:"RC/HSRP",ic:"🔍"},{id:"approvals",l:role==="salesman"?"My Pending":"Approve",ic:"✅",badge:myPending.length+(role!=="salesman"?pendingTransfers.length:0)+pendingCorrections.length},...(role!=="salesman"?[{id:"revival",l:"Revival",ic:"🔄"}]:[]),...(isOwner(role)||role==="manager"?[{id:"reports",l:"Reports",ic:"📊"}]:[]),...(isOwner(role)?[{id:"vault",l:"Vault",ic:"📁"}]:[]),...(isOwner(role)?[{id:"uploads",l:"Uploads",ic:"📤"}]:[]),...(role!=="salesman"?[{id:"finance",l:"Finance",ic:"💳",badge:financeCustomers.filter(c=>(c.financeStatus||"Pending")!=="Disbursed").length}]:[]),...(role!=="salesman"&&(alerts.length>0||escalations.length>0)?[{id:"alerts",l:"Alerts",ic:"⚠️",badge:alerts.length+escalations.length}]:[])];
 
   return(
     <div style={{height:"100dvh",display:"flex",flexDirection:"column",background:"linear-gradient(160deg,#f0f7ff 0%,#e8f4ff 40%,#f8fafc 100%)",color:"#1e293b",fontFamily:"'Inter',-apple-system,sans-serif",maxWidth:480,margin:"0 auto",overflow:"hidden",paddingTop:"max(env(safe-area-inset-top),0px)"}}>
@@ -3989,10 +4172,25 @@ export default function App(){
       {/* ── SCROLLABLE CONTENT ── */}
       <div style={{flex:1,overflowY:"auto",WebkitOverflowScrolling:"touch",overscrollBehavior:"contain",touchAction:"pan-y",padding:16,paddingBottom:90}}>
         {role==="admin"&&view!=="vault"&&view!=="rcstatus"&&view!=="stock"&&view!=="uploads"&&setView("vault")}
+        {view==="dashboard"&&unreadMsgs.length>0&&(
+          <div style={{marginBottom:14}}>
+            {unreadMsgs.map(m=>(
+              <div key={m.id} style={{background:"linear-gradient(135deg,rgba(59,130,246,0.1),rgba(99,102,241,0.08))",border:"1px solid rgba(59,130,246,0.4)",borderRadius:13,padding:"12px 14px",marginBottom:8}}>
+                <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",gap:8}}>
+                  <div style={{flex:1}}>
+                    <div style={{fontSize:10,color:"#3b82f6",fontWeight:800,marginBottom:3}}>📣 MESSAGE FROM {m.by.toUpperCase()}</div>
+                    <div style={{fontSize:13,color:"#1e293b",lineHeight:1.4}}>{m.text}</div>
+                  </div>
+                  <button onClick={()=>markMsgRead(m.id)} style={{background:"rgba(59,130,246,0.15)",border:"none",borderRadius:8,width:26,height:26,color:"#3b82f6",fontSize:14,fontWeight:700,cursor:"pointer",flexShrink:0}}>✕</button>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
         {view==="dashboard"&&<Dashboard custs={myC} role={role} onOpen={openD} onNav={nav} onNavF={st=>{setCustF(st);nav("customers");}} onSvcDone={id=>{upd(id,{serviceDone:true});notify("Service marked done ✓");}} onTeamTap={s=>{setFSM(s);nav("followups");}} onAddPayment={addPayment} onUpd={upd} notify={notify} nkdUsers={nkdUsers}/>}
         {view==="followups"&&<Followups items={due} onOpen={openD} onLog={logF} onCallLog={logCall} showSMFilter={role!=="salesman"} initSM={fSM} smList={role==="manager"?(nkdUsers?.salesman||[]).filter(s=>mBrs.includes(s.branch)).map(s=>s.name):(nkdUsers?.salesman||[]).map(s=>s.name)}/>}
         {view==="customers"&&<CustList custs={myC} onOpen={openD} initF={custF} showSM={role!=="salesman"}/>}
-        {view==="detail"&&sel&&<Detail cust={custs.find(c=>c.id===sel.id)||sel} role={role} onBack={goBack} onUpd={p=>upd(sel.id,p)} onLog={logF} onBill={()=>setBillOpen(true)} onBook={()=>setBookOpen(true)} notify={notify} initTab={dtab} clearInit={()=>setDtab(null)} onAddPayment={addPayment} onApprove={approveBill} curUser={user} onTransferReq={requestTransfer} onApproveTransfer={approveTransfer} onCorrectionReq={handleCorrectionReq}/>}
+        {view==="detail"&&sel&&<Detail cust={custs.find(c=>c.id===sel.id)||sel} role={role} onBack={goBack} onUpd={p=>upd(sel.id,p)} onLog={logF} onBill={()=>setBillOpen(true)} onBook={()=>setBookOpen(true)} notify={notify} initTab={dtab} clearInit={()=>setDtab(null)} onAddPayment={addPayment} onApprove={approveBill} curUser={user} onTransferReq={requestTransfer} onApproveTransfer={approveTransfer} onCorrectionReq={handleCorrectionReq} smList={role==="manager"?(nkdUsers?.salesman||[]).filter(s=>mBrs.includes(s.branch)).map(s=>s.name):(nkdUsers?.salesman||[]).map(s=>s.name)} onReassign={reassignLead} onEscalate={escalateLead} onResolveEscalation={resolveEscalation}/>}
         {view==="uploads"&&<div style={{padding:"0 16px 80px"}}><UploadsHub stockData={stockData} statusData={statusData} onStockUpload={saveStockData} onStatusUpload={saveStatusData} notify={notify}/></div>}
         {view==="stock"&&<div style={{padding:"0 16px 80px"}}><StockView stockData={stockData} billedChassis={billedChassis} role={role} userBranch={role==="salesman"?(smBranchMap[user]||BRANCHES[0]):role==="manager"?mBrs:null} onUpload={saveStockData} notify={notify}/></div>}
         {view==="rcstatus"&&<div style={{padding:"0 16px 80px"}}><RCHSRPSearch statusData={statusData} role={role} onUpload={saveStatusData} notify={notify}/></div>}
@@ -4043,9 +4241,25 @@ export default function App(){
         }));notify(ids.length+" reactivated — max 80 calls/day per executive, spread across days");}}/>}
         {view==="reports"&&<Reports custs={custs} onImportCust={rows=>{setCusts(p=>{const ex=new Set(p.map(c=>c.phone));return[...rows.filter(r=>!ex.has(r.phone)),...p];});}} nkdUsers={nkdUsers} smBranchMap={smBranchMap}/>}
         {view==="vault"&&<DocVault custs={custs} onImport={data=>{setCusts(data);notify("✅ Database imported: "+data.length+" customers");}} role={role}/>}
+        {view==="finance"&&<FinanceTracker custs={financeCustomers} onUpd={upd} onOpen={openD}/>}
         {view==="alerts"&&(
           <div>
             <div style={{fontWeight:800,fontSize:19,color:"#1e293b",marginBottom:14}}>⚠️ Manager Alerts</div>
+            {/* ── TEAM MESSAGE COMPOSER ── */}
+            <TeamMsgComposer smList={(nkdUsers?.salesman||[]).filter(s=>role!=="manager"||mBrs.includes(s.branch)).map(s=>s.name)} onSend={sendTeamMsg} sentMsgs={teamMsgs.filter(m=>m.by===user).slice(0,5)}/>
+            {/* ── ESCALATIONS ── */}
+            {escalations.length>0&&<div style={{marginBottom:18}}>
+              <div style={{fontWeight:800,fontSize:14,color:"#ef4444",marginBottom:8}}>🚩 ESCALATIONS ({escalations.length})</div>
+              {escalations.map(c=>(
+                <div key={c.id} onClick={()=>openD(c)} style={{background:"rgba(239,68,68,0.07)",border:"1px solid rgba(239,68,68,0.35)",borderRadius:13,padding:"12px 13px",marginBottom:10,cursor:"pointer"}}>
+                  <div style={{fontWeight:700,fontSize:13,color:"#1e293b"}}>{c.name} <span style={{fontSize:11,color:"#94a3b8",fontWeight:400}}>· {c.model}</span></div>
+                  <div style={{fontSize:11,color:"#64748b",marginTop:2}}>{c.salesman}</div>
+                  <div style={{fontSize:12,color:"#ef4444",marginTop:4}}><b>Reason:</b> {c.escalation.reason}</div>
+                  <div style={{fontSize:10,color:"#94a3b8",marginTop:2}}>Flagged by {c.escalation.by} · {fd(c.escalation.at)}</div>
+                  <button onClick={e=>{e.stopPropagation();resolveEscalation(c.id);}} style={{marginTop:8,background:"rgba(34,197,94,0.12)",border:"1px solid rgba(34,197,94,0.4)",borderRadius:9,padding:"7px 12px",color:"#22c55e",fontSize:11,fontWeight:700,cursor:"pointer"}}>✅ Mark Resolved</button>
+                </div>
+              ))}
+            </div>}
             {alerts.map((c,i)=>(
               <div key={i} style={{background:"rgba(239,68,68,0.07)",border:"1px solid rgba(239,68,68,0.3)",borderRadius:14,marginBottom:12,padding:"12px 14px"}}>
                 <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start"}}>
