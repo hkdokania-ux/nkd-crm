@@ -882,6 +882,62 @@ function SyncPhotosPanel({cust,onUpd,notify}){
     </div>
   );
 }
+function PhotoSyncStatus({custs,onUpd,notify}){
+  const [syncing,setSyncing]=useState(null);
+  const [syncingAll,setSyncingAll]=useState(false);
+  const stuck=custs.map(c=>{
+    const photos=c.photos||{};
+    const keys=Object.entries(photos).filter(([,v])=>v&&typeof v==="string"&&v.startsWith("data:")).map(([k])=>k);
+    return keys.length?{id:c.id,name:c.name,keys}:null;
+  }).filter(Boolean);
+  function syncOne(item){
+    return new Promise(resolveAll=>{
+      setSyncing(item.id);
+      const cust=custs.find(x=>x.id===item.id);
+      const photos={...(cust.photos||{})};
+      let done=0;
+      Promise.all(item.keys.map(k=>new Promise(resolve=>{
+        uploadToDrive(k+"_"+Date.now()+".jpg",photos[k],"image/jpeg",cust.name,k,function(url){
+          if(url&&typeof url==="string"&&url.startsWith("http")){photos[k]=url;done++;}
+          resolve();
+        });
+      }))).then(()=>{
+        onUpd(item.id,{photos});
+        setSyncing(null);
+        if(done===item.keys.length)notify("✅ "+cust.name+" — all photos synced to Drive");
+        else if(done>0)notify("⚠️ "+cust.name+" — "+done+"/"+item.keys.length+" synced, retry for the rest","err");
+        else notify("⚠️ "+cust.name+" — sync failed, check connection","err");
+        resolveAll();
+      });
+    });
+  }
+  async function syncAll(){
+    setSyncingAll(true);
+    for(const item of stuck){await syncOne(item);}
+    setSyncingAll(false);
+  }
+  if(!stuck.length)return(
+    <div style={{background:"rgba(34,197,94,0.08)",border:"1px solid rgba(34,197,94,0.3)",borderRadius:12,padding:16,textAlign:"center",color:"#22c55e",fontWeight:700,fontSize:13}}>✅ Nothing stuck on this device — every photo you've taken here has reached Google Drive.</div>
+  );
+  return(
+    <div>
+      <div style={{background:"rgba(249,115,22,0.08)",border:"1px solid rgba(249,115,22,0.3)",borderRadius:12,padding:"12px 14px",marginBottom:12}}>
+        <div style={{fontSize:13,fontWeight:800,color:"#f97316",marginBottom:4}}>⚠️ {stuck.length} customer{stuck.length>1?"s":""} with photos stuck on THIS device</div>
+        <div style={{fontSize:11,color:"#94a3b8",marginBottom:8}}>These were saved here but never reached Google Drive, so nobody on another phone/computer can see them yet — including the office. This list only reflects what's on this device; check each salesman's own phone separately.</div>
+        <button disabled={syncingAll} onClick={syncAll} style={{background:syncingAll?"#e2e8f0":"linear-gradient(135deg,#f97316,#ea580c)",border:"none",borderRadius:9,padding:"9px 16px",color:syncingAll?"#94a3b8":"#fff",fontWeight:700,fontSize:12,cursor:syncingAll?"not-allowed":"pointer"}}>{syncingAll?"⏳ Syncing…":"☁️ Sync All"}</button>
+      </div>
+      {stuck.map(c=>(
+        <div key={c.id} className="glass" style={{padding:"10px 14px",marginBottom:8,display:"flex",justifyContent:"space-between",alignItems:"center"}}>
+          <div>
+            <div style={{fontWeight:700,fontSize:13}}>{c.name}</div>
+            <div style={{fontSize:11,color:"#94a3b8"}}>{c.keys.length} photo{c.keys.length>1?"s":""} not on Drive</div>
+          </div>
+          <button disabled={syncing===c.id||syncingAll} onClick={()=>syncOne(c)} style={{background:syncing===c.id?"#e2e8f0":"#dbeafe",border:"1px solid "+(syncing===c.id?"#cbd5e1":"#3b82f6"),borderRadius:8,padding:"6px 12px",color:syncing===c.id?"#94a3b8":"#2563eb",fontWeight:700,fontSize:11,cursor:syncing===c.id||syncingAll?"not-allowed":"pointer"}}>{syncing===c.id?"…":"Sync"}</button>
+        </div>
+      ))}
+    </div>
+  );
+}
 function DocGrid({cust,onUpload,docs}){
   const[cropSt,setCropSt]=useState(null);
   const p=cust.photos||{};
@@ -1780,8 +1836,8 @@ function Detail({cust,role,onBack,onUpd,onLog,onBill,onBook,notify,initTab,clear
           <div style={{fontSize:11,fontWeight:700,color:"#34d399",margin:"14px 0 8px"}}>AFTER BILLING</div>
           {!cust.billed&&<div style={{background:"rgba(107,114,128,0.1)",border:"1px dashed #374151",borderRadius:11,padding:"12px",fontSize:12,color:"#94a3b8",marginBottom:10}}>🔒 Unlocks after vehicle is billed</div>}
           {cust.billed&&<DocGrid cust={cust} onUpload={uploadPhoto} docs={[{key:"delivery",l:"Customer Delivery Photo",ic:"📸"},{key:"invoice",l:"Invoice Copy",ic:"🧾"},{key:"insurance",l:"Insurance Document",ic:"🛡️"},{key:"registration",l:"Registration (RC)",ic:"📋"},{key:"moneyreceipt",l:"Money Receipt Copy",ic:"🧾"},{key:"exchange",l:"Exchange Vehicle Handover Docs",ic:"🔄"}]}/>}
-          {cust.billed&&cust.finance==="Finance"&&<div style={{fontSize:11,fontWeight:700,color:"#f59e0b",margin:"14px 0 8px"}}>FINANCE FILE</div>}
-          {cust.billed&&cust.finance==="Finance"&&<DocGrid cust={cust} onUpload={uploadPhoto} docs={[{key:"mr",l:"MR — Finance Company",ic:"💰"},{key:"do_letter",l:"DO — Finance Company",ic:"📄"},{key:"loan_app",l:"Loan Application",ic:"📝"},{key:"sanction",l:"Sanction Letter",ic:"✅"},{key:"cust_sign",l:"Customer Signature Photo",ic:"✍️"}]}/>}
+          {cust.billed&&<div style={{fontSize:11,fontWeight:700,color:"#f59e0b",margin:"14px 0 8px"}}>FINANCE FILE {cust.finance!=="Finance"&&<span style={{color:"#94a3b8",fontWeight:400}}>(upload anyway if needed — e.g. Cash marked by mistake)</span>}</div>}
+          {cust.billed&&<DocGrid cust={cust} onUpload={uploadPhoto} docs={[{key:"mr",l:"MR — Finance Company",ic:"💰"},{key:"do_letter",l:"DO — Finance Company",ic:"📄"},{key:"loan_app",l:"Loan Application",ic:"📝"},{key:"sanction",l:"Sanction Letter",ic:"✅"},{key:"cust_sign",l:"Customer Signature Photo",ic:"✍️"}]}/>}
         </div>
       )}
     </div>
@@ -4108,6 +4164,7 @@ export default function App(){
   const pendingCorrections=(role==="owner"||role==="admin"||role==="tech")?custs.filter(c=>c.correctionReq?.status==="manager_approved"):[];
   const revivable=custs.filter(c=>{if(c.billed)return false;const base=c.reactivatedAt||c.enquiryDate;return((new Date()-new Date(base))/(864e5*30))>=6;});
   const escalations=myC.filter(c=>c.escalation&&!c.escalation.resolved);
+  const stuckPhotoCustomers=myC.filter(c=>c.photos&&Object.values(c.photos).some(v=>v&&typeof v==="string"&&v.startsWith("data:")));
   const financeCustomers=myC.filter(c=>c.billed&&c.finance==="Finance");
   const myMsgs=teamMsgs.filter(m=>m.to==="All"||m.to===user);
   const unreadMsgs=myMsgs.filter(m=>!m.readBy.includes(user));
@@ -4143,7 +4200,7 @@ export default function App(){
     /></>;
   }
 
-  const navItems=role==="admin"?[{id:"vault",l:"Document Vault",ic:"📁"},{id:"uploads",l:"Uploads",ic:"📤"},{id:"stock",l:"Stock",ic:"🏍️"},{id:"rcstatus",l:"RC/HSRP",ic:"🔍"}]:[{id:"dashboard",l:"Home",ic:"🏠"},{id:"followups",l:"Followup",ic:"📞",badge:due.length},{id:"customers",l:"Customers",ic:"👥"},{id:"stock",l:"Stock",ic:"🏍️"},{id:"rcstatus",l:"RC/HSRP",ic:"🔍"},{id:"approvals",l:role==="salesman"?"My Pending":"Approve",ic:"✅",badge:myPending.length+(role!=="salesman"?pendingTransfers.length:0)+pendingCorrections.length},...(role!=="salesman"?[{id:"revival",l:"Revival",ic:"🔄"}]:[]),...(isOwner(role)||role==="manager"?[{id:"reports",l:"Reports",ic:"📊"}]:[]),...(isOwner(role)?[{id:"vault",l:"Vault",ic:"📁"}]:[]),...(isOwner(role)?[{id:"uploads",l:"Uploads",ic:"📤"}]:[]),...(role!=="salesman"?[{id:"finance",l:"Finance",ic:"💳",badge:financeCustomers.filter(c=>(c.financeStatus||"Pending")!=="Disbursed").length}]:[]),...(role!=="salesman"&&(alerts.length>0||escalations.length>0)?[{id:"alerts",l:"Alerts",ic:"⚠️",badge:alerts.length+escalations.length}]:[])];
+  const navItems=role==="admin"?[{id:"vault",l:"Document Vault",ic:"📁"},{id:"uploads",l:"Uploads",ic:"📤"},{id:"stock",l:"Stock",ic:"🏍️"},{id:"rcstatus",l:"RC/HSRP",ic:"🔍"}]:[{id:"dashboard",l:"Home",ic:"🏠"},{id:"followups",l:"Followup",ic:"📞",badge:due.length},{id:"customers",l:"Customers",ic:"👥"},{id:"stock",l:"Stock",ic:"🏍️"},{id:"rcstatus",l:"RC/HSRP",ic:"🔍"},{id:"approvals",l:role==="salesman"?"My Pending":"Approve",ic:"✅",badge:myPending.length+(role!=="salesman"?pendingTransfers.length:0)+pendingCorrections.length},...(role!=="salesman"?[{id:"revival",l:"Revival",ic:"🔄"}]:[]),...(isOwner(role)||role==="manager"?[{id:"reports",l:"Reports",ic:"📊"}]:[]),...(isOwner(role)?[{id:"vault",l:"Vault",ic:"📁"}]:[]),...(isOwner(role)?[{id:"uploads",l:"Uploads",ic:"📤"}]:[]),...(role!=="salesman"?[{id:"finance",l:"Finance",ic:"💳",badge:financeCustomers.filter(c=>(c.financeStatus||"Pending")!=="Disbursed").length}]:[]),...(role!=="salesman"&&(alerts.length>0||escalations.length>0)?[{id:"alerts",l:"Alerts",ic:"⚠️",badge:alerts.length+escalations.length}]:[]),{id:"photosync",l:"Photo Sync",ic:"☁️",badge:stuckPhotoCustomers.length}];
 
   return(
     <div style={{height:"100dvh",display:"flex",flexDirection:"column",background:"linear-gradient(160deg,#f0f7ff 0%,#e8f4ff 40%,#f8fafc 100%)",color:"#1e293b",fontFamily:"'Inter',-apple-system,sans-serif",maxWidth:480,margin:"0 auto",overflow:"hidden",paddingTop:"max(env(safe-area-inset-top),0px)"}}>
@@ -4261,6 +4318,12 @@ export default function App(){
         {view==="reports"&&<Reports custs={custs} onImportCust={rows=>{setCusts(p=>{const ex=new Set(p.map(c=>c.phone));return[...rows.filter(r=>!ex.has(r.phone)),...p];});}} nkdUsers={nkdUsers} smBranchMap={smBranchMap}/>}
         {view==="vault"&&<DocVault custs={custs} onImport={data=>{setCusts(data);notify("✅ Database imported: "+data.length+" customers");}} role={role}/>}
         {view==="finance"&&<FinanceTracker custs={financeCustomers} onUpd={upd} onOpen={openD}/>}
+        {view==="photosync"&&(
+          <div style={{padding:"0 16px 80px"}}>
+            <div style={{fontWeight:800,fontSize:19,color:"#1e293b",marginBottom:14}}>☁️ Photo Sync Status</div>
+            <PhotoSyncStatus custs={myC} onUpd={upd} notify={notify}/>
+          </div>
+        )}
         {view==="alerts"&&(
           <div>
             <div style={{fontWeight:800,fontSize:19,color:"#1e293b",marginBottom:14}}>⚠️ Manager Alerts</div>
