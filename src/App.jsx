@@ -238,6 +238,20 @@ async function sharePdf(doc,filename,phone,msg,recipientLabel){
     setTimeout(()=>window.open("https://wa.me/91"+phone+"?text="+waMsg,"_blank"),800);
   }
 }
+// Shared by both Mobile View and the desktop Portal so booking-save logic (incl. the printable
+// receipt HTML) lives in exactly one place instead of being duplicated across the two UIs.
+function completeBooking(cu,bk,upd,notify,afterSave){
+  var brc="<!DOCTYPE html><html><head><title>Booking Receipt</title><style>*{margin:0;padding:0;box-sizing:border-box}body{font-family:Arial;font-size:13px;padding:20px;color:#111}.logo{font-size:24px;font-weight:900;letter-spacing:2px;text-align:center}.hdr{text-align:center;border-bottom:2px solid #000;padding-bottom:10px;margin-bottom:14px}.hdr p{font-size:11px;color:#444;margin-top:2px}h2{text-align:center;font-size:17px;margin:10px 0 14px}.row{display:flex;justify-content:space-between;padding:5px 0;border-bottom:1px solid #eee}.v{font-weight:700}.total{display:flex;justify-content:space-between;padding:12px 0;border-top:2px solid #000;font-size:17px;font-weight:900;margin-top:8px}.sigs{display:flex;justify-content:space-between;margin-top:40px}.sigs div{text-align:center;font-size:11px}</style></head><body><div class=hdr><div class=logo>NKD BAJAJ</div><p>Authorised Main Dealer — Bajaj Auto Ltd.</p><p>Hirak Road, Near Kamal Katesaria School, Dhanbad</p><p>Ph: 7033099006 | info@nkdbajaj.com</p></div><h2>BOOKING RECEIPT</h2><div class=row><span>Date</span><span class=v>"+bk.date+"</span></div><div class=row><span>Customer</span><span class=v>"+cu.name+"</span></div><div class=row><span>Phone</span><span class=v>"+cu.phone+"</span></div><div class=row><span>Model</span><span class=v>"+(cu.model||"")+" ("+(cu.modelCode||"")+")</span></div><div class=row><span>Mode</span><span class=v>"+bk.mode+"</span></div>"+(bk.note?"<div class=row><span>Note</span><span class=v>"+bk.note+"</span></div>":"")+"<div class=total><span>BOOKING AMOUNT RECEIVED</span><span>"+fc(bk.amt)+"</span></div><p style='font-size:11px;color:#666;margin-top:8px'>Balance payable at delivery. Subject to realization of payment.</p><div class=sigs><div>____________________<br/>Customer Sign</div><div>____________________<br/>For NKD Bajaj</div></div></body></html>";
+  const newBk={...bk,receiptHtml:brc,savedAt:td()};
+  const prevBks=cu.bookings||(cu.booking?[cu.booking]:[]);
+  const allBks=[...prevBks,newBk];
+  const totalBk=allBks.reduce((s,b)=>s+Number(b.amt||0),0);
+  const updCu={...cu,booking:newBk,bookings:allBks,totalBooking:totalBk,status:"Booked",photos:{...(cu.photos||{}),...(bk.proof?{["booking_proof_"+allBks.length]:bk.proof}:{})},remarks:(cu.remarks||"")+"\n["+td()+"] BOOKING #"+allBks.length+": "+fc(bk.amt)+" ("+bk.mode+") — Total booked: "+fc(totalBk)+(bk.note?" — "+bk.note:"")};
+  upd(cu.id,updCu);
+  try{const doc=makeBookingPdf(updCu,newBk);sharePdf(doc,"Booking"+allBks.length+"_"+cu.name.replace(/ /g,"_")+"_"+td()+".pdf",cu.phone,"Please find your Booking Receipt #"+allBks.length+" from NKD Bajaj, Dhanbad.");savePdfToDrive(doc,"Booking"+allBks.length+"_"+cu.name.replace(/ /g,"_")+"_"+td()+".pdf",cu.name,"Booking");}catch(e){}
+  notify("✅ Booking #"+allBks.length+" saved & MR sent to customer!");
+  if(afterSave)afterSave();
+}
 function sv(k,v){try{localStorage.setItem(k,JSON.stringify(v));return true;}catch(e){return false;}}
 function ld(k,d){try{const v=localStorage.getItem(k);return v?JSON.parse(v):d;}catch(e){return d;}}
 
@@ -3435,6 +3449,47 @@ function makeExchMRDoc(exchName,entries,date){
   line("NKD Bajaj, Dhanbad",W-pad,y+22,8,"italic","right");
   return doc;
 }
+// Shared by Mobile View and the desktop Portal so "Team Performance" is computed identically in both.
+function computeSmPerf(custs,nkdUsers,smBranchMap){
+  const billed=custs.filter(c=>c.billed);
+  const smMap={};
+  custs.forEach(c=>{
+    if(!smMap[c.salesman])smMap[c.salesman]={enq:0,book:0,bill:0,rev:0,branch:smBranchMap[c.salesman]||""};
+    smMap[c.salesman].enq++;
+    if(c.booking)smMap[c.salesman].book++;
+  });
+  billed.forEach(c=>{
+    if(!smMap[c.salesman])smMap[c.salesman]={enq:0,book:0,bill:0,rev:0,branch:smBranchMap[c.salesman]||""};
+    smMap[c.salesman].bill++;
+    smMap[c.salesman].rev+=((c.billing&&c.billing.calc&&c.billing.calc.E)||0);
+  });
+  const activeSM=new Set((nkdUsers?.salesman||[]).map(s=>s.name));
+  return Object.entries(smMap).filter(([s])=>activeSM.has(s)).sort((a,b)=>b[1].bill-a[1].bill);
+}
+function TeamPerformanceGrid({smPerf}){
+  const maxBill=Math.max(...smPerf.map(([,x])=>x.bill),1);
+  if(!smPerf.length)return(<div style={{textAlign:"center",color:"#94a3b8",padding:40,fontSize:13}}>No active sales executives yet</div>);
+  return(
+    <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(280px,1fr))",gap:14}}>
+      {smPerf.map(([s,d])=>(
+        <div key={s} style={{background:"#fff",border:"2px solid #6b8fb5",borderRadius:14,padding:"16px 18px"}}>
+          <div style={{fontWeight:800,fontSize:15,color:"#1e293b",marginBottom:2}}>{s}</div>
+          <div style={{fontSize:11,color:"#64748b",marginBottom:12}}>📍 {d.branch}</div>
+          <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:8}}>
+            {[["Enquiries",d.enq,"#3b82f6"],["Bookings",d.book,"#8b5cf6"],["Billed",d.bill,"#22c55e"],["Revenue",fc(d.rev),"#f97316"]].map(([l,v,col])=>(
+              <div key={l} style={{background:"#f8fafc",border:"1px solid #6b8fb5",borderRadius:9,padding:"8px 10px"}}>
+                <div style={{fontSize:16,fontWeight:900,color:col}}>{v}</div>
+                <div style={{fontSize:9,color:"#64748b",marginTop:2}}>{l}</div>
+              </div>
+            ))}
+          </div>
+          <div style={{marginTop:10,background:"#f8fafc",borderRadius:8,height:7}}><div style={{height:7,background:"linear-gradient(90deg,#22c55e,#3b82f6)",borderRadius:8,width:(d.bill/maxBill*100)+"%"}}/></div>
+          <div style={{fontSize:9,color:"#94a3b8",marginTop:4}}>Billing progress vs team</div>
+        </div>
+      ))}
+    </div>
+  );
+}
 function ExchangerDue({custs,onUpd,notify}){
   const exchCusts=custs.filter(c=>{if(!c.billed||!c.billing)return false;const exv=Number(c.billing.exv||c.billing.calc?.exv||0);if(!exv)return false;const settled=c.exchMrIssued&&Number(c.exchAmtRec||0)>=exv;return !settled;});
   const [edits,setEdits]=useState({});
@@ -3645,14 +3700,27 @@ function BackupRestore({custs,setCusts,notify}){
     </div>
   );
 }
-function OwnerPortal({custs,stockData,billedChassis,statusData,role,user,mBr,saveStockData,saveStatusData,nkdUsers,onSaveUsers,notify,onUpd,onApprove,onLogout,onMobile}){
+function OwnerPortal({custs,stockData,billedChassis,statusData,role,user,mBr,saveStockData,saveStatusData,nkdUsers,onSaveUsers,notify,onUpd,onApprove,onLogout,onMobile,teamMsgs,onLog,onCallLog,onAddPayment,onTransferReq,onApproveTransfer,onCorrectionReq,onReassign,onEscalate,onResolveEscalation,onSendTeamMsg,onMarkMsgRead,onBillC,onImportCust,onImportAll}){
   const [view,setView]=useState(role==="admin"?"uploads":"dashboard");
   const [custTableQ,setCustTableQ]=useState("");
   const [custStatusF,setCustStatusF]=useState("All");
   const [docCust,setDocCust]=useState(null);
   const [docTab,setDocTab]=useState(null);
+  const [bookOpen,setBookOpen]=useState(false);
+  const [billOpen,setBillOpen]=useState(false);
   function openCust(c,tab){setDocCust(c);setDocTab(tab||null);}
   const smBranchMap=useMemo(()=>{const m={...SM_BRANCH};(nkdUsers?.salesman||[]).forEach(s=>{if(s.name&&s.branch)m[s.name]=s.branch;});return m;},[nkdUsers]);
+  // ── Feature-parity computed lists (same formulas Mobile View uses) — owner/tech see all customers ──
+  const due=custs.filter(c=>!c.billed&&!c.stopped&&c.followupDate<=td());
+  const revivable=custs.filter(c=>{if(c.billed)return false;const base=c.reactivatedAt||c.enquiryDate;return((new Date()-new Date(base))/(864e5*30))>=6;});
+  const financeCustomers=custs.filter(c=>c.billed&&c.finance==="Finance");
+  const escalations=custs.filter(c=>c.escalation&&!c.escalation.resolved);
+  const dashAlerts=custs.filter(c=>c.stopped&&c.status==="Lost"&&!c.alertDismissed);
+  const pendingTransfers=custs.filter(c=>c.transferReq&&c.transferReq.status==="pending");
+  const pendingCorrections=custs.filter(c=>c.correctionReq?.status==="manager_approved");
+  const smListNames=(nkdUsers?.salesman||[]).map(s=>s.name);
+  const myMsgs=(teamMsgs||[]).filter(m=>m.to==="All"||m.to===user);
+  const unreadMsgs=myMsgs.filter(m=>!m.readBy.includes(user));
   const billed=custs.filter(c=>c.billed);
   const thisM=td().slice(0,7);
   const billedThisM=billed.filter(c=>(c.billedDate||"").startsWith(thisM));
@@ -3665,8 +3733,8 @@ function OwnerPortal({custs,stockData,billedChassis,statusData,role,user,mBr,sav
   const smPerf=Object.entries(smMap).filter(([s])=>activeSM.has(s)).sort((a,b)=>b[1].bill-a[1].bill);
   const pendingApprovals=custs.filter(c=>c.billing&&c.managerApproval===null);
   const navItems=role==="admin"
-    ?[{id:"uploads",l:"Uploads & Data",ic:"📤"},{id:"vault",l:"Document Vault",ic:"📁"}]
-    :[{id:"dashboard",l:"Dashboard",ic:"📊"},{id:"customers",l:"All Customers",ic:"👥"},{id:"approvals",l:"Approvals",ic:"✅",badge:pendingApprovals.length},{id:"team",l:"Team Performance",ic:"👔"},{id:"cashbook",l:"Cash Book",ic:"💰"},{id:"exchdue",l:"Exchanger Due",ic:"🔄"},{id:"stock",l:"Stock & Ageing",ic:"🏍️"},{id:"uploads",l:"Uploads",ic:"📤"},{id:"reports",l:"Reports",ic:"📄"},{id:"users",l:"User Accounts",ic:"👤"},{id:"vault",l:"Document Vault",ic:"📁"}];
+    ?[{id:"uploads",l:"Uploads & Data",ic:"📤"},{id:"stock",l:"Stock",ic:"🏍️"},{id:"rcstatus",l:"RC/HSRP",ic:"🔍"},{id:"vault",l:"Document Vault",ic:"📁"}]
+    :[{id:"dashboard",l:"Dashboard",ic:"📊"},{id:"followups",l:"Followup",ic:"📞",badge:due.length},{id:"customers",l:"All Customers",ic:"👥"},{id:"approvals",l:"Approvals",ic:"✅",badge:pendingApprovals.length+pendingTransfers.length+pendingCorrections.length},{id:"team",l:"Team Performance",ic:"👔"},{id:"cashbook",l:"Cash Book",ic:"💰"},{id:"exchdue",l:"Exchanger Due",ic:"🔄"},{id:"stock",l:"Stock & Ageing",ic:"🏍️"},{id:"rcstatus",l:"RC/HSRP",ic:"🔍"},{id:"revival",l:"Revival",ic:"🔄"},{id:"finance",l:"Finance",ic:"💳",badge:financeCustomers.filter(c=>(c.financeStatus||"Pending")!=="Disbursed").length},{id:"uploads",l:"Uploads",ic:"📤"},{id:"reports",l:"Reports",ic:"📄"},{id:"users",l:"User Accounts",ic:"👤"},{id:"vault",l:"Document Vault",ic:"📁"},{id:"photosync",l:"Photo Sync",ic:"☁️"},{id:"alerts",l:"Alerts",ic:"⚠️",badge:dashAlerts.length+escalations.length}];
   // tech = full owner powers
   const SB=({label})=>(<th style={{fontSize:11,color:"#64748b",fontWeight:700,textAlign:"left",padding:"7px 12px",borderBottom:"2px solid #6b8fb5",background:"#f8fafc"}}>{label}</th>);
   const TD=({v,col,bold})=>(<td style={{padding:"8px 12px",fontSize:13,color:col||"#1e293b",fontWeight:bold?700:400,borderBottom:"1px solid #e8eef8"}}>{v}</td>);
@@ -3857,7 +3925,7 @@ function OwnerPortal({custs,stockData,billedChassis,statusData,role,user,mBr,sav
         {view==="rcstatus"&&<div style={{maxWidth:900}}><RCHSRPSearch statusData={statusData} role={role} onUpload={saveStatusData} notify={notify}/></div>}
 
         {/* ── REPORTS ── */}
-        {view==="reports"&&<div style={{maxWidth:800}}><Reports custs={custs} onImportCust={()=>{}} nkdUsers={nkdUsers} smBranchMap={smBranchMap}/></div>}
+        {view==="reports"&&<div style={{maxWidth:800}}><Reports custs={custs} onImportCust={onImportCust} nkdUsers={nkdUsers} smBranchMap={smBranchMap}/></div>}
 
         {/* ── CASH BOOK ── */}
         {view==="cashbook"&&<CashBook custs={custs} smBranchMap={smBranchMap}/>}
@@ -3867,10 +3935,101 @@ function OwnerPortal({custs,stockData,billedChassis,statusData,role,user,mBr,sav
         {view==="users"&&isOwner(role)&&<UserMgmt nkdUsers={nkdUsers||DEFAULT_USERS} onSave={onSaveUsers} notify={notify}/>}
 
         {/* ── APPROVALS ── */}
-        {view==="approvals"&&<div style={{maxWidth:800}}><Approvals custs={pendingApprovals} onApprove={onApprove} onOpen={c=>openCust(c,"billing")} onEditCalc={c=>openCust(c,"billing")} allC={custs} canApprove={true} role={role}/></div>}
+        {view==="approvals"&&<div style={{maxWidth:800}}>
+          {pendingCorrections.length>0&&<div style={{marginBottom:18}}>
+            <div style={{fontWeight:800,fontSize:14,color:"#ef4444",marginBottom:8,display:"flex",alignItems:"center",gap:6}}>
+              <span style={{background:"#ef4444",color:"#fff",borderRadius:6,padding:"2px 7px",fontSize:11}}>🔴 {pendingCorrections.length}</span>
+              CORRECTION REQUESTS — Owner Action Required
+            </div>
+            {pendingCorrections.map(c=>{
+              const cr=c.correctionReq;
+              return(<div key={c.id} style={{background:"rgba(239,68,68,0.07)",border:"2px solid rgba(239,68,68,0.45)",borderRadius:13,padding:"12px 13px",marginBottom:10}}>
+                <div style={{fontWeight:800,fontSize:13,color:"#1e293b",marginBottom:3}}>{c.name} <span style={{fontSize:11,color:"#94a3b8",fontWeight:400}}>· {c.modelCode}</span></div>
+                <div style={{fontSize:11,color:"#64748b",marginBottom:4}}>Salesman: <b>{c.salesman}</b> · Manager approved by <b>{cr.managerApprovedBy}</b> · {fd(cr.managerApprovedAt)}</div>
+                <div style={{fontSize:11,color:"#475569",marginBottom:4}}><b>Reason:</b> {cr.reason}</div>
+                <div style={{fontSize:11,color:"#475569",marginBottom:8}}>Fields: {Object.entries(cr.fields||{}).map(([k,v])=><span key={k} style={{background:"#fef3c7",borderRadius:5,padding:"1px 5px",marginRight:4,fontWeight:600}}>{k}: {v}</span>)}</div>
+                <div style={{display:"flex",gap:8}}>
+                  <button onClick={()=>{onCorrectionReq(c.id,"approved");}} style={{flex:1,background:"linear-gradient(135deg,#22c55e,#16a34a)",border:"none",borderRadius:9,padding:"10px",color:"#fff",fontSize:12,fontWeight:800,cursor:"pointer"}}>✅ Confirm & Apply</button>
+                  <button onClick={()=>{onCorrectionReq(c.id,"rejected");}} style={{flex:1,background:"rgba(239,68,68,0.1)",border:"1px solid rgba(239,68,68,0.3)",borderRadius:9,padding:"10px",color:"#ef4444",fontSize:12,fontWeight:700,cursor:"pointer"}}>❌ Reject</button>
+                  <button onClick={()=>openCust(c,"billing")} style={{background:"rgba(249,115,22,0.08)",border:"1px solid rgba(249,115,22,0.3)",borderRadius:9,padding:"10px 12px",color:"#f97316",fontSize:12,fontWeight:700,cursor:"pointer"}}>View</button>
+                </div>
+              </div>);
+            })}
+          </div>}
+          {pendingTransfers.length>0&&<div style={{marginBottom:16}}>
+            <div style={{fontWeight:800,fontSize:14,color:"#3b82f6",marginBottom:8}}>🔄 Lead Transfer Requests ({pendingTransfers.length})</div>
+            {pendingTransfers.map(c=>(
+              <div key={c.id} style={{background:"#fff",border:"1px solid rgba(96,165,250,0.4)",borderRadius:12,padding:"12px 13px",marginBottom:8}}>
+                <div style={{fontWeight:700,fontSize:13,color:"#1e293b",marginBottom:2}}>{c.name} <span style={{fontSize:11,color:"#94a3b8"}}>· {c.modelCode}</span></div>
+                <div style={{fontSize:11,color:"#64748b",marginBottom:6}}>From <b>{c.salesman}</b> → To <b>{c.transferReq.requestedBy}</b> · Requested {fd(c.transferReq.requestedAt)}</div>
+                <div style={{display:"flex",gap:8}}>
+                  <button onClick={()=>{onApproveTransfer(c.id,true);notify("✅ Transfer approved");}} style={{flex:1,background:"rgba(34,197,94,0.12)",border:"1px solid rgba(34,197,94,0.4)",borderRadius:9,padding:"9px",color:"#22c55e",fontSize:12,fontWeight:700,cursor:"pointer"}}>✅ Approve</button>
+                  <button onClick={()=>{onApproveTransfer(c.id,false);notify("❌ Transfer rejected");}} style={{flex:1,background:"rgba(239,68,68,0.1)",border:"1px solid rgba(239,68,68,0.3)",borderRadius:9,padding:"9px",color:"#ef4444",fontSize:12,fontWeight:700,cursor:"pointer"}}>❌ Reject</button>
+                  <button onClick={()=>openCust(c)} style={{background:"rgba(249,115,22,0.08)",border:"1px solid rgba(249,115,22,0.3)",borderRadius:9,padding:"9px 12px",color:"#f97316",fontSize:12,fontWeight:700,cursor:"pointer"}}>View</button>
+                </div>
+              </div>
+            ))}
+          </div>}
+          <Approvals custs={pendingApprovals} onApprove={onApprove} onOpen={c=>openCust(c,"billing")} onEditCalc={c=>openCust(c,"billing")} allC={custs} canApprove={true} role={role}/>
+        </div>}
 
         {/* ── VAULT ── */}
-        {view==="vault"&&<DocVault custs={custs} onImport={()=>{}} role={role}/>}
+        {view==="vault"&&<DocVault custs={custs} onImport={onImportAll} role={role}/>}
+
+        {/* ── FOLLOWUP (parity with Mobile View) ── */}
+        {view==="followups"&&<Followups items={due} onOpen={c=>openCust(c)} onLog={onLog} onCallLog={onCallLog} showSMFilter={true} initSM={null} smList={smListNames}/>}
+
+        {/* ── REVIVAL ── */}
+        {view==="revival"&&<Revival items={revivable} onRevive={ids=>{let si=0;const perDay={};setDocCust(null);const p=custs;const updated=p.map(c=>{
+          if(!ids.includes(c.id))return c;
+          const sm2=smListNames.length>0?smListNames[si++%smListNames.length]:(c.salesman||"");
+          perDay[sm2]=(perDay[sm2]||0)+1;
+          const dayOffset=Math.floor((perDay[sm2]-1)/80);
+          return{...c,reactivatedAt:td(),status:"Cold",stopped:false,attempts:0,alertDismissed:true,followupDate:aD(td(),dayOffset),salesman:sm2,remarks:(c.remarks||"")+"\n["+td()+"] REACTIVATED: cold pool — day "+(dayOffset+1)+" queue"};
+        });updated.forEach(c=>{if(ids.includes(c.id))onUpd(c.id,c);});notify(ids.length+" reactivated — max 80 calls/day per executive, spread across days");}}/>}
+
+        {/* ── FINANCE FILE TRACKER ── */}
+        {view==="finance"&&<FinanceTracker custs={financeCustomers} onUpd={onUpd} onOpen={c=>openCust(c)}/>}
+
+        {/* ── PHOTO SYNC STATUS ── */}
+        {view==="photosync"&&<div><div style={{fontWeight:800,fontSize:19,color:"#1e293b",marginBottom:14}}>☁️ Photo Sync Status</div><PhotoSyncStatus custs={custs} onUpd={onUpd} notify={notify}/></div>}
+
+        {/* ── ALERTS (escalations + team messaging) ── */}
+        {view==="alerts"&&(
+          <div>
+            <TeamMsgComposer smList={smListNames} onSend={onSendTeamMsg} sentMsgs={(teamMsgs||[]).filter(m=>m.by===user).slice(0,5)}/>
+            {escalations.length>0&&<div style={{marginBottom:18}}>
+              <div style={{fontWeight:800,fontSize:14,color:"#ef4444",marginBottom:8}}>🚩 ESCALATIONS ({escalations.length})</div>
+              {escalations.map(c=>(
+                <div key={c.id} onClick={()=>openCust(c)} style={{background:"rgba(239,68,68,0.07)",border:"1px solid rgba(239,68,68,0.35)",borderRadius:13,padding:"12px 13px",marginBottom:10,cursor:"pointer"}}>
+                  <div style={{fontWeight:700,fontSize:13,color:"#1e293b"}}>{c.name} <span style={{fontSize:11,color:"#94a3b8",fontWeight:400}}>· {c.model}</span></div>
+                  <div style={{fontSize:11,color:"#64748b",marginTop:2}}>{c.escalation?.reason} — by {c.escalation?.by}</div>
+                </div>
+              ))}
+            </div>}
+            {dashAlerts.length>0&&<div style={{marginBottom:18}}>
+              <div style={{fontWeight:800,fontSize:14,color:"#f59e0b",marginBottom:8}}>⚠️ LOST LEADS ({dashAlerts.length})</div>
+              {dashAlerts.map(c=>(
+                <div key={c.id} style={{background:"#fff",border:"1px solid #6b8fb5",borderRadius:13,padding:"12px 13px",marginBottom:10}}>
+                  <div style={{display:"flex",justifyContent:"space-between",alignItems:"center"}}>
+                    <div onClick={()=>openCust(c)} style={{cursor:"pointer"}}><div style={{fontWeight:700,fontSize:13,color:"#1e293b"}}>{c.name}</div><div style={{fontSize:11,color:"#94a3b8"}}>{c.model} · {c.salesman}</div></div>
+                    <button onClick={()=>onUpd(c.id,{alertDismissed:true})} style={{background:"transparent",border:"none",color:"#475569",fontSize:12,cursor:"pointer"}}>Dismiss</button>
+                  </div>
+                </div>
+              ))}
+            </div>}
+            {myMsgs.length>0&&<div>
+              <div style={{fontWeight:800,fontSize:14,color:"#3b82f6",marginBottom:8}}>📣 TEAM MESSAGES</div>
+              {myMsgs.slice(0,15).map(m=>(
+                <div key={m.id} onClick={()=>{if(!m.readBy.includes(user))onMarkMsgRead(m.id);}} style={{background:unreadMsgs.find(u=>u.id===m.id)?"rgba(96,165,250,0.08)":"#fff",border:"1px solid #6b8fb5",borderRadius:10,padding:"9px 12px",marginBottom:7,cursor:"pointer"}}>
+                  <div style={{fontSize:11,color:"#64748b"}}>{m.by} → {m.to}</div>
+                  <div style={{fontSize:13,color:"#1e293b"}}>{m.text}</div>
+                </div>
+              ))}
+            </div>}
+            {escalations.length===0&&dashAlerts.length===0&&myMsgs.length===0&&<div style={{textAlign:"center",color:"#94a3b8",padding:40,fontSize:13}}>Nothing needs your attention right now</div>}
+          </div>
+        )}
       </div>
       {/* ── FULL CUSTOMER DETAIL OVERLAY ── */}
       {docCust&&(
@@ -3885,22 +4044,29 @@ function OwnerPortal({custs,stockData,billedChassis,statusData,role,user,mBr,sav
               role={role}
               onBack={()=>{setDocCust(null);setDocTab(null);}}
               onUpd={p=>onUpd(docCust.id,p)}
-              onLog={()=>{}}
-              onBill={()=>{}}
-              onBook={()=>{}}
+              onLog={onLog}
+              onBill={()=>setBillOpen(true)}
+              onBook={()=>setBookOpen(true)}
               notify={notify}
               initTab={docTab}
               clearInit={()=>setDocTab(null)}
-              onAddPayment={()=>{}}
+              onAddPayment={onAddPayment}
               onApprove={onApprove}
               curUser={user}
-              onTransferReq={()=>{}}
-              onApproveTransfer={()=>{}}
-              onCorrectionReq={()=>{}}
+              onTransferReq={onTransferReq}
+              onApproveTransfer={onApproveTransfer}
+              onCorrectionReq={onCorrectionReq}
+              smList={smListNames}
+              onReassign={onReassign}
+              onEscalate={onEscalate}
+              onResolveEscalation={onResolveEscalation}
             />
           </div>
         </div>
       )}
+      {bookOpen&&docCust&&<BookingModal cust={custs.find(c=>c.id===docCust.id)||docCust} onClose={()=>setBookOpen(false)} onSave={bk=>{const cu=custs.find(c=>c.id===docCust.id)||docCust;
+        completeBooking(cu,bk,onUpd,notify,()=>{setBookOpen(false);setDocTab("docs");});}}/>}
+      {billOpen&&docCust&&<BillingModal cust={custs.find(c=>c.id===docCust.id)||docCust} onClose={()=>setBillOpen(false)} onSave={d=>{onBillC(custs.find(c=>c.id===docCust.id)||docCust,d);setBillOpen(false);}} onDraft={d=>{onUpd(docCust.id,{billingDraft:d});setBillOpen(false);}} notify={notify} role={role} stockData={stockData} billedChassis={billedChassis} allCusts={custs}/>}
     </div>
   );
 }
@@ -4262,10 +4428,16 @@ export default function App(){
       notify={notify} onUpd={upd} onApprove={approveBill}
       onLogout={()=>{sv("nkd_li",false);sv("nkd_portal",false);setPortalMode(false);setLi(false);}}
       onMobile={()=>togglePortal(false)}
+      teamMsgs={teamMsgs} onLog={logF} onCallLog={logCall} onAddPayment={addPayment}
+      onTransferReq={requestTransfer} onApproveTransfer={approveTransfer} onCorrectionReq={handleCorrectionReq}
+      onReassign={reassignLead} onEscalate={escalateLead} onResolveEscalation={resolveEscalation}
+      onSendTeamMsg={sendTeamMsg} onMarkMsgRead={markMsgRead} onBillC={billC}
+      onImportCust={rows=>{setCusts(p=>{const ex=new Set(p.map(c=>c.phone));return[...rows.filter(r=>!ex.has(r.phone)),...p];});}}
+      onImportAll={data=>{setCusts(data);notify("✅ Database imported: "+data.length+" customers");}}
     /></>;
   }
 
-  const navItems=role==="admin"?[{id:"vault",l:"Document Vault",ic:"📁"},{id:"uploads",l:"Uploads",ic:"📤"},{id:"stock",l:"Stock",ic:"🏍️"},{id:"rcstatus",l:"RC/HSRP",ic:"🔍"}]:[{id:"dashboard",l:"Home",ic:"🏠"},{id:"followups",l:"Followup",ic:"📞",badge:due.length},{id:"customers",l:"Customers",ic:"👥"},{id:"stock",l:"Stock",ic:"🏍️"},{id:"rcstatus",l:"RC/HSRP",ic:"🔍"},{id:"approvals",l:role==="salesman"?"My Pending":"Approve",ic:"✅",badge:myPending.length+(role!=="salesman"?pendingTransfers.length:0)+pendingCorrections.length},...(role!=="salesman"?[{id:"revival",l:"Revival",ic:"🔄"}]:[]),...(isOwner(role)||role==="manager"?[{id:"reports",l:"Reports",ic:"📊"}]:[]),...(isOwner(role)?[{id:"vault",l:"Vault",ic:"📁"}]:[]),...(isOwner(role)?[{id:"uploads",l:"Uploads",ic:"📤"}]:[]),...(role!=="salesman"?[{id:"finance",l:"Finance",ic:"💳",badge:financeCustomers.filter(c=>(c.financeStatus||"Pending")!=="Disbursed").length}]:[]),...(role!=="salesman"&&(alerts.length>0||escalations.length>0)?[{id:"alerts",l:"Alerts",ic:"⚠️",badge:alerts.length+escalations.length}]:[]),{id:"photosync",l:"Photo Sync",ic:"☁️",badge:stuckPhotoCustomers.length}];
+  const navItems=role==="admin"?[{id:"vault",l:"Document Vault",ic:"📁"},{id:"uploads",l:"Uploads",ic:"📤"},{id:"stock",l:"Stock",ic:"🏍️"},{id:"rcstatus",l:"RC/HSRP",ic:"🔍"}]:[{id:"dashboard",l:"Home",ic:"🏠"},{id:"followups",l:"Followup",ic:"📞",badge:due.length},{id:"customers",l:"Customers",ic:"👥"},{id:"stock",l:"Stock",ic:"🏍️"},{id:"rcstatus",l:"RC/HSRP",ic:"🔍"},{id:"approvals",l:role==="salesman"?"My Pending":"Approve",ic:"✅",badge:myPending.length+(role!=="salesman"?pendingTransfers.length:0)+pendingCorrections.length},...(role!=="salesman"?[{id:"revival",l:"Revival",ic:"🔄"}]:[]),...(isOwner(role)||role==="manager"?[{id:"reports",l:"Reports",ic:"📊"}]:[]),...(isOwner(role)?[{id:"vault",l:"Vault",ic:"📁"}]:[]),...(isOwner(role)?[{id:"uploads",l:"Uploads",ic:"📤"}]:[]),...(isOwner(role)?[{id:"users",l:"Accounts",ic:"👤"}]:[]),...(isOwner(role)?[{id:"team",l:"Team",ic:"👔"}]:[]),...(isOwner(role)?[{id:"cashbook",l:"Cash Book",ic:"💰"}]:[]),...(isOwner(role)?[{id:"exchdue",l:"Exch. Due",ic:"🔄"}]:[]),...(role!=="salesman"?[{id:"finance",l:"Finance",ic:"💳",badge:financeCustomers.filter(c=>(c.financeStatus||"Pending")!=="Disbursed").length}]:[]),...(role!=="salesman"&&(alerts.length>0||escalations.length>0)?[{id:"alerts",l:"Alerts",ic:"⚠️",badge:alerts.length+escalations.length}]:[]),{id:"photosync",l:"Photo Sync",ic:"☁️",badge:stuckPhotoCustomers.length}];
 
   return(
     <div style={{height:"100dvh",display:"flex",flexDirection:"column",background:"linear-gradient(160deg,#f0f7ff 0%,#e8f4ff 40%,#f8fafc 100%)",color:"#1e293b",fontFamily:"'Inter',-apple-system,sans-serif",maxWidth:480,margin:"0 auto",overflow:"hidden",paddingTop:"max(env(safe-area-inset-top),0px)"}}>
@@ -4382,6 +4554,10 @@ export default function App(){
         }));notify(ids.length+" reactivated — max 80 calls/day per executive, spread across days");}}/>}
         {view==="reports"&&<Reports custs={custs} onImportCust={rows=>{setCusts(p=>{const ex=new Set(p.map(c=>c.phone));return[...rows.filter(r=>!ex.has(r.phone)),...p];});}} nkdUsers={nkdUsers} smBranchMap={smBranchMap}/>}
         {view==="vault"&&<DocVault custs={custs} onImport={data=>{setCusts(data);notify("✅ Database imported: "+data.length+" customers");}} role={role}/>}
+        {view==="users"&&isOwner(role)&&<div style={{padding:"0 16px 80px"}}><UserMgmt nkdUsers={nkdUsers||DEFAULT_USERS} onSave={saveUsers} notify={notify}/></div>}
+        {view==="team"&&isOwner(role)&&<div style={{padding:"0 16px 80px"}}><div style={{fontWeight:800,fontSize:19,color:"#1e293b",marginBottom:14}}>👔 Team Performance</div><TeamPerformanceGrid smPerf={computeSmPerf(custs,nkdUsers,smBranchMap)}/></div>}
+        {view==="cashbook"&&isOwner(role)&&<div style={{padding:"0 16px 80px"}}><CashBook custs={custs} smBranchMap={smBranchMap}/></div>}
+        {view==="exchdue"&&isOwner(role)&&<div style={{padding:"0 16px 80px"}}><ExchangerDue custs={custs} onUpd={upd} notify={notify}/></div>}
         {view==="finance"&&<FinanceTracker custs={financeCustomers} onUpd={upd} onOpen={openD}/>}
         {view==="photosync"&&(
           <div style={{padding:"0 16px 80px"}}>
@@ -4426,15 +4602,7 @@ export default function App(){
       {(view==="customers"||view==="dashboard")&&<button onClick={()=>setAddOpen(true)} style={{position:"fixed",bottom:78,right:20,width:58,height:56,borderRadius:28,background:"linear-gradient(135deg,#f97316,#ef4444)",border:"none",display:"flex",alignItems:"center",justifyContent:"center",cursor:"pointer",boxShadow:"0 6px 28px rgba(249,115,22,0.55)",zIndex:50,fontSize:28,color:"#fff",animation:"glow 3s ease infinite"}}>+</button>}
       {addOpen&&<AddModal onClose={()=>setAddOpen(false)} onSave={d=>{addC(d);setAddOpen(false);}} curUser={user} role={role} existing={custs} smList={role==="manager"?(nkdUsers?.salesman||[]).filter(s=>mBrs.includes(s.branch)).map(s=>s.name):(nkdUsers?.salesman||[]).map(s=>s.name)}/>}
       {bookOpen&&sel&&<BookingModal cust={custs.find(c=>c.id===sel.id)||sel} onClose={()=>setBookOpen(false)} onSave={bk=>{const cu=custs.find(c=>c.id===sel.id)||sel;
-        var brc="<!DOCTYPE html><html><head><title>Booking Receipt</title><style>*{margin:0;padding:0;box-sizing:border-box}body{font-family:Arial;font-size:13px;padding:20px;color:#111}.logo{font-size:24px;font-weight:900;letter-spacing:2px;text-align:center}.hdr{text-align:center;border-bottom:2px solid #000;padding-bottom:10px;margin-bottom:14px}.hdr p{font-size:11px;color:#444;margin-top:2px}h2{text-align:center;font-size:17px;margin:10px 0 14px}.row{display:flex;justify-content:space-between;padding:5px 0;border-bottom:1px solid #eee}.v{font-weight:700}.total{display:flex;justify-content:space-between;padding:12px 0;border-top:2px solid #000;font-size:17px;font-weight:900;margin-top:8px}.sigs{display:flex;justify-content:space-between;margin-top:40px}.sigs div{text-align:center;font-size:11px}</style></head><body><div class=hdr><div class=logo>NKD BAJAJ</div><p>Authorised Main Dealer — Bajaj Auto Ltd.</p><p>Hirak Road, Near Kamal Katesaria School, Dhanbad</p><p>Ph: 7033099006 | info@nkdbajaj.com</p></div><h2>BOOKING RECEIPT</h2><div class=row><span>Date</span><span class=v>"+bk.date+"</span></div><div class=row><span>Customer</span><span class=v>"+cu.name+"</span></div><div class=row><span>Phone</span><span class=v>"+cu.phone+"</span></div><div class=row><span>Model</span><span class=v>"+(cu.model||"")+" ("+(cu.modelCode||"")+")</span></div><div class=row><span>Mode</span><span class=v>"+bk.mode+"</span></div>"+(bk.note?"<div class=row><span>Note</span><span class=v>"+bk.note+"</span></div>":"")+"<div class=total><span>BOOKING AMOUNT RECEIVED</span><span>"+fc(bk.amt)+"</span></div><p style='font-size:11px;color:#666;margin-top:8px'>Balance payable at delivery. Subject to realization of payment.</p><div class=sigs><div>____________________<br/>Customer Sign</div><div>____________________<br/>For NKD Bajaj</div></div></body></html>";
-        const newBk={...bk,receiptHtml:brc,savedAt:td()};
-        const prevBks=cu.bookings||(cu.booking?[cu.booking]:[]);
-        const allBks=[...prevBks,newBk];
-        const totalBk=allBks.reduce((s,b)=>s+Number(b.amt||0),0);
-        const updCu={...cu,booking:newBk,bookings:allBks,totalBooking:totalBk,status:"Booked",photos:{...(cu.photos||{}),...(bk.proof?{["booking_proof_"+allBks.length]:bk.proof}:{})},remarks:(cu.remarks||"")+"\n["+td()+"] BOOKING #"+allBks.length+": "+fc(bk.amt)+" ("+bk.mode+") — Total booked: "+fc(totalBk)+(bk.note?" — "+bk.note:"")};
-        upd(cu.id,updCu);
-        try{const doc=makeBookingPdf(updCu,newBk);sharePdf(doc,"Booking"+allBks.length+"_"+cu.name.replace(/ /g,"_")+"_"+td()+".pdf",cu.phone,"Please find your Booking Receipt #"+allBks.length+" from NKD Bajaj, Dhanbad.");savePdfToDrive(doc,"Booking"+allBks.length+"_"+cu.name.replace(/ /g,"_")+"_"+td()+".pdf",cu.name,"Booking");}catch(e){}
-        setBookOpen(false);setDtab("docs");notify("✅ Booking #"+allBks.length+" saved & MR sent to customer!");}}/>}
+        completeBooking(cu,bk,upd,notify,()=>{setBookOpen(false);setDtab("docs");});}}/>}
       {billOpen&&sel&&<BillingModal cust={custs.find(c=>c.id===sel.id)||sel} onClose={()=>setBillOpen(false)} onSave={d=>{billC(custs.find(c=>c.id===sel.id)||sel,d);setBillOpen(false);}} onDraft={d=>{upd(sel.id,{billingDraft:d});setBillOpen(false);}} notify={notify} role={role} stockData={stockData} billedChassis={billedChassis} allCusts={custs}/>}
       <div style={{flexShrink:0,background:"rgba(255,255,255,.97)",backdropFilter:"blur(18px)",borderTop:"2px solid #6b8fb5",display:"flex",zIndex:100,paddingBottom:"env(safe-area-inset-bottom)",boxShadow:"0 -4px 24px rgba(15,23,42,.10)"}}>
         {navItems.map(t=><button key={t.id} onClick={()=>nav(t.id)} style={{flex:1,padding:"8px 2px 10px",background:"transparent",border:"none",cursor:"pointer",display:"flex",flexDirection:"column",alignItems:"center",gap:3,position:"relative"}}>
