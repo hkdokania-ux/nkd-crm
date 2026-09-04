@@ -4604,13 +4604,16 @@ export default function App(){
       {bookOpen&&sel&&<BookingModal cust={custs.find(c=>c.id===sel.id)||sel} onClose={()=>setBookOpen(false)} onSave={bk=>{const cu=custs.find(c=>c.id===sel.id)||sel;
         completeBooking(cu,bk,upd,notify,()=>{setBookOpen(false);setDtab("docs");});}}/>}
       {billOpen&&sel&&<BillingModal cust={custs.find(c=>c.id===sel.id)||sel} onClose={()=>setBillOpen(false)} onSave={d=>{billC(custs.find(c=>c.id===sel.id)||sel,d);setBillOpen(false);}} onDraft={d=>{upd(sel.id,{billingDraft:d});setBillOpen(false);}} notify={notify} role={role} stockData={stockData} billedChassis={billedChassis} allCusts={custs}/>}
-      <div style={{flexShrink:0,background:"rgba(255,255,255,.97)",backdropFilter:"blur(18px)",borderTop:"2px solid #6b8fb5",display:"flex",zIndex:100,paddingBottom:"env(safe-area-inset-bottom)",boxShadow:"0 -4px 24px rgba(15,23,42,.10)"}}>
-        {navItems.map(t=><button key={t.id} onClick={()=>nav(t.id)} style={{flex:1,padding:"8px 2px 10px",background:"transparent",border:"none",cursor:"pointer",display:"flex",flexDirection:"column",alignItems:"center",gap:3,position:"relative"}}>
-          <span style={{fontSize:26,lineHeight:1,filter:view===t.id?"none":"grayscale(0.3) opacity(0.75)"}}>{t.ic}</span>
-          <span style={{fontSize:10,fontWeight:800,color:view===t.id?"#f97316":"#64748b",letterSpacing:0.2}}>{t.l}</span>
-          {view===t.id&&<span style={{position:"absolute",top:0,left:"50%",transform:"translateX(-50%)",width:28,height:3,background:"#f97316",borderRadius:"0 0 4px 4px"}}/>}
-          {t.badge>0&&<span style={{position:"absolute",top:4,right:"50%",marginRight:-18,background:"#ef4444",color:"#fff",fontSize:9,fontWeight:800,borderRadius:10,padding:"1px 5px",minWidth:16,textAlign:"center"}}>{t.badge}</span>}
-        </button>)}
+      <div style={{flexShrink:0,position:"relative",background:"rgba(255,255,255,.97)",backdropFilter:"blur(18px)",borderTop:"2px solid #6b8fb5",zIndex:100,paddingBottom:"env(safe-area-inset-bottom)",boxShadow:"0 -4px 24px rgba(15,23,42,.10)"}}>
+        <div style={{display:"flex",overflowX:"auto",WebkitOverflowScrolling:"touch"}}>
+          {navItems.map(t=><button key={t.id} onClick={()=>nav(t.id)} style={{flex:"0 0 auto",minWidth:64,padding:"8px 8px 10px",background:"transparent",border:"none",cursor:"pointer",display:"flex",flexDirection:"column",alignItems:"center",gap:3,position:"relative"}}>
+            <span style={{fontSize:26,lineHeight:1,filter:view===t.id?"none":"grayscale(0.3) opacity(0.75)"}}>{t.ic}</span>
+            <span style={{fontSize:10,fontWeight:800,color:view===t.id?"#f97316":"#64748b",letterSpacing:0.2,whiteSpace:"nowrap"}}>{t.l}</span>
+            {view===t.id&&<span style={{position:"absolute",top:0,left:"50%",transform:"translateX(-50%)",width:28,height:3,background:"#f97316",borderRadius:"0 0 4px 4px"}}/>}
+            {t.badge>0&&<span style={{position:"absolute",top:4,right:8,background:"#ef4444",color:"#fff",fontSize:9,fontWeight:800,borderRadius:10,padding:"1px 5px",minWidth:16,textAlign:"center"}}>{t.badge}</span>}
+          </button>)}
+        </div>
+        {navItems.length>6&&<div style={{position:"absolute",top:0,right:0,bottom:"env(safe-area-inset-bottom)",width:22,background:"linear-gradient(90deg,rgba(255,255,255,0),rgba(255,255,255,.95))",pointerEvents:"none"}}/>}
       </div>
     </div>
   );
