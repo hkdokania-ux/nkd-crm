@@ -2910,6 +2910,56 @@ function Reports({custs,onImportCust,nkdUsers,smBranchMap:smBranchMapProp}){
           XLSX.writeFile(wb,fname2);
           saveExcelToDrive(wb,fname2,repMonth);
         }} style={{width:"100%",background:"rgba(96,165,250,0.1)",border:"1px solid rgba(96,165,250,0.35)",borderRadius:11,padding:"13px",color:"#60a5fa",fontWeight:700,fontSize:13,cursor:"pointer"}}>💰 Export Accounts Team Report — {repMonth} ☁️</button>
+        <button onClick={()=>{
+          // Matches the accounts team's original "FOR AI USE" ledger layout (91 cols).
+          // Columns with no source in the CRM (dealer purchase price, invoice no/date, RC receive date,
+          // card no, insurance company, reg challan) are intentionally left blank — that data was never
+          // captured anywhere in the app and has to be filled in by hand.
+          const H=["SL NO","FILE-NO.","Month","DATE OF DELIVERY","PARTY NAME","MODEL CODE","MODEL NAME","ADDRESS","MOBILE NO","CHASSIS NO","","ENGINE NO. ","REGD.NO.","VEHICLE NO-REGD.NO.","CARD NO","DATE OF RC RECEIVE","INVOICE NO","INVOICE DATE","PUR PRICE","INS PAY","REG PAY","VEN PAY","TEFCOT","Accessories","AMC","Other Cost","TOTAL","EX SHOWROOM","HANDLING","INSURANCE","REGISTRATION","HYPO","TEFCOT","Accessories","legGuard/ Acc. KIT","misc. rec.","AMC","TOTAL","BILL PRICE/EX SHOWROOM","HANDLING","INSURANCE","REGISTRATION","HYPO","TEFCOT","Accessories","ATW","AMC","TOTAL","CONSUMER OFFER","CORPORATE SCHEME Less : and UC (Misc. Rec.) Add :","SPECIAL DISC","TOTAL AFTER DISCOUNT","INS CHALLAN AMT","INSURANCE COMPANY","REG CHALLAN AMT","REG CHALLAN DATE","BANK","D/P CASH","DATE OF REC","M R NO. ","Z","D/P UPI","DATE OF REC","M R NO.","a","Exchanger Cash","DATE OF REC","M R NO.","b","D/P CASH","DATE OF REC","M R NO.","c","D/P CHEQUE","M. R.NO.","CHQ NO","CHQ DATE","BANK NAME","CLEARING DATE","d","FIN AMT","AMT RECD","FIN INCOME","FIN DATE","CLEARING DATE","TOTAL COLLECTION","AMOUNT DUE","REMARKS","Exchange Due / Cheque Return","Final Due","REM-001"];
+          const monthTag=d=>{if(!d)return"";const dt=new Date(d);if(isNaN(dt))return"";return dt.toLocaleDateString("en-US",{month:"short"}).toUpperCase()+"_"+String(dt.getFullYear()).slice(-2);};
+          const eligible=billedForMonth.filter(c=>c.billing&&c.billing.calc);
+          const rows=eligible.map((c,idx)=>{
+            const b=c.billing,k=b.calc;
+            const pmts=(b.payments||[]).filter(p=>Number(p.amt||0)>0);
+            const cashP=pmts.filter(p=>p.mode==="Cash"),upiP=pmts.filter(p=>p.mode==="UPI"),chqP=pmts.filter(p=>p.mode==="Cheque"),rtgsP=pmts.filter(p=>p.mode==="RTGS"),finP=pmts.filter(p=>p.mode==="Finance");
+            const cash1=cashP[0],cash2=cashP[1];
+            const extraCash=cashP.slice(2).reduce((s,p)=>s+Number(p.amt||0),0);
+            const upiAmt=upiP.reduce((s,p)=>s+Number(p.amt||0),0);
+            const upiRef=upiP.map(p=>p.ref).filter(Boolean).join(", ")||(upiAmt?b.mrNo||"":"");
+            const upiDate=upiP.length?upiP[upiP.length-1].date:"";
+            const chqAmt=chqP.reduce((s,p)=>s+Number(p.amt||0),0);
+            const chqRef=chqP.map(p=>p.ref).filter(Boolean).join(", ");
+            const chqDate=chqP.length?chqP[chqP.length-1].date:"";
+            const finFromPmts=finP.reduce((s,p)=>s+Number(p.amt||0),0);
+            const finAmt=finFromPmts||Number(k.loan||0);
+            const rem=[];
+            if(!pmts.length&&b.payMode)rem.push("Pay Mode (raw, no itemised payments recorded): "+b.payMode);
+            if(rtgsP.length)rem.push("RTGS "+rtgsP.map(p=>fc(Number(p.amt||0))+(p.ref?" ("+p.ref+")":"")).join(" + ")+" — no RTGS column in this template, place manually");
+            if(extraCash>0)rem.push("Additional cash beyond the 2 slots: "+fc(extraCash));
+            if(b.discRem)rem.push("Disc remark: "+b.discRem);
+            const row=new Array(91).fill("");
+            row[0]=idx+1;row[1]=b.mrNo||"";row[2]=monthTag(b.deliveryDate||c.billedDate);row[3]=b.deliveryDate||"";
+            row[4]=c.name||"";row[5]=c.modelCode||"";row[6]=c.model||"";row[7]=c.address||"";row[8]=c.phone||"";row[9]=b.chassis||"";
+            row[11]=b.engine||"";row[12]=b.registrationNo||"";
+            row[38]=k.ex;row[39]=k.hdl;row[40]=k.ins;row[41]=k.reg;row[42]=k.hyp;row[43]=k.tef;row[44]=(k.ca||0)+(k.acc||0);row[45]=k.atw||0;row[46]=k.amcV;row[47]=k.C;
+            row[48]=k.cof;row[49]=k.corp;row[50]=k.sdis;row[51]=k.E;
+            row[56]=(b.financeBank&&b.financeBank!=="Cash")?b.financeBank:"";
+            if(cash1){row[57]=Number(cash1.amt||0);row[58]=cash1.date||"";row[59]=cash1.ref||b.mrNo||"";}
+            if(upiAmt){row[61]=upiAmt;row[62]=upiDate;row[63]=upiRef;}
+            if(cash2){row[69]=Number(cash2.amt||0)+extraCash;row[70]=cash2.date||"";row[71]=cash2.ref||b.mrNo||"";}
+            if(chqAmt){row[73]=chqAmt;row[74]=chqRef||b.mrNo||"";row[75]=chqRef;row[76]=chqDate;}
+            if(finAmt){row[80]=finAmt;row[81]=finFromPmts||finAmt;}
+            row[85]=k.paid;row[86]=Math.max(k.K,0);
+            row[87]=rem.join(" | ");
+            return row;
+          });
+          if(rows.length===0){alert("No billed customers for "+repMonth);return;}
+          const wb=XLSX.utils.book_new();const ws=XLSX.utils.aoa_to_sheet([H,...rows]);
+          ws["!cols"]=H.map(()=>({wch:16}));XLSX.utils.book_append_sheet(wb,ws,"Sheet1");
+          const fname2b="NKD_AccountsTeam_"+repMonth+"_FOR_AI_USE_format.xlsx";
+          XLSX.writeFile(wb,fname2b);
+          saveExcelToDrive(wb,fname2b,repMonth);
+        }} style={{width:"100%",background:"rgba(139,92,246,0.1)",border:"1px solid rgba(139,92,246,0.35)",borderRadius:11,padding:"13px",color:"#a78bfa",fontWeight:700,fontSize:13,cursor:"pointer"}}>📒 Export Accounts Report — FOR AI USE format — {repMonth} ☁️</button>
       </div>
       <div style={{fontSize:11,fontWeight:700,color:"#f59e0b",marginBottom:6,marginTop:4}}>🏢 BRANCH MANAGER REPORTS — {repMonth}</div>
       <div style={{display:"flex",flexDirection:"column",gap:8,marginBottom:14}}>
@@ -4185,7 +4235,12 @@ export default function App(){
   function togglePortal(v){setPortalMode(v);sv("nkd_portal",v);}
 
   if(!fbReady)return(<div style={{minHeight:"100vh",background:"linear-gradient(160deg,#f0f7ff 0%,#f8fafc 100%)",display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",gap:14}}><div style={{width:110,background:"#fff",borderRadius:16,padding:"8px 12px"}}><img src="/logo.png" alt="NKD Bajaj" style={{width:"100%"}}/></div><div style={{color:"#f97316",fontWeight:700,fontSize:15}}>NKD Bajaj CRM</div><div style={{color:"#94a3b8",fontSize:12}}>Connecting to database…</div></div>);
-  if(!li)return <Login nkdUsers={nkdUsers} onLogin={(r,u,b)=>{setRole(r);setUser(u);if(b)sv("nkd_br",b);sv("nkd_r",r);sv("nkd_u",u);sv("nkd_li",true);setLi(true);if(isPortalRole(r))togglePortal(true);}}/>;
+  if(!li)return <Login nkdUsers={nkdUsers} onLogin={(r,u,b)=>{setRole(r);setUser(u);if(b)sv("nkd_br",b);sv("nkd_r",r);sv("nkd_u",u);sv("nkd_li",true);setLi(true);
+    // The desktop Portal layout (sidebar + wide table views) isn't built for narrow phone screens —
+    // it squeezes into two unreadable columns there. Default owner/admin/tech into Mobile View on a
+    // narrow screen instead; they can still tap "🖥️ Portal" to switch if they really want it.
+    if(isPortalRole(r))togglePortal(typeof window!=="undefined"?window.innerWidth>=768:true);
+  }}/>;
 
   // Payment notification popup for manager / owner / tech
   const notifPopup=(role==="manager"||role==="owner"||role==="tech"||role==="admin")&&(
