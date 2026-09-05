@@ -12,6 +12,7 @@ const RC={DY13:{n:"CT110 X ES NXT",cat:"CT",ex:71184,cAcc:0,hdl:600,ins:6834,reg
 const SM=[];
 const BRANCHES=["Hirak Road","Saraidhela","Chirkunda"];
 const OFFICE_WA="7033099010";
+const GREETING_DEFAULT="Hello Mr. {name}! 🙏\n\nGreetings from *{showroom}*.\n\nThank you for your enquiry{model_line}. We are happy to serve you!\n\nFor any queries, feel free to reach us anytime.\n\n— NKD Bajaj Team";
 const SM_BRANCH={};
 const ST_C={Hot:"#ef4444",Warm:"#f97316",Cold:"#3b82f6",Booked:"#8b5cf6",Billed:"#10b981",Lost:"#6b7280"};
 const FU={Hot:1,Warm:3,Cold:7};
@@ -3169,6 +3170,8 @@ function DocVault({custs,onImport,role}){
 }
 
 function UserMgmt({nkdUsers,onSave,notify}){
+  const [greeting,setGreeting]=useState(()=>ld("nkd_greeting",GREETING_DEFAULT));
+  function saveGreeting(){sv("nkd_greeting",greeting);_dbSet("greeting_template",greeting);notify("✅ Greeting message updated");}
   const [users,setUsers]=useState(()=>({
     manager:[...(nkdUsers.manager||[])],
     owner:[...(nkdUsers.owner||[])],
@@ -3243,6 +3246,18 @@ function UserMgmt({nkdUsers,onSave,notify}){
     <div style={{maxWidth:720}}>
       <div style={{fontWeight:800,fontSize:20,color:"#1e293b",marginBottom:4}}>👤 User Accounts</div>
       <div style={{fontSize:12,color:"#94a3b8",marginBottom:20}}>Manage login credentials for all roles.</div>
+
+      {/* ── WHATSAPP GREETING TEMPLATE ── */}
+      <div style={{background:"#fff",border:"2px solid #3b82f6",borderRadius:14,padding:"16px 18px",marginBottom:16}}>
+        <div style={{fontWeight:800,fontSize:13,color:"#1d4ed8",marginBottom:4,textTransform:"uppercase",letterSpacing:1}}>💬 New Customer WhatsApp Greeting</div>
+        <div style={{fontSize:11,color:"#64748b",marginBottom:10}}>Sent automatically the moment a new enquiry is added. Placeholders: <b>{"{name}"}</b> customer's name, <b>{"{showroom}"}</b> branch name (auto-picked from the salesman's branch — e.g. "NKD Bajaj, Chirkunda, Dhanbad"), <b>{"{model_line}"}</b> for " regarding *Model Name*" (blank if no model picked yet).</div>
+        <textarea rows={6} value={greeting} onChange={e=>setGreeting(e.target.value)} style={{...inp,fontFamily:"monospace",fontSize:12,resize:"vertical",marginBottom:8}}/>
+        <div style={{fontSize:11,color:"#94a3b8",marginBottom:10,background:"#f8fafc",borderRadius:8,padding:"8px 10px",whiteSpace:"pre-wrap"}}>Preview: {greeting.replace(/\{name\}/g,"Rohit Kumar").replace(/\{showroom\}/g,"NKD Bajaj, Chirkunda, Dhanbad").replace(/\{model_line\}/g," regarding *Pulsar 125*")}</div>
+        <div style={{display:"flex",gap:8}}>
+          <button onClick={saveGreeting} style={{...btn("#3b82f6"),flex:1}}>💾 Save Greeting</button>
+          {greeting!==GREETING_DEFAULT&&<button onClick={()=>setGreeting(GREETING_DEFAULT)} style={{...btn("#e2e8f0","#374151"),border:"1px solid #6b8fb5"}}>Reset to Default</button>}
+        </div>
+      </div>
 
       {/* ── SALES EXECUTIVES ── */}
       <div style={{background:"#fff",border:"2px solid #22c55e",borderRadius:14,padding:"16px 18px",marginBottom:16}}>
@@ -4155,6 +4170,7 @@ export default function App(){
       _dbGet("passwords").then(d=>{if(d)sv("nkd_pw",d);}),
       _dbGet("rate_chart").then(d=>{if(d){sv("nkd_rc",d);try{Object.assign(RC,d);}catch(e){}}}),
       _dbGet("office_wa").then(d=>{if(d)sv("nkd_office_wa",d);}),
+      _dbGet("greeting_template").then(d=>{if(d)sv("nkd_greeting",d);}),
       _dbGet("nkd_users").then(d=>{if(d){sv("nkd_users",d);setNkdUsers(d);}else{_dbSet("nkd_users",DEFAULT_USERS);sv("nkd_users",DEFAULT_USERS);}}),
       _dbGet("payment_notifs").then(d=>{if(d){sv("nkd_pnotifs",d);setPayNotifs(d);}}),
       _dbGet("nkd_stock").then(d=>{if(d&&d.length){sv("nkd_stock",d);setStockData(d);}}),
@@ -4190,7 +4206,10 @@ export default function App(){
     // Send WhatsApp greeting to new customer — zero-tap via Cloud API, falls back to manual wa.me link
     if(data.phone&&data.phone.length===10){
       const model=data.model||data.modelCode||"";
-      const greeting="Hello "+data.name+"! 🙏\n\nGreetings from *NKD Bajaj, Dhanbad*.\n\nThank you for your enquiry"+(model?" regarding *"+model+"*":"")+". We are happy to serve you!\n\nFor any queries, feel free to reach us anytime.\n\n— NKD Bajaj Team";
+      const branch=data.branch||smBranchMap[data.salesman]||"";
+      const showroom="NKD Bajaj, "+(branch?branch+", ":"")+"Dhanbad";
+      const tmpl=ld("nkd_greeting",GREETING_DEFAULT)||GREETING_DEFAULT;
+      const greeting=tmpl.replace(/\{name\}/g,data.name).replace(/\{model_line\}/g,model?(" regarding *"+model+"*"):"").replace(/\{model\}/g,model).replace(/\{showroom\}/g,showroom);
       let autoSent=false;
       try{
         const r=await fetch("/api/send-whatsapp",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({phone:data.phone,message:greeting})});
